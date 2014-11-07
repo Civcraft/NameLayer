@@ -6,13 +6,14 @@
   <groupId>com.valadian</groupId>
   <artifactId>NameLayer</artifactId>
   <packaging>jar</packaging>
-  <version>1.0.5-SNAPSHOT</version>
+  <version>1.0.5-${build.number}</version>
   <name>NameTracker</name>
-  <url>https://github.com/rourke750/NameLayer</url>
+  <url>https://github.com/Civcraft/NameLayer</url>
   
   <properties>
     <maven.compiler.source>1.7</maven.compiler.source>
-    <maven.compiler.target>1.7</maven.compiler.target>
+    <maven.compiler.target>1.7</maven.compiler.target>  
+    <build.number>SNAPSHOT</build.number>
   </properties>
   
   <build>
@@ -22,6 +23,7 @@
       <resource>
         <directory>${basedir}</directory>
         <includes>
+          <include>**/*.java</include>
           <include>*.yml</include>
         </includes>
       </resource>
@@ -41,6 +43,10 @@
     <repository>
       <id>bukkit-repo</id>
       <url>http://repo.bukkit.org/content/groups/public/</url>
+    </repository>
+    <repository>
+      <id>civcraft-repo</id>
+      <url>http://civcraft.org:8080/plugin/repository/everything/</url>
     </repository>
   </repositories>
 </project>
