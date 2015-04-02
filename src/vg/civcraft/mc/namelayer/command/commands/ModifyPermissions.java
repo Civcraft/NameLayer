@@ -22,7 +22,7 @@ public class ModifyPermissions extends PlayerCommand{
 	public ModifyPermissions(String name) {
 		super(name);
 		setIdentifier("nlmp");
-		setDescription("This command is used to modify the permissions of a group.");
+		setDescription("Modify the permissions of a group.");
 		setUsage("/nlmp <group> <add/remove> <PlayerType> <PermissionType>");
 		setArguments(4,4);
 	}
@@ -50,7 +50,7 @@ public class ModifyPermissions extends PlayerCommand{
 			return true;
 		}
 		GroupPermission gPerm = gm.getPermissionforGroup(g);
-		if (!gPerm.isAccessible(type, PermissionType.PERMS) || !g.isOwner(uuid)){
+		if (!gPerm.isAccessible(type, PermissionType.PERMS) && !g.isOwner(uuid)){
 			p.sendMessage(ChatColor.RED + "You do not have permission for this command.");
 			return true;
 		}
@@ -73,6 +73,7 @@ public class ModifyPermissions extends PlayerCommand{
 				gPerm.addPermission(playerType, pType);
 				sender.sendMessage(ChatColor.GREEN + "The PermissionType: " + pType.name() + " was successfully added to the PlayerType: " +
 				playerType.name());
+				checkRecacheGroup(g);
 			}
 		}
 		else if (info.equalsIgnoreCase("remove")){
@@ -80,6 +81,7 @@ public class ModifyPermissions extends PlayerCommand{
 				gPerm.removePermission(playerType, pType);
 				sender.sendMessage(ChatColor.GREEN + "The PermissionType: " + pType.name() + " was successfully removed from" +
 						" the PlayerType: " + playerType.name());
+				checkRecacheGroup(g);
 			}
 			else
 				sender.sendMessage(ChatColor.RED + "This PlayerType does not have the PermissionType: " + pType.name());

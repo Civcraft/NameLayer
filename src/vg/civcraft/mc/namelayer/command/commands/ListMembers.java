@@ -19,7 +19,7 @@ public class ListMembers extends PlayerCommand{
 	public ListMembers(String name) {
 		super(name);
 		setIdentifier("nllm");
-		setDescription("This command is used to list the members in a group");
+		setDescription("List the members in a group");
 		setUsage("/nllm <group> (PlayerType)");
 		setArguments(1,2);
 	}
@@ -53,10 +53,14 @@ public class ListMembers extends PlayerCommand{
 		}
 		else
 			uuids = g.getAllMembers();
-		String x = "Members are as follows: ";
-		for (UUID uu: uuids)
-			x += NameAPI.getCurrentName(uu) + " ";
-		p.sendMessage(ChatColor.GREEN + x);
+		StringBuilder sb = new StringBuilder();
+		sb.append("Members are as follows: ");
+		for (UUID uu: uuids){
+			sb.append(NameAPI.getCurrentName(uu));
+			sb.append(" ");
+		}
+		
+		p.sendMessage(ChatColor.GREEN + sb.toString());
 		return true;
 	}
 

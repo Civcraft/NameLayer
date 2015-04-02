@@ -22,7 +22,7 @@ public class AddSuperGroup extends PlayerCommand{
 	public AddSuperGroup(String name) {
 		super(name);
 		setIdentifier("nlasg");
-		setDescription("This command is used to add a supergroup to a group.");
+		setDescription("Add a supergroup to a group.");
 		setUsage("/nlasg <main group> <super group>");
 		setArguments(2,2);
 	}
@@ -74,8 +74,10 @@ public class AddSuperGroup extends PlayerCommand{
 				Super.addSubGroup(g);
 				for (UUID superMember: Super.getAllMembers())
 					g.addMember(superMember, PlayerType.SUBGROUP);
+				checkRecacheGroup(g);
 			}
 		}
+		checkRecacheGroup(pri);
 		p.sendMessage(ChatColor.GREEN + "The super group has successfully been added.");
 		return true;
 	}

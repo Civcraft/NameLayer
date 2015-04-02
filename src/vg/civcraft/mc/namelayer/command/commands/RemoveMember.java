@@ -20,7 +20,7 @@ public class RemoveMember extends PlayerCommand {
 	public RemoveMember(String name) {
 		super(name);
 		setIdentifier("nlrm");
-		setDescription("This command is used to remove a member from a group.");
+		setDescription("Remove a member from a group.");
 		setUsage("/nlrm <group> <member>");
 		setArguments(2,2);
 		
@@ -44,6 +44,11 @@ public class RemoveMember extends PlayerCommand {
 		}
 		UUID executor = NameAPI.getUUID(p.getName());
 		UUID uuid = NameAPI.getUUID(args[1]);
+		
+		if (uuid == null){
+			p.sendMessage(ChatColor.RED + "The player has never played before.");
+			return true;
+		}
 		
 		String playerName = NameAPI.getCurrentName(uuid);
 		GroupPermission perm = gm.getPermissionforGroup(group);
@@ -77,11 +82,6 @@ public class RemoveMember extends PlayerCommand {
 			return true;
 		}
 		
-		if (uuid == null){
-			p.sendMessage(ChatColor.RED + "The player has never played before.");
-			return true;
-		}
-		
 		if (!group.isMember(uuid)){
 			p.sendMessage(ChatColor.RED + "That player is not on the group.");
 			return true;
@@ -95,6 +95,7 @@ public class RemoveMember extends PlayerCommand {
 		
 		p.sendMessage(ChatColor.GREEN + playerName + " has been removed from the group.");
 		group.removeMember(uuid);
+		checkRecacheGroup(group);
 		return true;
 	}
 
