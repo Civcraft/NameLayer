@@ -14,7 +14,6 @@ import vg.civcraft.mc.namelayer.NameLayerPlugin;
 import vg.civcraft.mc.namelayer.command.PlayerCommand;
 import vg.civcraft.mc.namelayer.command.TabCompleters.GroupTabCompleter;
 import vg.civcraft.mc.namelayer.group.Group;
-import vg.civcraft.mc.namelayer.group.Group.ReinforcementCount;
 import vg.civcraft.mc.namelayer.permission.GroupPermission;
 import vg.civcraft.mc.namelayer.permission.PermissionType;
 
@@ -94,11 +93,7 @@ public class GroupStats extends PlayerCommand {
 				else
 					message += "No members for the PlayerType " + type.name() + ".\n";
 			}
-			message += "That makes " + g.getAllMembers().size() + " members total.\n";
-			
-			ReinforcementCount count = g.getReinforcementCount();
-			message += "Reinforcements:: Stone: " + count.getStoneCount() + " Iron: " + count.getIronCount() + " Diamond: " + count.getDiamondCount();
-			
+			message += "That makes " + g.getAllMembers().size() + " members total.";
 			if (p != null && !p.isOnline()) // meh be safe
 				return;
 			p.sendMessage(message);
