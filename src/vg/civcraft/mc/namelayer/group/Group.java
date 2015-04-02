@@ -6,6 +6,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
+import org.bukkit.Material;
+
 import vg.civcraft.mc.namelayer.GroupManager.PlayerType;
 import vg.civcraft.mc.namelayer.NameLayerPlugin;
 import vg.civcraft.mc.namelayer.database.GroupManagerDao;
@@ -25,31 +27,46 @@ public class Group {
 			this.diamondCount = 0;
 		}
 		
-		public void incrementStone()
+		public void incriment(Material type)
 		{
-			this.stoneCount++;
-		}
-		public void decrimentStone()
-		{
-			this.stoneCount--;
+			switch(type)
+			{
+				case DIAMOND:
+					this.diamondCount++;
+					break;
+				
+				case IRON_INGOT:
+					this.ironCount++;
+					break;
+				
+				case STONE:
+					this.stoneCount++;
+					break;
+				
+				default:
+					break;
+			}
 		}
 		
-		public void incrementIron()
+		public void decriment(Material type)
 		{
-			this.ironCount++;
-		}
-		public void decrimentIron()
-		{
-			this.ironCount--;
-		}
-		
-		public void incrementDiamond()
-		{
-			this.diamondCount++;
-		}
-		public void decrimentDiamond()
-		{
-			this.diamondCount--;
+			switch(type)
+			{
+				case DIAMOND:
+					this.diamondCount--;
+					break;
+				
+				case IRON_INGOT:
+					this.ironCount--;
+					break;
+				
+				case STONE:
+					this.stoneCount--;
+					break;
+				
+				default:
+					break;
+			}
 		}
 		
 		public int getStoneCount()
