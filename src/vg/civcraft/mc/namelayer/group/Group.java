@@ -12,12 +12,77 @@ import vg.civcraft.mc.namelayer.database.GroupManagerDao;
 
 public class Group {
 	
+	public class ReinforcementCount
+	{
+		private int stoneCount;
+		private int ironCount;
+		private int diamondCount;
+		
+		public ReinforcementCount()
+		{
+			this.stoneCount = 0;
+			this.ironCount = 0;
+			this.diamondCount = 0;
+		}
+		
+		public void incrementStone()
+		{
+			this.stoneCount++;
+		}
+		public void decrimentStone()
+		{
+			this.stoneCount--;
+		}
+		
+		public void incrementIron()
+		{
+			this.ironCount++;
+		}
+		public void decrimentIron()
+		{
+			this.ironCount--;
+		}
+		
+		public void incrementDiamond()
+		{
+			this.diamondCount++;
+		}
+		public void decrimentDiamond()
+		{
+			this.diamondCount--;
+		}
+		
+		public int getStoneCount()
+		{
+			return this.stoneCount;
+		}
+		
+		public int getIronCount()
+		{
+			return this.ironCount;
+		}
+		
+		public int getDiamondCount()
+		{
+			return this.diamondCount;
+		}
+		
+		public void resetCounts()
+		{
+			this.stoneCount = 0;
+			this.ironCount = 0;
+			this.diamondCount = 0;
+		}
+	}
+	
 	protected String groupName;
 	private UUID ownerUUID;
 	private boolean isDisciplined;
 	private String password;
 	private GroupType type;
 	private boolean valid = true;
+	
+	private ReinforcementCount count;
 	
 	protected GroupManagerDao db = NameLayerPlugin.getGroupManagerDao();
 	
@@ -38,6 +103,8 @@ public class Group {
 				players.put(uuid, t);
 			}
 		}
+		
+		this.count = new ReinforcementCount();
 	}
 	/**
 	 * Returns all the uuids of the members in this group.
@@ -232,5 +299,10 @@ public class Group {
 	public String changeDefaultGroup(UUID uuid){
 		db.changeDefaultGroup(uuid, groupName);
 		return groupName;
+	}
+	
+	public ReinforcementCount getReinforcementCount()
+	{
+		return this.count;
 	}
 }
