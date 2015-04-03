@@ -30,6 +30,7 @@ public enum PermissionType {
 	LIST_PERMS, // Allows the player to use the command to list the perms of a PlayerType
 	TRANSFER, // Allows the player to transfer the group
 	CROPS, // Allows access to crops, mainly used for citadel.
+	LISTMEMBERS, //Allows access to the nllm command
 	GROUPSTATS; //Allows access to nlgs command for group
 	
 	public static PermissionType getPermissionType(String type){
