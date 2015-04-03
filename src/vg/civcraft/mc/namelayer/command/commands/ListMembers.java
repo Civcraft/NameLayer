@@ -13,6 +13,7 @@ import vg.civcraft.mc.namelayer.command.PlayerCommand;
 import vg.civcraft.mc.namelayer.command.TabCompleters.GroupTabCompleter;
 import vg.civcraft.mc.namelayer.command.TabCompleters.MemberTypeCompleter;
 import vg.civcraft.mc.namelayer.group.Group;
+import vg.civcraft.mc.namelayer.permission.PermissionType;
 
 public class ListMembers extends PlayerCommand{
 
@@ -41,7 +42,11 @@ public class ListMembers extends PlayerCommand{
 			p.sendMessage(ChatColor.RED + "You are not on this group.");
 			return true;
 		}
-		
+		boolean allowed = gm.getPermissionforGroup(g).isAccessible(g.getPlayerType(uuid), PermissionType.LISTMEMBERS);
+		if(!allowed) {
+			p.sendMessage(ChatColor.RED + "You don't have permission for this command.");
+			return true;
+		}
 		List<UUID> uuids = null;
 		if (args.length > 1){
 			PlayerType type = PlayerType.getPlayerType(args[1]);
