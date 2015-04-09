@@ -18,6 +18,7 @@ public class Group {
 	private String password;
 	private GroupType type;
 	private boolean valid = true;
+	private String groupID;
 	
 	protected GroupManagerDao db = NameLayerPlugin.getGroupManagerDao();
 	
@@ -38,6 +39,7 @@ public class Group {
 				players.put(uuid, t);
 			}
 		}
+		groupID = db.getGroupID(name);
 	}
 	/**
 	 * Returns all the uuids of the members in this group.
@@ -229,8 +231,19 @@ public class Group {
 		return groupName;
 	}
 	
+	/**
+	 * Changes the default group for a player
+	 * @param uuid The UUID of the player
+	 */
 	public String changeDefaultGroup(UUID uuid){
 		db.changeDefaultGroup(uuid, groupName);
 		return groupName;
+	}
+	
+	/**
+	 * Gets the database id for the group
+	 */
+	public String getGroupID(){
+		return this.groupID;
 	}
 }
