@@ -266,7 +266,7 @@ public class GroupManagerDao {
 	
 	private PreparedStatement version, updateVersion;
 	
-	private PreparedStatement createGroup, getGroup, getAllGroupsNames, deleteGroup;
+	private PreparedStatement createGroup, getGroup, getGroupID, getAllGroupsNames, deleteGroup;
 	
 	private PreparedStatement addMember, getMembers, removeMember, updatePassword;
 	
@@ -289,6 +289,7 @@ public class GroupManagerDao {
 		createGroup = db.prepareStatement("call createGroup(?,?,?,?,?)");
 		getGroup = db.prepareStatement("select group_name, founder, password, discipline_flags, group_type " +
 				"from faction where group_name = ?");
+		getGroupID = db.prepareStatement("select group_id from faction_id where group_name = ?");
 		getAllGroupsNames = db.prepareStatement("select f.group_name from faction_id f "
 				+ "inner join faction_member fm on f.group_id = fm.group_id "
 				+ "where fm.member_name = ? group by group_name");
@@ -438,6 +439,21 @@ public class GroupManagerDao {
 			e.printStackTrace();
 		}
 		return null;
+	}
+	
+	public synchronized String getGroupID(String groupName){
+		NameLayerPlugin.reconnectAndReintializeStatements();
+		String groupID = null;
+		try{
+			getGroupID.setString(1, groupName);
+			ResultSet set = getGroupID.executeQuery();
+			while(set.next()){
+				groupID = set.getString(1);
+			}
+		}catch(SQLException e){
+			e.printStackTrace();
+		}
+		return groupID;
 	}
 	
 	public synchronized List<String> getGroupNames(UUID uuid){
