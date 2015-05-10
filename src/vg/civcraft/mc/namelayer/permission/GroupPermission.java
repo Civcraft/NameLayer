@@ -70,6 +70,18 @@ public class GroupPermission {
 			x += pType.name() + " ";
 		return x;
 	}
+	
+	/**
+	 * Lists the permissions types for a given PlayerType for the specific GroupPermission, custom for InfoDump.
+	 * @param type- The PlayerType to check for.
+	 * @return Returns a String representation of the permissions. Should be sent to the player in this form.
+	 */
+	public String listPermsforInfoDump(PlayerType type){
+		String x = "";
+		for (PermissionType pType: perms.get(type))
+			x += pType.name() + " ";
+		return x;
+	}
 	/**
 	 * Adds a PermissionType to a PlayerType.
 	 * @param pType- The PlayerType.
