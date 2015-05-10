@@ -78,7 +78,7 @@ public class InfoDump extends PlayerCommand
 			outputBuilder.append(" : [MEMBERSHIPLEVEL] ");
 			outputBuilder.append(group.getPlayerType(playerUUID));
 			outputBuilder.append(" : [PERMS] ");
-			outputBuilder.append(permissions.listPermsforPlayerType(group.getPlayerType(playerUUID)));
+			outputBuilder.append(permissions.listPermsforInfoDump(group.getPlayerType(playerUUID)));
 			
 
 			outputBuilder.append(" : [OWNERS]");
