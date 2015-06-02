@@ -1,6 +1,7 @@
 package vg.civcraft.mc.namelayer.misc;
 
 import vg.civcraft.mc.mercury.MercuryAPI;
+import vg.civcraft.mc.namelayer.NameLayerPlugin;
 
 public class Mercury {
 
@@ -9,6 +10,6 @@ public class Mercury {
 	 * @param message- The message to send.
 	 */
 	public static void invalidateGroup(String message){
-		MercuryAPI.instance.sendMessage("all", message, "name_layer_refresh");
+		NameLayerPlugin.mercuryapi.sendMessage("all", "namelayer", message);
 	}
 }

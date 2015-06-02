@@ -2,6 +2,7 @@ package vg.civcraft.mc.namelayer.command;
 
 import org.bukkit.Bukkit;
 
+import vg.civcraft.mc.mercury.MercuryAPI;
 import vg.civcraft.mc.namelayer.GroupManager;
 import vg.civcraft.mc.namelayer.NameAPI;
 import vg.civcraft.mc.namelayer.NameLayerPlugin;
@@ -72,7 +73,7 @@ public abstract class PlayerCommand implements Command{
 	public void checkRecacheGroup(Group g){
 		if (NameLayerPlugin.isMercuryEnabled()){
 			String message = "recache " + g.getName();
-			Mercury.invalidateGroup(message);
+			NameLayerPlugin.mercuryapi.sendMessage("all", "namelayer", message);
 		}
 	}
 }
