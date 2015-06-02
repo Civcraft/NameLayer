@@ -14,6 +14,8 @@ import vg.civcraft.mc.civmodcore.Config;
 import vg.civcraft.mc.civmodcore.annotations.CivConfig;
 import vg.civcraft.mc.civmodcore.annotations.CivConfigType;
 import vg.civcraft.mc.civmodcore.annotations.CivConfigs;
+import vg.civcraft.mc.mercury.MercuryAPI;
+import vg.civcraft.mc.mercury.MercuryPlugin;
 import vg.civcraft.mc.namelayer.command.CommandHandler;
 import vg.civcraft.mc.namelayer.database.AssociationList;
 import vg.civcraft.mc.namelayer.database.Database;
@@ -31,7 +33,7 @@ public class NameLayerPlugin extends ACivMod{
 	private CommandHandler handle;
 	private static Database db;
 	private static boolean loadGroups = true;
-	private static boolean isMercuryEnabled = false;
+	public static MercuryAPI mercuryapi;
 	private Config config;
 	
 	@CivConfig(name = "groups.enable", def = "true", type = CivConfigType.Bool)
@@ -40,7 +42,8 @@ public class NameLayerPlugin extends ACivMod{
 		super.onEnable(); // Need to call this to properly initialize this mod
 		config = GetConfig();
 		instance = this;
-		isMercuryEnabled = Bukkit.getPluginManager().isPluginEnabled("Mercury");
+		MercuryPlugin mercury = (MercuryPlugin) Bukkit.getPluginManager().getPlugin("Mercury");
+		if (mercury !=null){mercuryapi = mercury.api;}
 		registerListeners();
 		loadDatabases();
 	    ClassHandler.Initialize(Bukkit.getServer());
@@ -61,8 +64,9 @@ public class NameLayerPlugin extends ACivMod{
 	public void registerListeners(){
 		getServer().getPluginManager().registerEvents(new AssociationListener(), this);
 		getServer().getPluginManager().registerEvents(new PlayerListener(), this);
-		if (isMercuryEnabled)
-			getServer().getPluginManager().registerEvents(new MercuryMessageListener(), this);
+		if (this.isMercuryEnabled()){
+			Bukkit.getScheduler().scheduleSyncRepeatingTask(this, new MercuryMessageListener(), 0, 10L);
+		}
 	}
 	
 	public boolean onCommand(CommandSender sender, Command cmd, String label, String[] args) {
@@ -167,7 +171,11 @@ public class NameLayerPlugin extends ACivMod{
 	}
 	
 	public static boolean isMercuryEnabled(){
-		return isMercuryEnabled;
+		if (mercuryapi == null){
+			return false;
+		} else {
+			return mercuryapi.isEnabled();
+		}
 	}
 
 	@Override
