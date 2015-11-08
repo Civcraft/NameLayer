@@ -7,11 +7,11 @@ softdepend: [Mercury]
 description: NameLayer handles groups creation and management, in addition to name changes. Once you have connected to Civcraft with a name, it is permanently yours. If a name is already taken, then NameLayer will add a number to the name.
 commands:
    nlag:
-    aliases: [nlacceptinvite, nlacceptgroup]
+    aliases: [nlacceptinvite, nlacceptgroup, acceptgroup, accept]
    nlcg:
-    aliases: [nlcreategroup]
+    aliases: [nlcreategroup, create, ctcreate, ctc, ng, newgroup, creategroup]
    nldg:
-    aliases: [nldeletegroup]
+    aliases: [nldeletegroup, ctdel, ctdelete, deletegroup, delete]
    nldig:
     aliases: [nldisiplinegroup, nldisablegroup, nldisable]
     permission: namelayer.admin
@@ -22,32 +22,32 @@ commands:
    nlid:
     aliases: [nlinfodump]
    nlip:
-    aliases: [nlinviteplayer, nlinvite]
+    aliases: [nlinviteplayer, nlinvite, invite, ctallow]
    nljg:
-    aliases: [nljoingroup, nljoin]
+    aliases: [nljoingroup, nljoin, join, ctjoin]
    nllg:
-    aliases: [nllistgroups, nllistg]
+    aliases: [nllistgroups, nllistg, listgroups, ctgroups]
    nllm:
-    aliases: [nllistmembers, nllistm]
+    aliases: [nllistmembers, nllistm, listmembers]
    nllp:
-    aliases: [nllistpermissions, nllistperms]
+    aliases: [nllistpermissions, nllistperms, perms]
    nlpp:
-    aliases: [nlpromoteplayer, nlpromote]
+    aliases: [nlpromoteplayer, nlpromote, promote]
    nlmg:
-    aliases: [nlmergegroups, nlmerge]
+    aliases: [nlmergegroups, nlmerge, merge]
    nlmp:
     aliases: [nlmodifyperms, nlmodifypermissions, nlmodperms]
    nlrm:
-    aliases: [nlremovemember, nlremove, nlkick]
+    aliases: [nlremovemember, nlremove, nlkick, remove]
    nlri:
-    aliases: [nlrevokeinvite, nluninvite]
+    aliases: [nlrevokeinvite, nluninvite, revoke]
    nlrsg:
    nlsp:
     aliases: [nlsetpassword, nlsetpass]
    nltg:
-    aliases: [nltransfergroup, nltransfer]
+    aliases: [nltransfergroup, nltransfer, transfer]
    nlleg:
-    aliases: [nlleavegroup, nlleave]
+    aliases: [nlleavegroup, nlleave, leave]
    nllgt:
     aliases: [nllistgrouptypes, nllistgtypes]
    nllpt:
@@ -55,7 +55,7 @@ commands:
    nllci:
     aliases: [nllistcurrentinvites, nllistinvites]
    nltaai:
-    aliases: [nlautoacceptinvites, nlautoaccept]
+    aliases: [nlautoacceptinvites, nlautoaccept, autoaccept]
    nlcpn:
       permission: namelayer.admin
    nlsdg:
