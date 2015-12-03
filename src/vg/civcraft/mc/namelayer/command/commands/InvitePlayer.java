@@ -109,7 +109,10 @@ public class InvitePlayer extends PlayerCommandMiddle{
 		if(invitee.isOnline()){
 			//invitee is online make them a player
 			Player oInvitee = (Player) invitee;
-			Bukkit.getPluginManager().callEvent(new GroupInviteEvent(group, oInvitee, pType, p));
+			GroupInviteEvent gie = new GroupInviteEvent(group, oInvitee, pType, p);
+			if(!gie.isCancelled()) {
+				Bukkit.getPluginManager().callEvent(gie);
+			}
 			if(shouldAutoAccept){
 				//player auto accepts invite
 				group.addMember(uuid, pType);
