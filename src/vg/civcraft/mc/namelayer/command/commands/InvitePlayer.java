@@ -18,10 +18,10 @@ import vg.civcraft.mc.namelayer.command.PlayerCommandMiddle;
 import vg.civcraft.mc.namelayer.command.TabCompleters.GroupTabCompleter;
 import vg.civcraft.mc.namelayer.command.TabCompleters.MemberTypeCompleter;
 import vg.civcraft.mc.namelayer.database.GroupManagerDao;
+import vg.civcraft.mc.namelayer.events.GroupInviteEvent;
 import vg.civcraft.mc.namelayer.group.Group;
 import vg.civcraft.mc.namelayer.group.groups.PrivateGroup;
 import vg.civcraft.mc.namelayer.listeners.PlayerListener;
-import vg.civcraft.mc.namelayer.misc.Mercury;
 import vg.civcraft.mc.namelayer.permission.GroupPermission;
 import vg.civcraft.mc.namelayer.permission.PermissionType;
 
@@ -109,6 +109,10 @@ public class InvitePlayer extends PlayerCommandMiddle{
 		if(invitee.isOnline()){
 			//invitee is online make them a player
 			Player oInvitee = (Player) invitee;
+			GroupInviteEvent gie = new GroupInviteEvent(group, oInvitee, pType, p);
+			if(!gie.isCancelled()) {
+				Bukkit.getPluginManager().callEvent(gie);
+			}
 			if(shouldAutoAccept){
 				//player auto accepts invite
 				group.addMember(uuid, pType);
