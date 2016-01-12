@@ -149,13 +149,11 @@ public class GroupManager{
 			if (group != null) {
 				int id = group.getGroupId();
 				if (groupsByName.containsKey(group.getName())) {
-					group = groupsByName.get(group.getName());
-					groupsById.put(id, group);
+					NameLayerPlugin.log(Level.INFO, "Group cache was out of synch (id vs. name) for " + group.getName() + " / " + id);
 				}
-				else {
-					groupsByName.put(group.getName(), group);
-					groupsById.put(group.getGroupId(), group);
-				}
+				// Note: Never let the cache override a DB pull if updates are immediately written to DB
+				groupsByName.put(group.getName(), group);
+				groupsById.put(group.getGroupId(), group);
 			}
 			return groupsById.get(groupId);
 		}
