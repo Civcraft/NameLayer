@@ -7,11 +7,11 @@ softdepend: [Mercury]
 description: NameLayer handles groups creation and management, in addition to name changes. Once you have connected to Civcraft with a name, it is permanently yours. If a name is already taken, then NameLayer will add a number to the name.
 commands:
    nlag:
-    aliases: [nlacceptinvite, nlacceptgroup, nlaccept, nla, /accept]
+    aliases: [nlacceptinvite, nlacceptgroup, nlaccept, nla, /accept, /groupaccept, /ga]
    nlcg:
-    aliases: [nlcreategroup, nlcreate, nlc]
+    aliases: [nlcreategroup, nlcreate, nlc, /groupcreate, /gcr]
    nldg:
-    aliases: [nldeletegroup, nldelete, nld]
+    aliases: [nldeletegroup, nldelete, nld, /groupdelete, /gdel]
    nldig:
     aliases: [nldisiplinegroup, nldisablegroup, nldisable]
     permission: namelayer.admin
@@ -22,13 +22,13 @@ commands:
    nlid:
     aliases: [nlinfodump]
    nlip:
-    aliases: [nlinviteplayer, nlinvite, nli, /invite]
+    aliases: [nlinviteplayer, nlinvite, nli, /invite, /groupinvite, /gi]
    nljg:
     aliases: [nljoingroup, nljoin, nlj, /join]
    nllg:
     aliases: [nllistgroups, nllistg, /groups]
    nllm:
-    aliases: [nllistmembers, nllistm, /members]
+    aliases: [nllistmembers, nllistm, /members, /gm]
    nllp:
     aliases: [nllistpermissions, nllistperms]
    nlpp:
@@ -38,7 +38,7 @@ commands:
    nlmp:
     aliases: [nlmodifyperms, nlmodifypermissions, nlmodperms]
    nlrm:
-    aliases: [nlremovemember, nlremove, nlkick, nlk, nlr]
+    aliases: [nlremovemember, nlremove, nlkick, nlk, nlr, /memberremove, /gmr]
    nlri:
     aliases: [nlrevokeinvite, nluninvite]
    nlrsg:
@@ -47,7 +47,7 @@ commands:
    nltg:
     aliases: [nltransfergroup, nltransfer]
    nlleg:
-    aliases: [nlleavegroup, nlleave]
+    aliases: [nlleavegroup, nlleave, /nll, /groupdepart, groupleave]
    nllgt:
     aliases: [nllistgrouptypes, nllistgtypes]
    nllpt:
