@@ -7,7 +7,7 @@ softdepend: [Mercury]
 description: NameLayer handles groups creation and management, in addition to name changes. Once you have connected to Civcraft with a name, it is permanently yours. If a name is already taken, then NameLayer will add a number to the name.
 commands:
    nlag:
-    aliases: [nlacceptinvite, nlacceptgroup, nlaccept, nla]
+    aliases: [nlacceptinvite, nlacceptgroup, nlaccept, nla, /accept]
    nlcg:
     aliases: [nlcreategroup, nlcreate, nlc]
    nldg:
@@ -22,17 +22,17 @@ commands:
    nlid:
     aliases: [nlinfodump]
    nlip:
-    aliases: [nlinviteplayer, nlinvite, nli]
+    aliases: [nlinviteplayer, nlinvite, nli, /invite]
    nljg:
-    aliases: [nljoingroup, nljoin, nlj]
+    aliases: [nljoingroup, nljoin, nlj, /join]
    nllg:
-    aliases: [nllistgroups, nllistg]
+    aliases: [nllistgroups, nllistg, /groups]
    nllm:
-    aliases: [nllistmembers, nllistm]
+    aliases: [nllistmembers, nllistm, /members]
    nllp:
     aliases: [nllistpermissions, nllistperms]
    nlpp:
-    aliases: [nlpromoteplayer, nlpromote, nlp]
+    aliases: [nlpromoteplayer, nlpromote, nlp, /promote]
    nlmg:
     aliases: [nlmergegroups, nlmerge, nlm]
    nlmp:
