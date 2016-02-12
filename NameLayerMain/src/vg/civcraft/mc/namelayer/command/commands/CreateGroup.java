@@ -39,6 +39,7 @@ public class CreateGroup extends PlayerCommandMiddle{
 		
 		if (NameLayerPlugin.getInstance().getGroupLimit() < gm.countGroups(p.getUniqueId()) + 1){
 			p.sendMessage(ChatColor.RED + "You cannot create any more groups! Please delete an un-needed group before making more.");
+			return true;
 		}
 		
 		//enforce regulations on the name
