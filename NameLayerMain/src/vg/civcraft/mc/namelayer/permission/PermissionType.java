@@ -1,5 +1,8 @@
 package vg.civcraft.mc.namelayer.permission;
 
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
 import java.util.Map;
 
 import org.bukkit.ChatColor;
@@ -16,42 +19,13 @@ import com.google.common.collect.Maps;
  * add the new permission type to the owners so people can
  * actually modify the groups.
  */
-public enum PermissionType {
-
-	DOORS, // Handles access to doors
-	CHESTS, // Handles access to chests
-	BLOCKS, // Handles access to breaking or remove blocks
-	ADMINS, // Handles having access to adding or removing admins
-	MODS, // Handles having access to adding or removing mods
-	MEMBERS, // I hope you would know what this does
-	OWNER, // ...
-	PASSWORD, // yep you guessed it, gives access to adding or removing passwords
-	SUBGROUP, // Add subgroup
-	PERMS, // Have control to modify permissions
-	DELETE, // Delete the current group
-	JOIN_PASSWORD, // Give this permission to the PlayerType you want to give players when they join with a password
-	MERGE, // Gives the player permission to merge the group.
-	LIST_PERMS, // Allows the player to use the command to list the perms of a PlayerType
-	TRANSFER, // Allows the player to transfer the group
-	CROPS, // Allows access to crops, mainly used for citadel.
-	GROUPSTATS, //Allows access to nlgs command for group
-	LINKING; // Allows linking and unlinking of super groups and subgroups
+public class PermissionType {
 	
-	private final static Map<String, PermissionType> BY_NAME = Maps.newHashMap();
-	
-	static {
-		for (PermissionType perm : values()) {
-			BY_NAME.put(perm.name(), perm);
-		}
-	}
-		
-	public static PermissionType getPermissionType(String type){
-		return BY_NAME.get(type);
-	}
+	private static Map<String, PermissionType> permissions = Maps.newHashMap();
 	
 	public static String getStringOfTypes() {
 		StringBuilder perms = new StringBuilder();
-		for (String perm: BY_NAME.keySet()) {
+		for (PermissionType perm: permissions.values()) {
 			perms.append(perm);
 			perms.append(" ");
 		}
@@ -62,5 +36,45 @@ public enum PermissionType {
 		p.sendMessage(ChatColor.RED 
 				+ "That PermissionType does not exists.\n"
 				+ "The current types are: " + getStringOfTypes());
+	}
+	
+	public static void registerPermission(PermissionType perm) {
+		permissions.put(perm.getName(), perm);
+	}
+	
+	public static Collection<PermissionType> values() {
+		return permissions.values();
+	}
+	
+	/**
+	 * 
+	 * @param name The name of the permissions. Not the PermissionFormat.
+	 * @return Returns the PermissionType.
+	 */
+	public static PermissionType getType(String name) {
+		return permissions.get(name);
+	}
+	
+	private String name;
+	private String permFormat;
+	/**
+	 * 
+	 * @param name The name of the permission.
+	 */
+	public PermissionType(String name) {
+		this.name = name;
+		permFormat = "namelayer.custom.permissions." + name;
+	}
+	
+	public String getName() {
+		return name;
+	}
+	
+	/**
+	 * 
+	 * @return Returns in permission format such as 'namelayer.custom.permissions.DOORS'.
+	 */
+	public String getPermissionFormat() {
+		return permFormat;
 	}
 }

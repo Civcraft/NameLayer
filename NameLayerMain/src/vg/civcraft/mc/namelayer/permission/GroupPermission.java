@@ -34,12 +34,8 @@ public class GroupPermission {
 			return true; // If the player is even a member return true
 		if (group instanceof PublicGroup){
 			for (int x = 0; x < type.length; x++)
-			switch (type[x]){
-			case DOORS:
-			case CHESTS:
-				return true;
-			default:;
-			}
+				if (type[x].getName().equals("CHEST") || type[x].getName().equals("DOOR"))
+					return true;
 		}
 		List<PermissionType> p = perms.get(ptype);
 		if (p == null){
@@ -77,7 +73,7 @@ public class GroupPermission {
 		String x = "The permission types are: ";
 		for (PermissionType pType: perms.get(type)) {
 			if (pType != null) {
-				x += pType.name() + " ";
+				x += pType.getName() + " ";
 			}
 		}
 		return x;
@@ -95,7 +91,7 @@ public class GroupPermission {
 		types.add(permType);
 		String info = "";
 		for (PermissionType t: types)
-			info += t.name() + " ";
+			info += t.getName() + " ";
 		db.updatePermissions(group.getName(), pType, info);
 		return true;
 	}
@@ -112,7 +108,7 @@ public class GroupPermission {
 		types.remove(permType);
 		String info = "";
 		for (PermissionType t: types)
-			info += t.name() + " ";
+			info += t.getName() + " ";
 		db.updatePermissions(group.getName(), pType, info);
 		return true;
 	}

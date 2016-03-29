@@ -86,16 +86,16 @@ public class InvitePlayer extends PlayerCommandMiddle{
 			boolean allowed = false;
 			switch (pType) { // depending on the type the executor wants to add the player to
 				case MEMBERS:
-					allowed = perm.isAccessible(t, PermissionType.MEMBERS);
+					allowed = perm.isAccessible(t, PermissionType.getType("MEMBERS"));
 					break;
 				case MODS:
-					allowed = perm.isAccessible(t, PermissionType.MODS);
+					allowed = perm.isAccessible(t, PermissionType.getType("MODS"));
 					break;
 				case ADMINS:
-					allowed = perm.isAccessible(t, PermissionType.ADMINS);
+					allowed = perm.isAccessible(t, PermissionType.getType("ADMINS"));
 					break;
 				case OWNER:
-					allowed = perm.isAccessible(t, PermissionType.OWNER);
+					allowed = perm.isAccessible(t, PermissionType.getType("OWNER"));
 					break;
 				default:
 					allowed = false;

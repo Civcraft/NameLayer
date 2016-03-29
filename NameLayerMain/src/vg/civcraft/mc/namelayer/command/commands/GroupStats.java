@@ -46,7 +46,7 @@ public class GroupStats extends PlayerCommandMiddle {
 			return true;
 		}
 		GroupPermission gPerm = gm.getPermissionforGroup(g);
-		if (!(p.isOp() || p.hasPermission("namelayer.admin")) && !gPerm.isAccessible(pType, PermissionType.GROUPSTATS)){
+		if (!(p.isOp() || p.hasPermission("namelayer.admin")) && !gPerm.isAccessible(pType, PermissionType.getType("GROUPSTATS"))){
 			p.sendMessage(ChatColor.RED + "You do not have permission to run that command.");
 			return true;
 		}

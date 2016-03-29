@@ -36,6 +36,7 @@ public class GroupManager{
 	public GroupManager(){
 		groupManagerDao = NameLayerPlugin.getGroupManagerDao();
 		permhandle = new PermissionHandler();
+		registerPermissions();
 	}
 	
 	/**
@@ -349,6 +350,17 @@ public class GroupManager{
 		for (PlayerType role: PlayerType.values()){
 			groupManagerDao.addPermission(group, role.name(), perms[x]);
 			x++;
+		}
+	}
+	
+	private void registerPermissions() {
+		String[] perms = {
+			"DOORS", "CHESTS", "BLOCKS", "ADMINS", "MODS", "MEMBERS", "OWNER", "PASSWORD", "SUBGROUP", "PERMS",
+			"DELETE", "JOIN_PASSWORD", "MERGE", "LIST_PERMS", "TRANSFER", "CROPS", "GROUPSTATS", "LINKING"
+		};
+		for (String p: perms) {
+			PermissionType perm = new PermissionType(p);
+			PermissionType.registerPermission(perm);
 		}
 	}
 	

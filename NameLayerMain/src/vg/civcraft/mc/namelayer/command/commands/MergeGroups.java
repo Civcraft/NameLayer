@@ -73,11 +73,11 @@ public class MergeGroups extends PlayerCommandMiddle{
 			return true;
 		}
 		
-		if (!gPerm.isAccessible(p1, PermissionType.MERGE)){
+		if (!gPerm.isAccessible(p1, PermissionType.getType("MERGE"))){
 			p.sendMessage(ChatColor.RED + "You don't have permission on group " + g.getName() + ".");
 			return true;
 		}
-		if (!mPerm.isAccessible(p2, PermissionType.MERGE)){
+		if (!mPerm.isAccessible(p2, PermissionType.getType("MERGE"))){
 			p.sendMessage(ChatColor.RED + "You don't have permission on group " + toMerge.getName() + ".");
 			return true;
 		}
@@ -111,9 +111,9 @@ public class MergeGroups extends PlayerCommandMiddle{
 			return null;
 
 		if (args.length > 0)
-			return GroupTabCompleter.complete(args[args.length - 1], PermissionType.MERGE, (Player) sender);
+			return GroupTabCompleter.complete(args[args.length - 1], PermissionType.getType("MERGE"), (Player) sender);
 		else{
-			return  GroupTabCompleter.complete(null, PermissionType.MERGE,(Player)sender);
+			return  GroupTabCompleter.complete(null, PermissionType.getType("MERGE"),(Player)sender);
 		}
 	}
 }

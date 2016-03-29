@@ -845,7 +845,7 @@ public class GroupManagerDao {
 				String[] multiPerms = length.split(" ");
 				List<PermissionType> listPerm = new ArrayList<PermissionType>();
 				for (String x: multiPerms)
-					listPerm.add(PermissionType.getPermissionType(x));
+					listPerm.add(PermissionType.getType(x));
 				perms.put(type, listPerm);
 			}
 		} catch (SQLException e) {

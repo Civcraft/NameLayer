@@ -48,9 +48,9 @@ public class GetDefaultGroup extends PlayerCommandMiddle{
 			return null;
 
 		if (args.length == 1)
-			return GroupTabCompleter.complete(args[0], PermissionType.BLOCKS, (Player) sender);
+			return GroupTabCompleter.complete(args[0], PermissionType.getType("BLOCKS"), (Player) sender);
 		else{
-			return GroupTabCompleter.complete(null, PermissionType.BLOCKS, (Player)sender);
+			return GroupTabCompleter.complete(null, PermissionType.getType("BLOCKS"), (Player)sender);
 		}
 	}
 }

@@ -49,7 +49,7 @@ public class ModifyPermissions extends PlayerCommandMiddle{
 			return true;
 		}
 		GroupPermission gPerm = gm.getPermissionforGroup(g);
-		if (!gPerm.isAccessible(type, PermissionType.PERMS) && !g.isOwner(uuid)){
+		if (!gPerm.isAccessible(type, PermissionType.getType("PERMS")) && !g.isOwner(uuid)){
 			p.sendMessage(ChatColor.RED + "You do not have permission for this command.");
 			return true;
 		}
@@ -59,7 +59,7 @@ public class ModifyPermissions extends PlayerCommandMiddle{
 			PlayerType.displayPlayerTypes(p);
 			return true;
 		}
-		PermissionType pType = PermissionType.getPermissionType(args[3]);
+		PermissionType pType = PermissionType.getType(args[3]);
 		if (pType == null){
 			PermissionType.displayPermissionTypes(p);
 			return true;
@@ -67,10 +67,10 @@ public class ModifyPermissions extends PlayerCommandMiddle{
 		
 		if (info.equalsIgnoreCase("add")){
 			if (gPerm.isAccessible(playerType, pType))
-				sender.sendMessage(ChatColor.RED + "This PlayerType already has the PermissionType: " + pType.name());
+				sender.sendMessage(ChatColor.RED + "This PlayerType already has the PermissionType: " + pType.getName());
 			else {
 				gPerm.addPermission(playerType, pType);
-				sender.sendMessage(ChatColor.GREEN + "The PermissionType: " + pType.name() + " was successfully added to the PlayerType: " +
+				sender.sendMessage(ChatColor.GREEN + "The PermissionType: " + pType.getName() + " was successfully added to the PlayerType: " +
 				playerType.name());
 				checkRecacheGroup(g);
 			}
@@ -78,12 +78,12 @@ public class ModifyPermissions extends PlayerCommandMiddle{
 		else if (info.equalsIgnoreCase("remove")){
 			if (gPerm.isAccessible(playerType, pType)){
 				gPerm.removePermission(playerType, pType);
-				sender.sendMessage(ChatColor.GREEN + "The PermissionType: " + pType.name() + " was successfully removed from" +
+				sender.sendMessage(ChatColor.GREEN + "The PermissionType: " + pType.getName() + " was successfully removed from" +
 						" the PlayerType: " + playerType.name());
 				checkRecacheGroup(g);
 			}
 			else
-				sender.sendMessage(ChatColor.RED + "This PlayerType does not have the PermissionType: " + pType.name());
+				sender.sendMessage(ChatColor.RED + "This PlayerType does not have the PermissionType: " + pType.getName());
 		}
 		else{
 			p.sendMessage(ChatColor.RED + "Specify if you want to add or remove.");
@@ -97,9 +97,9 @@ public class ModifyPermissions extends PlayerCommandMiddle{
 			return null;
 
 		if (args.length == 0)
-			return GroupTabCompleter.complete(null, PermissionType.PERMS, (Player) sender);
+			return GroupTabCompleter.complete(null, PermissionType.getType("PERMS"), (Player) sender);
 		else if (args.length == 1)
-			return GroupTabCompleter.complete(args[0], PermissionType.PERMS, (Player)sender);
+			return GroupTabCompleter.complete(args[0], PermissionType.getType("PERMS"), (Player)sender);
 		else if (args.length == 2) {
 
 			if (args[1].length() > 0) {

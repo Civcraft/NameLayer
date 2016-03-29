@@ -36,7 +36,7 @@ public class PlayerListener implements Listener{
 			GroupPermission perm = new GroupPermission(group);
 			PlayerType ptype = group.getPlayerType(uuid);
 			
-			if(ptype != null && perm.isAccessible(ptype, PermissionType.BLOCKS))
+			if(ptype != null && perm.isAccessible(ptype, PermissionType.getType("BLOCKS")))
 				db.updateTimestamp(groupName);
 		}
 		

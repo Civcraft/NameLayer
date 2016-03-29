@@ -19,7 +19,7 @@ public class GroupMemberTabCompleter {
 		if (g != null) {
 			GroupPermission perm = NameAPI.getGroupManager()
 					.getPermissionforGroup(g);
-			if (perm.isAccessible(g.getPlayerType(sender.getUniqueId()), PermissionType.MEMBERS)) {
+			if (perm.isAccessible(g.getPlayerType(sender.getUniqueId()), PermissionType.getType("MEMBERS"))) {
 				ArrayList<String> result = new ArrayList<String>();
 				List<UUID> uuids = g.getMembersByName(playerName);
 				for (UUID uuid : uuids) {
