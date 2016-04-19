@@ -4,15 +4,17 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.logging.Level;
 
 import vg.civcraft.mc.namelayer.NameLayerPlugin;
 
 
 public class AssociationList {
 	private Database db;
+	
+	private final int MAXIMUM_PLAYERNAME_LENGTH = 16;
 
 	public AssociationList(Database db){
 		this.db = db;
@@ -30,12 +32,6 @@ public class AssociationList {
 				"`uuid` varchar(40) NOT NULL," +
 				"`player` varchar(40) NOT NULL,"
 				+ "UNIQUE KEY `uuid_player_combo` (`uuid`, `player`));");
-
-		// this creates the table needed for when a player changes there name to a prexisting name before joining the server
-		db.execute("create table if not exists playercountnames ("
-				+ "player varchar(40) not null,"
-				+ "amount int(10) not null,"
-				+ "primary key (player));");
 	}
 
 	private String addPlayer;
@@ -61,42 +57,17 @@ public class AssociationList {
 				+ "in pl varchar(40), in uu varchar(40)) sql security invoker begin "
 				+ ""
 				+ "declare account varchar(40);"
-				+ "declare nameamount int(10);"
+				+ "declare counter int(10);"
 				+ ""
-				+ "set @@SESSION.max_sp_recursion_depth = 30;"
+				+ "set counter=0;"
+				+ "set counter=(select count(*) from Name_player p where p.uuid=uu);" //count of all entries with the players uuid
 				+ ""
-				+ "set nameamount=0;"
-				+ "set nameamount=(select count(*) from Name_player p where p.uuid=uu);"
-				+ ""
-				+ "if (nameamount < 1) then"
-				+ "		setName: loop"
-				+ "		set account =(select uuid from Name_player p where p.player=pl);"
-				+ "		if (account not like uu) then"
-				+ ""
-				+ "				if (nameamount > 0) then"
-				+ "					set pl = (select concat(SUBSTRING(pl, 1, length(pl)-1)));"
-				+ "				end if;"
-				+ ""
-				+ "			insert ignore into playercountnames (player, amount) values (pl, 0);"
-				+ ""
-				+ "			update playercountnames set amount = nameamount+1 where player=pl;"
-				+ ""
-				+ "			set nameamount=(select amount from playercountnames where player=pl);"
-				+ ""
-				+ "			set pl = (select concat (pl,nameamount));"
-				+ ""
-				+ "			set account =(select uuid from Name_player p where p.player=pl);"
-				+ ""
-				+ "			if (account not like uu) then"
-				+ "				iterate setName;"
-				+ "			end if;"
-				+ "		else"
-				+ "			insert ignore into Name_player (player, uuid) values (pl, uu);"
-				+ "			leave SetName;"
+				+ "if (counter == 0) then" //this uuid is not in the table yet
+				+ "		set counter =(select count(uuid) from Name_player p where p.player=pl);" //count of all entries with the players name
+				+ "		if (counter == 0) then" //no other player has this name yet, so we can safely insert it
+				+ "			insert into Name_player(player,uuid) values(pl,uu);"
 				+ "		end if;"
-				+ "END LOOP setName;"
-				+ "end if;"
-				+ "end");
+				+ "end if;");
 	}
 
 	// returns null if no uuid was found
@@ -136,13 +107,34 @@ public class AssociationList {
 	public void addPlayer(String playername, UUID uuid){
 		NameLayerPlugin.reconnectAndReintializeStatements();
 		PreparedStatement addPlayer = db.prepareStatement(this.addPlayer);
-		try {
-			addPlayer.setString(1, playername);
-			addPlayer.setString(2, uuid.toString());
-			addPlayer.execute();
-		} catch (SQLException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+		String initalName = playername;
+		boolean insertedName = false;
+		for(int i = 0; !insertedName; i++) {
+			while(i != 0 && (playername.length() + String.valueOf(i).length()) > MAXIMUM_PLAYERNAME_LENGTH) { //ensure proper length
+				playername = playername.substring(0, playername.length() - 1);
+			}
+			String toInsert;
+			if (i == 0) { //playername is most likely not taken, so we first attempt to insert his normal name
+				toInsert = playername;
+			}
+			else { //original name was taken, concat number
+				toInsert = playername + String.valueOf(i); 
+			}
+			try {
+				addPlayer.setString(1, toInsert);
+				addPlayer.setString(2, uuid.toString());
+				addPlayer.execute();
+			} catch (SQLException e) {
+				e.printStackTrace();
+				break;
+			}
+			//check whether name was successfully inserted
+			if (getCurrentName(uuid) != null) {
+				insertedName = true;
+				if (i != 0) {
+					NameLayerPlugin.log(Level.INFO, "Had to update the name " + initalName + " to " + toInsert + ", because his name already existed"); 
+				}
+			}
 		}
 	}
 
