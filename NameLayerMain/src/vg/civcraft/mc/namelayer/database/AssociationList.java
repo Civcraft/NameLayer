@@ -7,6 +7,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.logging.Level;
 
 import vg.civcraft.mc.namelayer.NameLayerPlugin;
 
@@ -26,16 +27,10 @@ public class AssociationList {
 	public void genTables(){
 		// creates the player table
 		// Where uuid and host names will be stored
-		db.execute("CREATE TABLE IF NOT EXISTS `Name_player` (" + 
+		db.execute("CREATE TABLE IF NOT EXISTS `Name_player` (" +
 				"`uuid` varchar(40) NOT NULL," +
 				"`player` varchar(40) NOT NULL,"
 				+ "UNIQUE KEY `uuid_player_combo` (`uuid`, `player`));");
-
-		// this creates the table needed for when a player changes there name to a prexisting name before joining the server
-		db.execute("create table if not exists playercountnames ("
-				+ "player varchar(40) not null,"
-				+ "amount int(10) not null,"
-				+ "primary key (player));");
 	}
 
 	private String addPlayer;
@@ -45,7 +40,7 @@ public class AssociationList {
 	private String getAllPlayerInfo;
 
 	public void initializeStatements(){
-		addPlayer = "call addplayertotable(?, ?)"; // order player name, uuid 
+		addPlayer = "call addplayertotable(?, ?)"; // order player name, uuid
 		getUUIDfromPlayer = "select uuid from Name_player " +
 				"where player=?";
 		getPlayerfromUUID = "select player from Name_player " +
@@ -57,45 +52,40 @@ public class AssociationList {
 
 	public void initializeProcedures(){
 		db.execute("drop procedure if exists addplayertotable");
-		db.execute("create definer=current_user procedure addplayertotable("
-				+ "in pl varchar(40), in uu varchar(40)) sql security invoker begin "
-				+ ""
-				+ "declare account varchar(40);"
-				+ "declare nameamount int(10);"
-				+ ""
-				+ "set @@SESSION.max_sp_recursion_depth = 30;"
-				+ ""
-				+ "set nameamount=0;"
-				+ "set nameamount=(select count(*) from Name_player p where p.uuid=uu);"
-				+ ""
-				+ "if (nameamount < 1) then"
-				+ "		setName: loop"
-				+ "		set account =(select uuid from Name_player p where p.player=pl);"
-				+ "		if (account not like uu) then"
-				+ ""
-				+ "				if (nameamount > 0) then"
-				+ "					set pl = (select concat(SUBSTRING(pl, 1, length(pl)-1)));"
-				+ "				end if;"
-				+ ""
-				+ "			insert ignore into playercountnames (player, amount) values (pl, 0);"
-				+ ""
-				+ "			update playercountnames set amount = nameamount+1 where player=pl;"
-				+ ""
-				+ "			set nameamount=(select amount from playercountnames where player=pl);"
-				+ ""
-				+ "			set pl = (select concat (pl,nameamount));"
-				+ ""
-				+ "			set account =(select uuid from Name_player p where p.player=pl);"
-				+ ""
-				+ "			if (account not like uu) then"
-				+ "				iterate setName;"
-				+ "			end if;"
-				+ "		else"
-				+ "			insert ignore into Name_player (player, uuid) values (pl, uu);"
-				+ "			leave SetName;"
-				+ "		end if;"
-				+ "END LOOP setName;"
-				+ "end if;"
+		db.execute("create definer=current_user procedure"
+				+ "addplayertotable(in pl varchar(16), in uu varchar(36))"
+				+ "sql security invoker"
+				+ "begin"
+				+ "  declare account varchar(16);"
+				+ "  declare counter int;"
+				+ "  declare safe boolean;"
+				+ "  set account = pl;"
+				+ "  if NOT EXISTS(select uuid from Name_player where uuid=uu) then"
+				+ "    --this uuid is not in the table yet"
+				+ "    if NOT EXISTS(select uuid from Name_player where player=pl) then"
+				+ "      --no other player has this name yet, so we can safely insert it"
+				+ "      insert into Name_player(player,uuid) values(pl,uu);"
+				+ "    else"
+				+ "      --name conflict resolution"
+				+ "      set safe = false;"
+				+ "      set counter = 1;"
+				+ "      REPEAT"
+				+ "        IF (LENGTH(pl) + LENGTH(cast(counter as char)) > 16) THEN"
+				+ "          set account = CONCAT(SUBSTRING(pl, 0, 16 - length(cast(counter as char))), cast(counter as char));"
+				+ "        ELSE"
+				+ "          set account = CONCAT(pl, cast(counter as char));"
+				+ "        END IF;"
+				+ "        IF NOT EXISTS(SELECT uuid FROM Name_player where player=account) THEN"
+				+ "          insert into Name_player(player, uuid) values(account, uu);"
+				+ "          set safe = true;"
+				+ "        ELSE"
+				+ "          set counter = counter + 1;"
+				+ "        END IF;"
+				+ "      UNTIL safe END REPEAT;"
+				+ "    end if;"
+				+ "  end if;"
+				+ "  --return new player name"
+				+ "  select account;"
 				+ "end");
 	}
 
@@ -139,13 +129,24 @@ public class AssociationList {
 		try {
 			addPlayer.setString(1, playername);
 			addPlayer.setString(2, uuid.toString());
-			addPlayer.execute();
+			ResultSet rs = addPlayer.executeQuery();
+			String newname = rs.getString(0);
+			
+			if (!playername.equals(newname)) {
+				NameLayerPlugin.log(Level.INFO, "Had to update the name " + playername + " to " + newname + ", because the name already existed"); 
+			}
 		} catch (SQLException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 	}
 
+	/**
+	 * This appears to be unsafe (doesn't check name uniqueness).
+	 * 
+	 * @param newName
+	 * @param uuid
+	 */
 	public void changePlayer(String newName, UUID uuid) {
 		NameLayerPlugin.reconnectAndReintializeStatements();
 		PreparedStatement changePlayerName = db.prepareStatement(this.changePlayerName);
@@ -160,7 +161,7 @@ public class AssociationList {
 	}
 	/**
 	 * This method returns all player info in the table.  It is used mainly
-	 * by NameAPI class to prepopulate the maps.  
+	 * by NameAPI class to prepopulate the maps.
 	 * As such Object[0] will return Map<String, UUID> while Object[1]
 	 * will return Map<UUID, String>
 	 */
