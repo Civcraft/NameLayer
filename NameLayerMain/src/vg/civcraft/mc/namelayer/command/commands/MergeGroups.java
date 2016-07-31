@@ -9,19 +9,16 @@ import org.bukkit.ChatColor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
-import vg.civcraft.mc.namelayer.GroupManager.PlayerType;
-import vg.civcraft.mc.namelayer.GroupManager;
 import vg.civcraft.mc.namelayer.NameAPI;
 import vg.civcraft.mc.namelayer.NameLayerPlugin;
 import vg.civcraft.mc.namelayer.command.PlayerCommandMiddle;
 import vg.civcraft.mc.namelayer.command.TabCompleters.GroupTabCompleter;
 import vg.civcraft.mc.namelayer.group.Group;
-import vg.civcraft.mc.namelayer.permission.GroupPermission;
 import vg.civcraft.mc.namelayer.permission.PermissionType;
 
 public class MergeGroups extends PlayerCommandMiddle{
 
-	private boolean active = false;
+	private static boolean active = false;
 	public MergeGroups(String name) {
 		super(name);
 		setIdentifier("nlmg");
@@ -61,23 +58,12 @@ public class MergeGroups extends PlayerCommandMiddle{
 			return true;
 		}
 		
-		GroupPermission gPerm = gm.getPermissionforGroup(g);
-		GroupPermission mPerm = gm.getPermissionforGroup(toMerge);
-		
 		UUID uuid = NameAPI.getUUID(p.getName());
-		PlayerType p1 = g.getPlayerType(uuid);
-		PlayerType p2 = toMerge.getPlayerType(uuid);
-		
-		if (p1 == null || p2 == null){
-			p.sendMessage(ChatColor.RED + "You don't have access for one of the groups.");
-			return true;
-		}
-		
-		if (!gPerm.isAccessible(p1, PermissionType.MERGE)){
+		if (!gm.hasAccess(g, uuid, PermissionType.getPermission("MERGE"))){
 			p.sendMessage(ChatColor.RED + "You don't have permission on group " + g.getName() + ".");
 			return true;
 		}
-		if (!mPerm.isAccessible(p2, PermissionType.MERGE)){
+		if (!gm.hasAccess(toMerge, uuid, PermissionType.getPermission("MERGE"))){
 			p.sendMessage(ChatColor.RED + "You don't have permission on group " + toMerge.getName() + ".");
 			return true;
 		}
@@ -111,9 +97,17 @@ public class MergeGroups extends PlayerCommandMiddle{
 			return null;
 
 		if (args.length > 0)
-			return GroupTabCompleter.complete(args[args.length - 1], PermissionType.MERGE, (Player) sender);
+			return GroupTabCompleter.complete(args[args.length - 1], PermissionType.getPermission("MERGE"), (Player) sender);
 		else{
-			return  GroupTabCompleter.complete(null, PermissionType.MERGE,(Player)sender);
+			return  GroupTabCompleter.complete(null, PermissionType.getPermission("MERGE"),(Player)sender);
 		}
+	}
+	
+	public static boolean isActive() {
+		return active;
+	}
+	
+	public static void setActive(boolean active) {
+		MergeGroups.active = active;
 	}
 }

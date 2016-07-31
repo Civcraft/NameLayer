@@ -6,6 +6,7 @@ import java.util.logging.Level;
 import org.bukkit.Bukkit;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
+
 import vg.civcraft.mc.civmodcore.ACivMod;
 import vg.civcraft.mc.civmodcore.Config;
 import vg.civcraft.mc.civmodcore.annotations.CivConfig;
@@ -15,25 +16,32 @@ import vg.civcraft.mc.namelayer.command.CommandHandler;
 import vg.civcraft.mc.namelayer.database.AssociationList;
 import vg.civcraft.mc.namelayer.database.Database;
 import vg.civcraft.mc.namelayer.database.GroupManagerDao;
+import vg.civcraft.mc.namelayer.group.BlackList;
+import vg.civcraft.mc.namelayer.group.DefaultGroupHandler;
 import vg.civcraft.mc.namelayer.listeners.AssociationListener;
 import vg.civcraft.mc.namelayer.listeners.MercuryMessageListener;
 import vg.civcraft.mc.namelayer.listeners.PlayerListener;
 import vg.civcraft.mc.namelayer.misc.ClassHandler;
+import vg.civcraft.mc.namelayer.permission.PermissionType;
 
 
 public class NameLayerPlugin extends ACivMod{
 	private static AssociationList associations;
+	private static BlackList blackList;
 	private static GroupManagerDao groupManagerDao;
+	private static DefaultGroupHandler defaultGroupHandler;
 	private static NameLayerPlugin instance;
 	private CommandHandler handle;
 	private static Database db;
 	private static boolean loadGroups = true;
 	private static int groupLimit = 10;
+	private static boolean createGroupOnFirstJoin;
 	private Config config;
 	
 	@CivConfigs({
 		@CivConfig(name = "groups.enable", def = "true", type = CivConfigType.Bool),
-		@CivConfig(name = "groups.grouplimit", def = "10", type = CivConfigType.Int)
+		@CivConfig(name = "groups.grouplimit", def = "10", type = CivConfigType.Int),
+		@CivConfig(name = "groups.creationOnFirstJoin", def = "true", type = CivConfigType.Bool)
 	})
 	@Override
 	public void onEnable() {
@@ -41,13 +49,17 @@ public class NameLayerPlugin extends ACivMod{
 		config = GetConfig();
 		loadGroups = config.get("groups.enable").getBool();
 		groupLimit = config.get("groups.grouplimit").getInt();
+		createGroupOnFirstJoin = config.get("groups.creationOnFirstJoin").getBool();
 		instance = this;
 		loadDatabases();
 	    ClassHandler.Initialize(Bukkit.getServer());
 		new NameAPI(new GroupManager(), associations);
-		groupManagerDao.loadGroupsInvitations();
 		registerListeners();
 		if (loadGroups){
+			PermissionType.initialize();
+			blackList = new BlackList();
+			groupManagerDao.loadGroupsInvitations();
+			defaultGroupHandler = new DefaultGroupHandler();
 			handle = new CommandHandler();
 			handle.registerCommands();
 		}
@@ -168,6 +180,10 @@ public class NameLayerPlugin extends ACivMod{
 	public static String getSpecialAdminGroup(){
 		return "Name_Layer_Special";
 	}
+	
+	public static boolean createGroupOnFirstJoin() {
+		return createGroupOnFirstJoin;
+	}
 
 	@Override
 	protected String getPluginName() {
@@ -180,5 +196,13 @@ public class NameLayerPlugin extends ACivMod{
 	
 	public int getGroupLimit(){
 		return groupLimit;
+	}
+	
+	public static BlackList getBlackList() {
+		return blackList;
+	}
+	
+	public static DefaultGroupHandler getDefaultGroupHandler() {
+		return defaultGroupHandler;
 	}
 }
