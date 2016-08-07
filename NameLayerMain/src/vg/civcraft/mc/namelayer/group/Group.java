@@ -225,7 +225,7 @@ public class Group {
 	public void addInvite(UUID uuid, PlayerType type, boolean saveToDB){
 		invites.put(uuid, type);
 		if(saveToDB){
-			db.addGroupInvitation(uuid, name, type.name());
+			db.addGroupInvitationAsync(uuid, name, type.name());
 		}
 	}
 	
@@ -258,7 +258,7 @@ public class Group {
 	public void removeInvite(UUID uuid, boolean saveToDB){
 		invites.remove(uuid);
 		if(saveToDB){
-			db.removeGroupInvitation(uuid, name);
+			db.removeGroupInvitationAsync(uuid, name);
 		}
 	}
 	/**
@@ -329,9 +329,9 @@ public class Group {
 		}
 		if (savetodb == true) {
 			if (isMember(uuid, type)){
-				db.removeMember(uuid, name);
+				db.removeMemberAsync(uuid, name);
 			}
-			db.addMember(uuid, name, type);
+			db.addMemberAsync(uuid, name, type);
 			Mercury.message("addMember " + this.name + " " + uuid.toString() + " " + type.toString());
 		}
 		players.put(uuid, type);
@@ -347,7 +347,7 @@ public class Group {
 	
 	public void removeMember(UUID uuid, boolean savetodb) {
 		if (savetodb){
-			db.removeMember(uuid, name);
+			db.removeMemberAsync(uuid, name);
 			Mercury.message("removeMember " + this.name + " " + uuid.toString());
 		}
 		players.remove(uuid);
@@ -381,7 +381,7 @@ public class Group {
 			supergroup.subgroups.add(subgroup);
 		}
 		if (saveToDb) {		
-			db.addSubGroup(supergroup.getName(), subgroup.getName());
+			db.addSubGroupAsync(supergroup.getName(), subgroup.getName());
 			Mercury.message("link "+ supergroup.name +" "+ subgroup.name);
 		}
 		
@@ -410,7 +410,7 @@ public class Group {
 		}		
 						
 		if (savetodb){
-			db.removeSubGroup(supergroup.getName(), subgroup.getName());
+			db.removeSubGroupAsync(supergroup.getName(), subgroup.getName());
 			Mercury.message("unlink "+ supergroup.name +" "+ subgroup.name);
 		}
 		
@@ -519,7 +519,7 @@ public class Group {
 	public void setPassword(String password, boolean savetodb) {
 		this.password = password;
 		if (savetodb){
-			db.updatePassword(name, password);
+			db.updatePasswordAsync(name, password);
 			Mercury.message("setPass " + this.name + " " + password);
 		}
 	}
@@ -535,7 +535,7 @@ public class Group {
 	public void setOwner(UUID uuid, boolean savetodb) {
 		this.owner = uuid;
 		if (savetodb){
-			db.setFounder(uuid, this);
+			db.setFounderAsync(uuid, this);
 			Mercury.message("setOwner "+ this.name + " " + uuid.toString());
 		}
 	}

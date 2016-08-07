@@ -66,7 +66,7 @@ public class BlackList {
 		if (ids != null && !ids.contains(uuid)) {
 			ids.add(uuid);
 			if (writeToDb) {
-				NameLayerPlugin.getGroupManagerDao().addBlackListMember(groupName, uuid);
+				NameLayerPlugin.getGroupManagerDao().addBlackListMemberAsync(groupName, uuid);
 				Mercury.message("blAdd " + groupName + " " + uuid.toString());
 			}
 		}
@@ -85,7 +85,7 @@ public class BlackList {
 		if (ids != null && ids.contains(uuid)) {
 			ids.remove(uuid);
 			if (writeToDb) {
-				NameLayerPlugin.getGroupManagerDao().removeBlackListMember(groupName, uuid);
+				NameLayerPlugin.getGroupManagerDao().removeBlackListMemberAsync(groupName, uuid);
 				Mercury.message("blRem " + groupName + " " + uuid.toString());
 			}
 		}

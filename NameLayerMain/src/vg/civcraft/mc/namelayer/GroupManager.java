@@ -124,7 +124,7 @@ public class GroupManager{
 		group.setDisciplined(true);
 		group.setValid(false);
 		if (savetodb){
-			groupManagerDao.deleteGroup(groupName);
+			groupManagerDao.deleteGroupAsync(groupName);
 			String message = "delete " + groupName;
 			Mercury.message(message);
 		}
@@ -179,7 +179,7 @@ public class GroupManager{
 		}
 		
 		if (savetodb){
-			groupManagerDao.mergeGroup(group.getName(), toMerge.getName());
+			groupManagerDao.mergeGroupAsync(group.getName(), toMerge.getName());
 			String message = "merge " + group.getName() + " " + toMerge.getName();
 			Mercury.message(message);
 		}
@@ -407,7 +407,7 @@ public class GroupManager{
 			}
 		}
 		for (Entry <PlayerType, List <PermissionType>> entry: defaultPermMapping.entrySet()){
-			groupManagerDao.addPermission(group, entry.getKey().name(), entry.getValue());
+			groupManagerDao.addPermissionAsync(group, entry.getKey().name(), entry.getValue());
 		}
 	}
 	
