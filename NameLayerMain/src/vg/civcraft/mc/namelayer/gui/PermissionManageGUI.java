@@ -5,23 +5,20 @@ import java.util.List;
 import java.util.logging.Level;
 
 import org.bukkit.ChatColor;
-import org.bukkit.Color;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
-import org.bukkit.inventory.meta.LeatherArmorMeta;
 
 import vg.civcraft.mc.civmodcore.inventorygui.Clickable;
 import vg.civcraft.mc.civmodcore.inventorygui.ClickableInventory;
 import vg.civcraft.mc.civmodcore.inventorygui.DecorationStack;
 import vg.civcraft.mc.civmodcore.itemHandling.ISUtils;
 import vg.civcraft.mc.namelayer.NameLayerPlugin;
-import vg.civcraft.mc.namelayer.GroupManager.PlayerType;
 import vg.civcraft.mc.namelayer.group.Group;
-import vg.civcraft.mc.namelayer.permission.GroupPermission;
 import vg.civcraft.mc.namelayer.permission.PermissionType;
+import vg.civcraft.mc.namelayer.permission.PlayerType;
 
 public class PermissionManageGUI extends AbstractGroupGUI {
 
@@ -40,24 +37,12 @@ public class PermissionManageGUI extends AbstractGroupGUI {
 			return;
 		}
 		//dye blacklisted clickable black
-		Clickable blackClick = produceSelectionClickable(Material.LEATHER_CHESTPLATE, PlayerType.NOT_BLACKLISTED);
-		ItemStack blackStack = blackClick.getItemStack();
-		LeatherArmorMeta meta = (LeatherArmorMeta)blackStack.getItemMeta();
-		meta.setColor(Color.BLACK);
-		blackStack.setItemMeta(meta);
-		ci.setSlot(blackClick, 9);
-		ci.setSlot(
-				produceSelectionClickable(Material.LEATHER_CHESTPLATE,
-						PlayerType.MEMBERS), 11);
-		ci.setSlot(
-				produceSelectionClickable(Material.GOLD_CHESTPLATE,
-						PlayerType.MODS), 13);
-		ci.setSlot(
-				produceSelectionClickable(Material.IRON_CHESTPLATE,
-						PlayerType.ADMINS), 15);
-		ci.setSlot(
-				produceSelectionClickable(Material.DIAMOND_CHESTPLATE,
-						PlayerType.OWNER), 17);
+		List <PlayerType> types = g.getPlayerTypeHandler().getAllTypes();
+		for(int i = 0; i< types.size() ; i++) {
+			ci.setSlot(produceSelectionClickable(types.get(i)), i);
+		}
+		
+		
 		ItemStack backStack = new ItemStack(Material.ARROW);
 		ISUtils.setName(backStack, ChatColor.GOLD
 				+ "Go back to member management");
@@ -67,19 +52,18 @@ public class PermissionManageGUI extends AbstractGroupGUI {
 			public void clicked(Player arg0) {
 				parent.showScreen();
 			}
-		}, 22);
+		}, 0);
 		ci.showInventory(p);
 	}
 
-	private Clickable produceSelectionClickable(Material mat,
-			final PlayerType pType) {
-		ItemStack is = new ItemStack(mat);
+	private Clickable produceSelectionClickable(final PlayerType pType) {
+		ItemStack is = MenuUtils.getPlayerTypeStack(pType.getId());
 		ItemMeta im = is.getItemMeta();
 		im.addItemFlags(ItemFlag.HIDE_ATTRIBUTES);
 		is.setItemMeta(im);
 		Clickable c;
 		ISUtils.setName(is, ChatColor.GOLD + "View and edit permissions for "
-				+ PlayerType.getNiceRankName(pType));
+				+ pType.getName());
 		if (!gm.hasAccess(g, p.getUniqueId(),
 				PermissionType.getPermission("LIST_PERMS"))) {
 			ISUtils.addLore(is, ChatColor.RED + "You are not allowed to list",
@@ -110,29 +94,28 @@ public class PermissionManageGUI extends AbstractGroupGUI {
 		}
 		ClickableInventory ci = new ClickableInventory(54, g.getName());
 		final List<Clickable> clicks = new ArrayList<Clickable>();
-		final GroupPermission gp = gm.getPermissionforGroup(g);
 		boolean canEdit = gm.hasAccess(g, p.getUniqueId(),
 				PermissionType.getPermission("PERMS"));
 		for (final PermissionType perm : PermissionType.getAllPermissions()) {
 			ItemStack is;
 			Clickable c;
-			final boolean hasPerm = gp.hasPermission(pType, perm);
+			final boolean hasPerm = pType.hasPermission(perm);
 			if (hasPerm) {
 				is = new ItemStack(Material.INK_SACK, 1, (short) 10); // green
 																		// dye
 				ISUtils.addLore(
 						is,
 						ChatColor.DARK_AQUA
-								+ PlayerType.getNiceRankName(pType)
-								+ "s currently have", ChatColor.DARK_AQUA
+								+ pType.getName()
+								+ " currently have", ChatColor.DARK_AQUA
 								+ "this permission");
 			} else {
 				is = new ItemStack(Material.INK_SACK, 1, (short) 1); // red dye
 				ISUtils.addLore(
 						is,
 						ChatColor.DARK_AQUA
-								+ PlayerType.getNiceRankName(pType)
-								+ "s currently don't have", ChatColor.DARK_AQUA
+								+ pType.getName()
+								+ " currently don't have", ChatColor.DARK_AQUA
 								+ "this permission");
 			}
 			ISUtils.setName(is, perm.getName());
@@ -146,7 +129,7 @@ public class PermissionManageGUI extends AbstractGroupGUI {
 
 					@Override
 					public void clicked(Player arg0) {
-						if (hasPerm == gp.hasPermission(pType, perm)) { // recheck
+						if (hasPerm == pType.hasPermission(perm)) { // recheck
 							if (gm.hasAccess(g, p.getUniqueId(),
 									PermissionType.getPermission("PERMS"))) {
 								NameLayerPlugin.log(Level.INFO, p.getName()
@@ -155,9 +138,9 @@ public class PermissionManageGUI extends AbstractGroupGUI {
 										+ "for player type" + pType.toString()
 										+ " for " + g.getName() + "via gui");
 								if (hasPerm) {
-									gp.removePermission(pType, perm);
+									pType.removePermission(perm, true);
 								} else {
-									gp.addPermission(pType, perm);
+									pType.addPermission(perm, true);
 								}
 								checkRecacheGroup();
 							}

@@ -25,11 +25,10 @@ import vg.civcraft.mc.civmodcore.itemHandling.ISUtils;
 import vg.civcraft.mc.namelayer.GroupManager;
 import vg.civcraft.mc.namelayer.NameAPI;
 import vg.civcraft.mc.namelayer.NameLayerPlugin;
-import vg.civcraft.mc.namelayer.GroupManager.PlayerType;
 import vg.civcraft.mc.namelayer.group.Group;
 import vg.civcraft.mc.namelayer.misc.Mercury;
-import vg.civcraft.mc.namelayer.permission.GroupPermission;
 import vg.civcraft.mc.namelayer.permission.PermissionType;
+import vg.civcraft.mc.namelayer.permission.PlayerType;
 
 public class GUIGroupOverview {
 
@@ -39,8 +38,8 @@ public class GUIGroupOverview {
 	private boolean autoAccept;
 
 	public GUIGroupOverview(Player p) {
-		if (this.gm == null) {
-			this.gm = NameAPI.getGroupManager();
+		if (GUIGroupOverview.gm == null) {
+			GUIGroupOverview.gm = NameAPI.getGroupManager();
 		}
 		autoAccept = NameLayerPlugin.getGroupManagerDao().shouldAutoAcceptGroups(p.getUniqueId());
 		this.p = p;
@@ -149,7 +148,7 @@ public class GUIGroupOverview {
 			if (alreadyProcessed.contains(groupName)) {
 				continue;
 			}
-			final Group g = gm.getGroup(groupName);
+			final Group g = GroupManager.getGroup(groupName);
 			if (g == null) {
 				continue;
 			}
@@ -158,32 +157,12 @@ public class GUIGroupOverview {
 			if (pType == null) {
 				continue;
 			}
-			ItemStack is = null;
-			switch (pType) {
-			case MEMBERS:
-				is = new ItemStack(Material.LEATHER_CHESTPLATE);
-				ISUtils.addLore(is, ChatColor.AQUA + "Your rank: Member");
-				break;
-			case MODS:
-				is = new ItemStack(Material.GOLD_CHESTPLATE);
-				ISUtils.addLore(is, ChatColor.AQUA + "Your rank: Mod");
-				break;
-			case ADMINS:
-				is = new ItemStack(Material.IRON_CHESTPLATE);
-				ISUtils.addLore(is, ChatColor.AQUA + "Your rank: Admin");
-				break;
-			case OWNER:
-				is = new ItemStack(Material.DIAMOND_CHESTPLATE);
-				if (g.isOwner(p.getUniqueId())) {
-					ISUtils.addLore(is, ChatColor.AQUA
-							+ "Your rank: Primary owner");
-				} else {
-					ISUtils.addLore(is, ChatColor.AQUA + "Your rank: Owner");
-				}
-				break;
+			ItemStack is = MenuUtils.getPlayerTypeStack(pType.getId());
+			if (g.isOwner(p.getUniqueId())) {
+				ISUtils.addLore(is, ChatColor.AQUA + "Your rank: Primary owner");
 			}
-			if (is == null) {
-				continue;
+			else {
+				ISUtils.addLore(is, ChatColor.AQUA + "Your rank: " + pType.getName());
 			}
 			ItemMeta im = is.getItemMeta();
 			im.addItemFlags(ItemFlag.HIDE_ATTRIBUTES, ItemFlag.HIDE_ENCHANTS);
@@ -365,7 +344,7 @@ public class GUIGroupOverview {
 							showScreen();
 							return;
 						}
-						final Group g = gm.getGroup(groupName);
+						final Group g = GroupManager.getGroup(groupName);
 						if (g == null) {
 							p.sendMessage(ChatColor.RED + "This group doesn't exist");
 							showScreen();
@@ -392,8 +371,7 @@ public class GUIGroupOverview {
 								}
 								else {
 									Group gro = ensureFreshGroup(g);
-									GroupPermission groupPerm = gm.getPermissionforGroup(gro);
-									PlayerType pType = groupPerm.getFirstWithPerm(PermissionType.getPermission("JOIN_PASSWORD"));
+									PlayerType pType = gro.getPlayerTypeHandler().getDefaultPasswordJoinType();
 									if (pType == null){
 										p.sendMessage(ChatColor.RED + "Someone derped. This group does not have the specified permission to let you join, sorry.");
 										showScreen();
@@ -424,7 +402,7 @@ public class GUIGroupOverview {
 	
 	private Group ensureFreshGroup(Group g) {
 		if (!g.isValid()) {
-			return gm.getGroup(g.getName());
+			return GroupManager.getGroup(g.getName());
 		}
 		return g;
 	}

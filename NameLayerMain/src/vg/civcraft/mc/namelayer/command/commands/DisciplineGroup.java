@@ -4,6 +4,7 @@ import org.bukkit.ChatColor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
+import vg.civcraft.mc.namelayer.GroupManager;
 import vg.civcraft.mc.namelayer.command.PlayerCommandMiddle;
 import vg.civcraft.mc.namelayer.group.Group;
 
@@ -23,10 +24,8 @@ public class DisciplineGroup extends PlayerCommandMiddle{
 	public boolean execute(CommandSender sender, String[] args) {
 		if (!(sender instanceof Player))
 			sender.sendMessage(ChatColor.AQUA + "Meh, fine, just this one.");
-		// checks and stuff should be in plugin.yml so going to assume that sender has perms
-		// naaaaaaa
 		Player p = (Player) sender;
-		Group g = gm.getGroup(args[0]);
+		Group g = GroupManager.getGroup(args[0]);
 		if (groupIsNull(sender, args[0], g)) {
 			return true;
 		}

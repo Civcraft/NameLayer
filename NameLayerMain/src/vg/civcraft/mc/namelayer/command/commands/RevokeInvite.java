@@ -7,15 +7,15 @@ import org.bukkit.ChatColor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
-import vg.civcraft.mc.namelayer.GroupManager.PlayerType;
 import vg.civcraft.mc.mercury.MercuryAPI;
+import vg.civcraft.mc.namelayer.GroupManager;
 import vg.civcraft.mc.namelayer.NameAPI;
 import vg.civcraft.mc.namelayer.NameLayerPlugin;
 import vg.civcraft.mc.namelayer.command.PlayerCommandMiddle;
 import vg.civcraft.mc.namelayer.command.TabCompleters.GroupTabCompleter;
 import vg.civcraft.mc.namelayer.group.Group;
 import vg.civcraft.mc.namelayer.listeners.PlayerListener;
-import vg.civcraft.mc.namelayer.permission.PermissionType;
+import vg.civcraft.mc.namelayer.permission.PlayerType;
 
 public class RevokeInvite extends PlayerCommandMiddle{
 
@@ -34,7 +34,7 @@ public class RevokeInvite extends PlayerCommandMiddle{
 			return true;
 		}
 		Player p = (Player) sender;
-		Group group = gm.getGroup(args[0]);
+		Group group = GroupManager.getGroup(args[0]);
 		if (groupIsNull(sender, args[0], group)) {
 			return true;
 		}
@@ -42,7 +42,6 @@ public class RevokeInvite extends PlayerCommandMiddle{
 			p.sendMessage(ChatColor.RED + "This group is disiplined.");
 			return true;
 		}
-		UUID executor = NameAPI.getUUID(p.getName());
 		UUID uuid = NameAPI.getUUID(args[1]);
 		
 		if (uuid == null){
@@ -63,30 +62,11 @@ public class RevokeInvite extends PlayerCommandMiddle{
 		
 		//get invitee PlayerType
 		PlayerType pType = group.getInvite(uuid);
-		
-		PlayerType t = group.getPlayerType(executor); // playertype for the player running the command.
-		if (t == null){
+		if (!group.isMember(p.getUniqueId())) {
 			p.sendMessage(ChatColor.RED + "You are not on that group.");
 			return true;
 		}
-		boolean allowed = false;
-		switch (pType){ // depending on the type the executor wants to add the player to
-		case MEMBERS:
-			allowed = gm.hasAccess(group, executor, PermissionType.getPermission("MEMBERS"));
-			break;
-		case MODS:
-			allowed = gm.hasAccess(group, executor, PermissionType.getPermission("MODS"));
-			break;
-		case ADMINS:
-			allowed = gm.hasAccess(group, executor, PermissionType.getPermission("ADMINS"));
-			break;
-		case OWNER:
-			allowed = gm.hasAccess(group, executor, PermissionType.getPermission("OWNER"));
-			break;
-		default:
-			allowed = false;
-			break;
-		}
+		boolean allowed = canModifyRank(group, p, pType);
 		if (!allowed){
 			p.sendMessage(ChatColor.RED + "You do not have permissions to modify this group.");
 			return true;

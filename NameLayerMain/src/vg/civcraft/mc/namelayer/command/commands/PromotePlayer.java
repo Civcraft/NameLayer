@@ -9,18 +9,15 @@ import org.bukkit.OfflinePlayer;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
-import vg.civcraft.mc.namelayer.GroupManager.PlayerType;
+import vg.civcraft.mc.namelayer.GroupManager;
 import vg.civcraft.mc.namelayer.NameAPI;
-import vg.civcraft.mc.namelayer.NameLayerPlugin;
 import vg.civcraft.mc.namelayer.command.PlayerCommandMiddle;
 import vg.civcraft.mc.namelayer.command.TabCompleters.GroupMemberTabCompleter;
 import vg.civcraft.mc.namelayer.command.TabCompleters.GroupTabCompleter;
-import vg.civcraft.mc.namelayer.command.TabCompleters.InviteTabCompleter;
 import vg.civcraft.mc.namelayer.command.TabCompleters.MemberTypeCompleter;
 import vg.civcraft.mc.namelayer.group.Group;
-import vg.civcraft.mc.namelayer.listeners.PlayerListener;
-import vg.civcraft.mc.namelayer.permission.GroupPermission;
-import vg.civcraft.mc.namelayer.permission.PermissionType;
+import vg.civcraft.mc.namelayer.permission.PlayerType;
+import vg.civcraft.mc.namelayer.permission.PlayerTypeHandler;
 import vg.civcraft.mc.namelayer.events.PromotePlayerEvent;
 
 public class PromotePlayer extends PlayerCommandMiddle{
@@ -56,7 +53,7 @@ public class PromotePlayer extends PlayerCommandMiddle{
 			return true;
 		}
 		
-		Group group = gm.getGroup(args[0]);
+		Group group = GroupManager.getGroup(args[0]);
 		if (groupIsNull(sender, args[0], group)) {
 			return true;
 		}
@@ -64,51 +61,35 @@ public class PromotePlayer extends PlayerCommandMiddle{
 			p.sendMessage(ChatColor.RED + "This group is disiplined.");
 			return true;
 		}
-		
-		PlayerType promoteecurrentType = group.getPlayerType(promotee);
-		PlayerType promoteeType = PlayerType.getPlayerType(args[2]);
-		if(promoteeType == null){
-			PlayerType.displayPlayerTypes(p);
-			return true;
+		PlayerTypeHandler ptHandler = group.getPlayerTypeHandler();
+		PlayerType promoteeCurrentType = group.getPlayerType(promotee);
+		PlayerType promoteeTargetType = group.getPlayerTypeHandler().getType(args [2]);
+		if(promoteeTargetType == null){
+			sendPlayerTypes(group, sender, args [2]);
 		}
-		if(promoteeType == PlayerType.NOT_BLACKLISTED) {
+		if(promoteeCurrentType == ptHandler.getBlacklistedType() || promoteeCurrentType == ptHandler.getDefaultNonMemberType()) {
 			p.sendMessage(ChatColor.RED + "Nice try");
 			return true;
 		}
 		
-		PlayerType t = group.getPlayerType(executor); // playertype for the player running the command.
-		
-		if (t == null){
+		if (!group.isMember(p.getUniqueId())){
 			p.sendMessage(ChatColor.RED + "You are not on that group.");
 			return true;
 		}
 		
-		boolean allowed = false;
-		switch (promoteeType){ // depending on the type the executor wants to add the player to
-		case MEMBERS:
-			allowed = gm.hasAccess(group, executor, PermissionType.getPermission("MEMBERS"));
-			break;
-		case MODS:
-			allowed = gm.hasAccess(group, executor, PermissionType.getPermission("MODS"));
-			break;
-		case ADMINS:
-			allowed = gm.hasAccess(group, executor, PermissionType.getPermission("ADMINS"));
-			break;
-		case OWNER:
-			allowed = gm.hasAccess(group, executor, PermissionType.getPermission("OWNER"));
-			break;
-		default:
-			allowed = false;
-			break;
-		}
-		
-		if (!allowed){
-			p.sendMessage(ChatColor.RED + "You do not have permissions to modify this group.");
-			return true;
-		}
 		
 		if (!group.isMember(promotee)){ //can't edit a player who isn't in the group
 			p.sendMessage(ChatColor.RED + NameAPI.getCurrentName(promotee) + " is not a member of this group.");
+			return true;
+		}
+		
+		if (!canModifyRank(group, p, promoteeCurrentType)){
+			p.sendMessage(ChatColor.RED + "You do not have permissions to change the current rank of this player");
+			return true;
+		}
+		
+		if (!canModifyRank(group, p, promoteeTargetType)){
+			p.sendMessage(ChatColor.RED + "You do not have permissions to promote players to this rank");
 			return true;
 		}
 		
@@ -121,24 +102,24 @@ public class PromotePlayer extends PlayerCommandMiddle{
 		OfflinePlayer prom = Bukkit.getOfflinePlayer(promotee);
 		if(prom.isOnline()){
 			Player oProm = (Player) prom;
-			PromotePlayerEvent event = new PromotePlayerEvent(oProm, group, promoteecurrentType, promoteeType);
+			PromotePlayerEvent event = new PromotePlayerEvent(oProm, group, promoteeCurrentType, promoteeTargetType);
 			Bukkit.getPluginManager().callEvent(event);
 			if(event.isCancelled()){
 				return false;
 			}
 			group.removeMember(promotee);
-			group.addMember(promotee, promoteeType);
+			group.addMember(promotee, promoteeTargetType);
 			p.sendMessage(ChatColor.GREEN + NameAPI.getCurrentName(promotee) + " has been added as (PlayerType) " +
-					promoteeType.toString() + " in (Group) " + group.getName());
+					promoteeTargetType.toString() + " to " + group.getName());
 			oProm.sendMessage(ChatColor.GREEN + "You have been promoted to (PlayerType) " +
-					promoteeType.toString() + " in (Group) " + group.getName());
+					promoteeTargetType.getName() + " in " + group.getName());
 		}
 		else{
 			//player is offline change their perms
 			group.removeMember(promotee);
-			group.addMember(promotee, promoteeType);
+			group.addMember(promotee, promoteeTargetType);
 			p.sendMessage(ChatColor.GREEN + NameAPI.getCurrentName(promotee) + " has been added as (PlayerType) " +
-					promoteeType.toString() + " in (Group) " + group.getName());
+					promoteeTargetType.getName() + " to " + group.getName());
 		}
 		checkRecacheGroup(group);
 		return true;
@@ -158,9 +139,13 @@ public class PromotePlayer extends PlayerCommandMiddle{
 
 		} else if (args.length == 2)
 			return GroupMemberTabCompleter.complete(args[0], args[1], (Player) sender);
-		else if (args.length == 3)
-			return MemberTypeCompleter.complete(args[2]);
-
+		else if (args.length == 3) {
+			Group g = GroupManager.getGroup(args [0]);
+			if (g == null) {
+				return null;
+			}
+			return MemberTypeCompleter.complete(g, args[2]);
+		}
 		else return null;
 	}
 

@@ -2,7 +2,6 @@ package vg.civcraft.mc.namelayer.group;
 
 import java.util.ArrayList;
 import java.util.HashSet;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -14,10 +13,11 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
 import vg.civcraft.mc.namelayer.GroupManager;
-import vg.civcraft.mc.namelayer.GroupManager.PlayerType;
 import vg.civcraft.mc.namelayer.NameAPI;
 import vg.civcraft.mc.namelayer.NameLayerPlugin;
 import vg.civcraft.mc.namelayer.database.GroupManagerDao;
+import vg.civcraft.mc.namelayer.permission.PlayerType;
+import vg.civcraft.mc.namelayer.permission.PlayerTypeHandler;
 
 public class Group {
 	
@@ -30,6 +30,7 @@ public class Group {
 	private boolean isValid = true;  // if false, then group has recently been deleted and is invalid
 	private int id;
 	private Set<Integer> ids = Sets.<Integer>newConcurrentHashSet();
+	private PlayerTypeHandler playerTypeHandler;
 		
 	private Group supergroup;
 	private Set<Group> subgroups = Sets.<Group>newConcurrentHashSet();
@@ -46,13 +47,9 @@ public class Group {
 		this.password = password;
 		this.owner = owner;
 		this.isDisciplined = disciplined;
-	
-		for (PlayerType permission : PlayerType.values()) {
-			List<UUID> list = db.getAllMembers(name, permission);
-			for (UUID uuid : list) {
-				players.put(uuid, permission);
-			}
-		}
+		
+		playerTypeHandler = db.getPermissions(this);
+		players = db.getAllMembers(name, playerTypeHandler);
 		
 		// This returns list of ids w/ id holding largest # of players at top.
 		List<Integer> allIds = db.getAllIDs(name);
@@ -75,6 +72,10 @@ public class Group {
 		for (Group subgroup : subgroups) {
 			unlink(this, subgroup);
 		}
+	}
+	
+	public PlayerTypeHandler getPlayerTypeHandler() {
+		return playerTypeHandler;
 	}
 	
 	/**
@@ -224,7 +225,7 @@ public class Group {
 	public void addInvite(UUID uuid, PlayerType type, boolean saveToDB){
 		invites.put(uuid, type);
 		if(saveToDB){
-			db.addGroupInvitation(uuid, name, type.name());
+			db.addGroupInvitation(uuid, name, type);
 		}
 	}
 	
@@ -280,17 +281,6 @@ public class Group {
 			return players.get(uuid).equals(type);
 		return false;
 	}
-
-	public boolean isCurrentMember(UUID uuid) {
-		return players.containsKey(uuid);
-	}
-	
-	public boolean isCurrentMember(UUID uuid, PlayerType rank) {
-		if (players.containsKey(uuid)) {
-			return players.get(uuid).equals(rank);
-		}
-		return false;
-	}
 	
 	/**
 	 * @param uuid- The UUID of the player.
@@ -302,13 +292,9 @@ public class Group {
 			return member;
 		}
 		if (NameLayerPlugin.getBlackList().isBlacklisted(this, uuid)) {
-			return null;
+			return playerTypeHandler.getBlacklistedType();
 		}
-		return PlayerType.NOT_BLACKLISTED;
-	}
-	
-	public PlayerType getCurrentRank(UUID uuid) {
-		return players.get(uuid);
+		return playerTypeHandler.getDefaultNonMemberType();
 	}
 
 	/**
@@ -318,7 +304,7 @@ public class Group {
 	 * it will be overwritten.
 	 */
 	public void addMember(UUID uuid, PlayerType type) {
-		if (type == PlayerType.NOT_BLACKLISTED) {
+		if (type == playerTypeHandler.getBlacklistedType() || type == playerTypeHandler.getDefaultNonMemberType()) {
 			return;
 		}
 		if (isMember(uuid, type)) {

@@ -10,13 +10,13 @@ import org.bukkit.entity.Player;
 import com.google.common.collect.Lists;
 
 import vg.civcraft.mc.namelayer.GroupManager;
-import vg.civcraft.mc.namelayer.GroupManager.PlayerType;
 import vg.civcraft.mc.namelayer.NameAPI;
 import vg.civcraft.mc.namelayer.command.PlayerCommandMiddle;
 import vg.civcraft.mc.namelayer.command.TabCompleters.GroupTabCompleter;
 import vg.civcraft.mc.namelayer.command.TabCompleters.MemberTypeCompleter;
 import vg.civcraft.mc.namelayer.group.Group;
 import vg.civcraft.mc.namelayer.permission.PermissionType;
+import vg.civcraft.mc.namelayer.permission.PlayerType;
 
 public class ListMembers extends PlayerCommandMiddle {
 
@@ -39,7 +39,7 @@ public class ListMembers extends PlayerCommandMiddle {
 		UUID uuid = NameAPI.getUUID(p.getName());
 		String groupname = args[0];
 		
-		Group group = gm.getGroup(groupname);
+		Group group = GroupManager.getGroup(groupname);
 		if (groupIsNull(sender, groupname, group)) {
 			return true;
 		}
@@ -73,11 +73,11 @@ public class ListMembers extends PlayerCommandMiddle {
 			}
 		} else if (args.length == 2) {
 			String playerRank = args[1];
-			PlayerType filterType = PlayerType.getPlayerType(playerRank);
+			PlayerType filterType = group.getPlayerTypeHandler().getType(playerRank);
 			
 			if (filterType == null) {
 				// user entered invalid type, show them
-				PlayerType.displayPlayerTypes(p);
+				sendPlayerTypes(group, sender, playerRank);
 				return true;
 			}
 			
@@ -110,8 +110,13 @@ public class ListMembers extends PlayerCommandMiddle {
 			return GroupTabCompleter.complete(null, null, (Player) sender);
 		else if (args.length == 1)
 			return GroupTabCompleter.complete(args[0], null, (Player)sender);
-		else if (args.length == 2)
-			return MemberTypeCompleter.complete(args[1]);
+		else if (args.length == 2) {
+			Group g = GroupManager.getGroup(args [0]);
+			if (g == null) {
+				return null;
+			}
+			return MemberTypeCompleter.complete(g, args[1]);
+		}
 
 		return null;
 	}

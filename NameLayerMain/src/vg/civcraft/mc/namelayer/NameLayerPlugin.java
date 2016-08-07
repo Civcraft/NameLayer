@@ -71,7 +71,6 @@ public class NameLayerPlugin extends ACivMod{
 		super.onLoad();
 	}
 	
-	@SuppressWarnings("deprecation")
 	public void registerListeners(){
 		getServer().getPluginManager().registerEvents(new AssociationListener(), this);
 		getServer().getPluginManager().registerEvents(new PlayerListener(), this);

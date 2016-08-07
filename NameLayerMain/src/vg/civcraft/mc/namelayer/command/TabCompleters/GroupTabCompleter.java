@@ -34,7 +34,7 @@ public class GroupTabCompleter {
 
         if (accessLevel == null) {
             for (String group_name: fitting_groups){
-                Group group  = gm.getGroup(group_name);
+                Group group  = GroupManager.getGroup(group_name);
                 if (group.isMember(uuid))
                     result.add(group_name);
             }

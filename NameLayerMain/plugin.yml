@@ -75,6 +75,12 @@ commands:
    nlubl:
     aliases: [removeblacklist, unblacklist]    
    nl:
+   nlapt:
+    aliases: [nlcpt, addplayertype, nladdplayertype, createplayertype]
+   nldpt:
+    aliases: [removeplayertype, nldeleteplayertype, deleteplayertype]
+   nlrpt:
+    aliases: [changeplayertypename, renameplayertype, nlrenameplayertype]
        
 permissions:
    namelayer.admin:

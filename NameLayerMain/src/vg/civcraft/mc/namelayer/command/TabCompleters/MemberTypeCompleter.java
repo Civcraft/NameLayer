@@ -1,6 +1,7 @@
 package vg.civcraft.mc.namelayer.command.TabCompleters;
 
-import vg.civcraft.mc.namelayer.GroupManager;
+import vg.civcraft.mc.namelayer.group.Group;
+import vg.civcraft.mc.namelayer.permission.PlayerType;
 
 import java.util.LinkedList;
 import java.util.List;
@@ -12,25 +13,27 @@ import java.util.List;
  */
 public class MemberTypeCompleter {
 
+	public static List<String> complete(Group g, String lastArg) {
+		List<String> type_strings = new LinkedList<>();
+		List<String> result = new LinkedList<>();
 
-    public static List<String> complete(String lastArg) {
-        GroupManager.PlayerType[] types = GroupManager.PlayerType.values();
-        List<String> type_strings = new LinkedList<>();
-        List<String> result = new LinkedList<>();
+		if (g == null) {
+			return result;
+		}
 
-        for (GroupManager.PlayerType type: types){
-            type_strings.add(type.toString());
-        }
+		for (PlayerType type : g.getPlayerTypeHandler().getAllTypes()) {
+			type_strings.add(type.getName());
+		}
 
-        if (lastArg != null) {
-            for(String type: type_strings){
-                if (type.toLowerCase().startsWith(lastArg.toLowerCase()))
-                    result.add(type);
-            }
-        } else {
-            result = type_strings;
-        }
+		if (lastArg != null) {
+			for (String type : type_strings) {
+				if (type.toLowerCase().startsWith(lastArg.toLowerCase()))
+					result.add(type);
+			}
+		} else {
+			result = type_strings;
+		}
 
-        return result;
-    }
+		return result;
+	}
 }

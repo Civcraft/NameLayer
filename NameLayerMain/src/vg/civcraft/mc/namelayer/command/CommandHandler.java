@@ -10,6 +10,8 @@ import org.bukkit.command.CommandSender;
 import vg.civcraft.mc.civmodcore.command.Command;
 import vg.civcraft.mc.namelayer.command.commands.AcceptInvite;
 import vg.civcraft.mc.namelayer.command.commands.AddBlacklist;
+import vg.civcraft.mc.namelayer.command.commands.CreatePlayerType;
+import vg.civcraft.mc.namelayer.command.commands.DeletePlayerType;
 import vg.civcraft.mc.namelayer.command.commands.LinkGroups;
 import vg.civcraft.mc.namelayer.command.commands.ChangePlayerName;
 import vg.civcraft.mc.namelayer.command.commands.CreateGroup;
@@ -22,6 +24,7 @@ import vg.civcraft.mc.namelayer.command.commands.InvitePlayer;
 import vg.civcraft.mc.namelayer.command.commands.JoinGroup;
 import vg.civcraft.mc.namelayer.command.commands.LeaveGroup;
 import vg.civcraft.mc.namelayer.command.commands.NameLayerGroupGui;
+import vg.civcraft.mc.namelayer.command.commands.RenamePlayerType;
 import vg.civcraft.mc.namelayer.command.commands.ShowBlacklist;
 import vg.civcraft.mc.namelayer.command.commands.ListCurrentInvites;
 import vg.civcraft.mc.namelayer.command.commands.ListGroups;
@@ -81,6 +84,9 @@ public class CommandHandler {
 		addCommands(new RemoveBlacklist("RemoveBlacklist"));
 		addCommands(new ShowBlacklist("ShowBlacklist"));
 		addCommands(new NameLayerGroupGui("OpenGUI"));
+		addCommands(new CreatePlayerType("CreatePlayerType"));
+		addCommands(new DeletePlayerType("DeletePlayerType"));
+		addCommands(new RenamePlayerType("RenamePlayerType"));
 	}
 	
 	public void addCommands(Command command){

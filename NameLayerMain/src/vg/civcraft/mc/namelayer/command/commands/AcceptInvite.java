@@ -7,14 +7,15 @@ import org.bukkit.ChatColor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
-import vg.civcraft.mc.namelayer.GroupManager.PlayerType;
 import vg.civcraft.mc.mercury.MercuryAPI;
+import vg.civcraft.mc.namelayer.GroupManager;
 import vg.civcraft.mc.namelayer.NameAPI;
 import vg.civcraft.mc.namelayer.NameLayerPlugin;
 import vg.civcraft.mc.namelayer.command.PlayerCommandMiddle;
 import vg.civcraft.mc.namelayer.command.TabCompleters.InviteTabCompleter;
 import vg.civcraft.mc.namelayer.group.Group;
 import vg.civcraft.mc.namelayer.listeners.PlayerListener;
+import vg.civcraft.mc.namelayer.permission.PlayerType;
 
 public class AcceptInvite extends PlayerCommandMiddle{
 
@@ -33,7 +34,7 @@ public class AcceptInvite extends PlayerCommandMiddle{
 			return true;
 		}
 		Player p = (Player) sender;
-		Group group = gm.getGroup(args[0]);
+		Group group = GroupManager.getGroup(args[0]);
 		if (groupIsNull(sender, args[0], group)) {
 			return true;
 		}
@@ -61,7 +62,7 @@ public class AcceptInvite extends PlayerCommandMiddle{
 			MercuryAPI.sendGlobalMessage("removeInvitation " + group.getGroupId() + " " + uuid, "namelayer");
 		}
 		
-		p.sendMessage(ChatColor.GREEN + "You have successfully been added to the group as a " + type.name() +".");
+		p.sendMessage(ChatColor.GREEN + "You have successfully been added to " + group.getName() +" as " + type.getName() +".");
 		checkRecacheGroup(group);
 		return true;
 	}

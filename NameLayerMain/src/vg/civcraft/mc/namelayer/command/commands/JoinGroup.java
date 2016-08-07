@@ -7,12 +7,11 @@ import org.bukkit.ChatColor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
-import vg.civcraft.mc.namelayer.GroupManager.PlayerType;
+import vg.civcraft.mc.namelayer.GroupManager;
 import vg.civcraft.mc.namelayer.NameAPI;
 import vg.civcraft.mc.namelayer.command.PlayerCommandMiddle;
 import vg.civcraft.mc.namelayer.group.Group;
-import vg.civcraft.mc.namelayer.permission.GroupPermission;
-import vg.civcraft.mc.namelayer.permission.PermissionType;
+import vg.civcraft.mc.namelayer.permission.PlayerType;
 
 public class JoinGroup extends PlayerCommandMiddle{
 
@@ -32,7 +31,7 @@ public class JoinGroup extends PlayerCommandMiddle{
 			return true;
 		}
 		Player p = (Player) sender;
-		Group g = gm.getGroup(args[0]);
+		Group g = GroupManager.getGroup(args[0]);
 		if (groupIsNull(sender, args[0], g)) {
 			return true;
 		}
@@ -49,13 +48,12 @@ public class JoinGroup extends PlayerCommandMiddle{
 			return true;
 		}
 		UUID uuid = NameAPI.getUUID(p.getName());
-		GroupPermission groupPerm = gm.getPermissionforGroup(g);
-		PlayerType pType = groupPerm.getFirstWithPerm(PermissionType.getPermission("JOIN_PASSWORD"));
+		PlayerType pType = g.getPlayerTypeHandler().getDefaultPasswordJoinType();
 		if (pType == null){
 			p.sendMessage(ChatColor.RED + "Someone derped. This group does not have the specified permission to let you join, sorry.");
 			return true;
 		}
-		if (g.isCurrentMember(uuid, pType)){
+		if (g.isMember(uuid)){
 			p.sendMessage(ChatColor.RED + "You are already a member.");
 			return true;
 		}

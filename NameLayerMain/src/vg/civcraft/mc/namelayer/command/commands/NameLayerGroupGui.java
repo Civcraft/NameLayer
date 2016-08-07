@@ -6,6 +6,7 @@ import org.bukkit.ChatColor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
+import vg.civcraft.mc.namelayer.GroupManager;
 import vg.civcraft.mc.namelayer.command.PlayerCommandMiddle;
 import vg.civcraft.mc.namelayer.command.TabCompleters.GroupTabCompleter;
 import vg.civcraft.mc.namelayer.group.Group;
@@ -34,7 +35,7 @@ public class NameLayerGroupGui extends PlayerCommandMiddle {
 			gui.showScreen();
 			return true;
 		}
-		Group g = gm.getGroup(args [0]);
+		Group g = GroupManager.getGroup(args [0]);
 		if (g == null) {
 			sender.sendMessage(ChatColor.RED + "This group doesn't exist");
 			return true;
@@ -43,7 +44,7 @@ public class NameLayerGroupGui extends PlayerCommandMiddle {
 			sender.sendMessage(ChatColor.RED + "You don't have permission to do this");
 			return true;
 		}
-		MainGroupGUI gui = new MainGroupGUI((Player) sender, g);
+		new MainGroupGUI((Player) sender, g);
 		return true;
 	}
 	

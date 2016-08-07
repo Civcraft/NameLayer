@@ -11,6 +11,7 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
 import vg.civcraft.mc.mercury.MercuryAPI;
+import vg.civcraft.mc.namelayer.GroupManager;
 import vg.civcraft.mc.namelayer.NameAPI;
 import vg.civcraft.mc.namelayer.NameLayerPlugin;
 import vg.civcraft.mc.namelayer.command.PlayerCommandMiddle;
@@ -37,7 +38,7 @@ public class RemoveBlacklist extends PlayerCommandMiddle {
 			return true;
 		}
 		Player p = (Player) arg0;
-		Group g = gm.getGroup(arg1[0]);
+		Group g = GroupManager.getGroup(arg1[0]);
 		if (g == null) {
 			p.sendMessage(ChatColor.RED + "This group does not exist");
 			return true;
@@ -79,7 +80,7 @@ public class RemoveBlacklist extends PlayerCommandMiddle {
 		} else if (args.length == 2) {
 			List<String> namesToReturn = new ArrayList<String>();
 			if (NameLayerPlugin.isMercuryEnabled()) {
-				Set<String> players = MercuryAPI.instance.getAllPlayers();
+				Set<String> players = MercuryAPI.getAllPlayers();
 				for (String x: players) {
 					if (x.toLowerCase().startsWith(args[1].toLowerCase()))
 						namesToReturn.add(x);

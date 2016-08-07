@@ -24,12 +24,13 @@ import org.bukkit.Bukkit;
 import com.google.common.collect.Lists;
 
 import vg.civcraft.mc.namelayer.GroupManager;
-import vg.civcraft.mc.namelayer.GroupManager.PlayerType;
 import vg.civcraft.mc.namelayer.NameLayerPlugin;
 import vg.civcraft.mc.namelayer.database.Database;
 import vg.civcraft.mc.namelayer.group.Group;
 import vg.civcraft.mc.namelayer.listeners.PlayerListener;
 import vg.civcraft.mc.namelayer.permission.PermissionType;
+import vg.civcraft.mc.namelayer.permission.PlayerType;
+import vg.civcraft.mc.namelayer.permission.PlayerTypeHandler;
 
 public class GroupManagerDao {
 	private Database db;
@@ -303,8 +304,64 @@ public class GroupManagerDao {
 			catch (SQLException e) {
 				
 			}
+			//old permission table is no longer used, so delete it
+			db.execute("drop table permissions");
 			ver = updateVersion(ver, plugin.getName());
 			log(Level.INFO, "Database update to Version eleven took " + (System.currentTimeMillis() - first_time) /1000 + " seconds.");
+		}
+		
+		if (ver == 11) {
+			long first_time = System.currentTimeMillis();
+			log(Level.INFO, "Database updating to version twelve, reworking player type system");
+			db.execute("create table if not exists groupPlayerTypes(group_id int not null,type_id int not null,type_name varchar(40) not null, parent_id int, primary key(group_id,type_id));");
+			//update group member table
+			db.execute("alter table faction_member add type_id int");
+			db.execute("update faction_member set type_id=0 where role='OWNER';");
+			db.execute("update faction_member set type_id=1 where role='ADMINS';");
+			db.execute("update faction_member set type_id=2 where role='MODS';");
+			db.execute("update faction_member set type_id=3 where role='MEMBERS';");
+			db.execute("update faction_member set type_id=4 where role='NOT_BLACKLISTED';");
+			//maybe some broken entries exist, we make sure to clean those out
+			db.execute("UPDATE faction_member SET type_id=-1 WHERE type_id IS NULL;");
+			db.execute("ALTER TABLE faction_member ALTER COLUMN type_id INTEGER NOT NULL;");
+			db.execute("alter table faction_member drop column role;");
+			
+			//update permission table
+			db.execute("alter table permissionByGroup drop primary key;");
+			db.execute("alter table permissionByGroup add type_id int");
+			db.execute("alter table permissionByGroup add primary key (group_id,perm_id,type_id);");
+			db.execute("update permissionByGroup set type_id=0 where role='OWNER';");
+			db.execute("update permissionByGroup set type_id=1 where role='ADMINS';");
+			db.execute("update permissionByGroup set type_id=2 where role='MODS';");
+			db.execute("update permissionByGroup set type_id=3 where role='MEMBERS';");
+			db.execute("update permissionByGroup set type_id=4 where role='NOT_BLACKLISTED';");
+			//maybe some broken entries exist, we make sure to clean those out
+			db.execute("UPDATE permissionByGroup SET type_id=-1 WHERE type_id IS NULL;");
+			db.execute("ALTER TABLE permissionByGroup MODIFY COLUMN type_id INTEGER NOT NULL;");
+			db.execute("alter table permissionByGroup drop column role;");
+			
+			//update invitation table
+			db.execute("alter table group_invitation add type_id int");
+			db.execute("update group_invitation set type_id=0 where role='OWNER';");
+			db.execute("update group_invitation set type_id=1 where role='ADMINS';");
+			db.execute("update group_invitation set type_id=2 where role='MODS';");
+			db.execute("update group_invitation set type_id=3 where role='MEMBERS';");
+			db.execute("update group_invitation set type_id=4 where role='NOT_BLACKLISTED';");
+			//maybe some broken entries exist, we make sure to clean those out
+			db.execute("UPDATE group_invitation SET type_id=-1 WHERE type_id IS NULL;");
+			db.execute("ALTER TABLE group_invitation MODIFY COLUMN type_id INTEGER NOT NULL;");
+			db.execute("alter table group_invitation drop column role;");
+			
+			//init new default player types
+			db.execute("insert into groupPlayerTypes (group_id,type_id,type_name) select group_id, 0, 'OWNER' from faction_id;");
+			db.execute("insert into groupPlayerTypes (group_id,type_id,type_name,parent_id) select group_id, 1, 'ADMINS',0 from faction_id;");
+			db.execute("insert into groupPlayerTypes (group_id,type_id,type_name,parent_id) select group_id, 2, 'MODS',1 from faction_id;");
+			db.execute("insert into groupPlayerTypes (group_id,type_id,type_name,parent_id) select group_id, 3, 'MEMBERS',2 from faction_id;");
+			db.execute("insert into groupPlayerTypes (group_id,type_id,type_name,parent_id) select group_id, 4, 'DEFAULT',0 from faction_id;");
+			db.execute("insert into groupPlayerTypes (group_id,type_id,type_name,parent_id) select group_id, 5, 'BLACKLISTED',4 from faction_id;");
+			
+			ver = updateVersion(ver, plugin.getName());
+			log(Level.INFO, "Database update to Version twelve took " + (System.currentTimeMillis() - first_time) /1000 + " seconds.");
 		}
 		
 		log(Level.INFO, "Database update took " + (System.currentTimeMillis() - begin_time) / 1000 + " seconds.");
@@ -321,6 +378,9 @@ public class GroupManagerDao {
 				+ "where fi.group_name = groupName;" +
 				"delete b.* from blacklist b "
 				+ "inner join faction_id fi on b.group_id = fi.group_id "
+				+ "where fi.group_name = groupName;" +
+				"delete gpt.* from groupPlayerTypes gpt "
+				+ "inner join faction_id fi on gpt.group_id = fi.group_id "
 				+ "where fi.group_name = groupName;" +
 				"delete s.* from subgroup s "
 				+ "inner join faction_id fi on s.group_id = fi.group_id "
@@ -339,6 +399,9 @@ public class GroupManagerDao {
 				"in groupName varchar(255), in tomerge varchar(255)) " +
 				"sql security invoker begin " +
 				"DECLARE destID, tmp int;" +
+				"delete gpt.* from groupPlayerTypes gpt "
+				+ "inner join faction_id fi on gpt.group_id = fi.group_id "
+				+ "where fi.group_name = tomerge;" +
 				"SELECT f.group_id, count(DISTINCT fm.member_name) AS sz INTO destID, tmp FROM faction_id f "
 				+ "INNER JOIN faction_member fm ON f.group_id = fm.group_id WHERE f.group_name = groupName GROUP BY f.group_id ORDER BY sz DESC LIMIT 1;" +
 				"update ignore faction_member fm " // move all members from group From to To
@@ -376,7 +439,7 @@ public class GroupManagerDao {
 				" if (select (count(*) = 0) from faction_id q where q.group_name = group_name) is true then" + 
 				"  insert into faction_id(group_name) values (group_name); " +
 				"  insert into faction(group_name, founder, password, discipline_flags) values (group_name, founder, password, discipline_flags);" + 
-				"  insert into faction_member (member_name, role, group_id) select founder, 'OWNER', f.group_id from faction_id f where f.group_name = group_name; " +
+				"  insert into faction_member (member_name, type_id, group_id) select founder, 0, f.group_id from faction_id f where f.group_name = group_name; " +
 				"  select f.group_id from faction_id f where f.group_name = group_name; " +
 				" end if; " +
 				"end;");
@@ -406,7 +469,11 @@ public class GroupManagerDao {
 	
 	private PreparedStatement logNameChange, checkForNameChange;
 	
-	private PreparedStatement addPermission, getPermission, removePermission, registerPermission, getPermissionMapping, addPermissionById;
+	private PreparedStatement addPermission, getPermission, removePermission, registerPermission, getPermissionMapping;
+	
+	private PreparedStatement getPlayerTypeRoot, addPlayerType, removePlayerType, renamePlayerType, getChildrenPlayerTypes;
+	
+	private PreparedStatement removePlayerTypeMember, removeInvitationByPlayerType;
 	
 	private PreparedStatement addBlacklistMember, removeBlackListMember, getBlackListMembers;
 	
@@ -431,11 +498,11 @@ public class GroupManagerDao {
 		deleteGroup = db.prepareStatement("call deletegroupfromtable(?, ?)");
 
 		addMember = db.prepareStatement("insert into faction_member(" +
-				"group_id, member_name, role) select group_id, ?, ? from "
+				"group_id, member_name, type_id) select group_id, ?, ? from "
 				+ "faction_id where group_name = ?");
-		getMembers = db.prepareStatement("select fm.member_name from faction_member fm "
-				+ "inner join faction_id id on id.group_name = ? "
-				+ "where fm.group_id = id.group_id and fm.role = ?");
+		getMembers = db.prepareStatement("select fm.member_name,gpt.type_id from faction_member fm "
+				+ "inner join faction_id id on id.group_name = ? inner join groupPlayerTypes gpt on gpt.group_id=id.group_id "
+				+ "where fm.group_id = id.group_id");
 		removeMember = db.prepareStatement("delete fm.* from faction_member fm "
 				+ "inner join faction_id fi on fi.group_id = fm.group_id "
 				+ "where fm.member_name = ? and fi.group_name =?");
@@ -501,21 +568,15 @@ public class GroupManagerDao {
 				+ "where uuid = ?");
 		getAllDefaultGroups = db.prepareStatement("select uuid,defaultgroup from default_group");
 		
-		loadGroupsInvitations = db.prepareStatement("select uuid, groupName, role from group_invitation");
+		loadGroupsInvitations = db.prepareStatement("select uuid, groupName, type_id from group_invitation");
 		
-		addGroupInvitation = db.prepareStatement("insert into group_invitation(uuid, groupName, role) values(?, ?, ?) on duplicate key update role=values(role), date=now();");
+		addGroupInvitation = db.prepareStatement("insert into group_invitation(uuid, groupName, type_id) values(?, ?, ?) on duplicate key update type_id=values(type_id), date=now();");
 		
 		removeGroupInvitation = db.prepareStatement("delete from group_invitation where uuid = ? and groupName = ?");
 		
-		loadGroupInvitation = db.prepareStatement("select role from group_invitation where uuid = ? and groupName = ?");
+		loadGroupInvitation = db.prepareStatement("select type_id from group_invitation where uuid = ? and groupName = ?");
 		
-		loadGroupInvitationsForGroup = db.prepareStatement("select uuid,role from group_invitation where groupName=?");
-		
-		// Gets all unique names (not instances) of groups having this member at that role.
-		getGroupNameFromRole = db.prepareStatement("SELECT DISTINCT faction_id.group_name FROM faction_member "
-								+ "inner join faction_id on faction_member.group_id = faction_id.group_id "
-								+ "WHERE member_name = ? "
-								+ "AND role = ?;");
+		loadGroupInvitationsForGroup = db.prepareStatement("select uuid,type_id from group_invitation where groupName=?");
 		
 		// Gets the "most recent" updated group from all groups that share the name.
 		getTimestamp = db.prepareStatement("SELECT MAX(faction.last_timestamp) FROM faction "
@@ -525,24 +586,32 @@ public class GroupManagerDao {
 		updateLastTimestamp = db.prepareStatement("UPDATE faction SET faction.last_timestamp = NOW() "
 								+ "WHERE group_name = ?;");
 		
-		// Breaking the pattern. Here we directly access a role based on _group ID_ rather then group_name. TODO: evaluate safety.
-		getPlayerType = db.prepareStatement("SELECT role FROM faction_member "
+		getPlayerType = db.prepareStatement("SELECT type_id FROM faction_member "
 						+ "WHERE group_id = ? "
                         + "AND member_name = ?;");
 		logNameChange = db.prepareStatement("insert into nameLayerNameChanges (uuid,oldName,newName) values(?,?,?);");
 		checkForNameChange = db.prepareStatement("select * from nameLayerNameChanges where uuid=?;");
 		
-		addPermission = db.prepareStatement("insert into permissionByGroup(group_id,role,perm_id) select g.group_id, ?, ? from faction_id g where g.group_name = ?;");
-		addPermissionById = db.prepareStatement("insert into permissionByGroup(group_id,role,perm_id) values(?,?,?);");
-		getPermission = db.prepareStatement("select pg.role,pg.perm_id from permissionByGroup pg inner join faction_id fi on fi.group_name=? "
-				+ "where pg.group_id = fi.group_id");
-		removePermission = db.prepareStatement("delete from permissionByGroup where group_id IN (SELECT group_id FROM faction_id WHERE group_name = ?) and role=? and perm_id=?;");
+		addPermission = db.prepareStatement("insert into permissionByGroup(group_id,type_id,perm_id) select g.group_id, ?, ? from faction_id g where g.group_name = ?;");
+		getPermission = db.prepareStatement("select pg.perm_id from permissionByGroup pg inner join faction_id fi on fi.group_name=? "
+				+ "where pg.group_id = fi.group_id and pg.type_id=?");
+		removePermission = db.prepareStatement("delete from permissionByGroup where group_id IN (SELECT group_id FROM faction_id WHERE group_name = ?) and type_id=? and perm_id=?;");
 		registerPermission = db.prepareStatement("insert into permissionIdMapping(perm_id,name) values(?,?);"); 
 		getPermissionMapping = db.prepareStatement("select * from permissionIdMapping;");
 		
 		addBlacklistMember = db.prepareStatement("insert into blacklist(group_id, member_name) select group_id,? from faction_id where group_name=?;");
 		removeBlackListMember = db.prepareStatement("delete from blacklist WHERE group_id IN (SELECT group_id FROM faction_id WHERE group_name = ?) and member_name=?;");
 		getBlackListMembers = db.prepareStatement("select b.member_name from blacklist b inner join faction_id fi on fi.group_name=? where b.group_id=fi.group_id;");
+		
+		getPlayerTypeRoot = db.prepareStatement("select gpt.type_name from groupPlayerTypes gpt inner join faction_id on faction_id.group_id=gpt.group_id "
+				+ "where gpt.type_id=0 and gpt.parent_id is null and faction_id.group_name=?;");
+		
+		addPlayerType = db.prepareStatement("insert into groupPlayerTypes (group_id,type_id,type_name) values(select group_id, ?,? from faction_id where group_name =?);");
+		renamePlayerType = db.prepareStatement("update groupPlayerTypes gpt inner join faction_id fi on fi.group_id=gpt.group_id set gpt.type_name=? where gpt.type_id=? and fi.group_name=?;");
+		removePlayerType = db.prepareStatement("delete gpt from groupPlayerTypes gpt inner join faction_id f on f.group_id=gpt.group_id where gpt.type_id=? and f.group_name=?;");
+		removePlayerTypeMember = db.prepareStatement("delete fm from faction_member fm inner join faction_id fi on fi.group_id=fm.group_id where fi.group_name=? and fm.type_id=?;");
+		removeInvitationByPlayerType = db.prepareStatement("delete from group_invitation where groupName=? and type_id=?;");
+		getChildrenPlayerTypes = db.prepareStatement("select gpt.type_name, gpt.type_id from groupPlayerTypes gpt inner join faction_id fi on fi.group_id=gpt.group_id where fi.group_name=? and gpt.parent_id=?;");
 		
 		getAllGroupIds = db.prepareStatement("select group_id from faction_id");
 	}
@@ -671,18 +740,18 @@ public class GroupManagerDao {
 		return groups;
 	}
 	
-	public synchronized List<String> getGroupNames(UUID uuid, String role){
+	public synchronized List<String> getGroupNames(UUID uuid, int typeId){
 		NameLayerPlugin.reconnectAndReintializeStatements();
 		List<String> groups = new ArrayList<String>();
 		try {
 			getGroupNameFromRole.setString(1, uuid.toString());
-			getGroupNameFromRole.setString(2, role);
+			getGroupNameFromRole.setInt(2, typeId);
 			ResultSet set = getGroupNameFromRole.executeQuery();
 			while(set.next()) {
 				groups.add(set.getString(1));
 			}
 		} catch (SQLException e) {
-			plugin.getLogger().log(Level.WARNING, "Problem getting player " + uuid + " groups by role " + role, e);
+			plugin.getLogger().log(Level.WARNING, "Problem getting player " + uuid + " groups by role " + typeId, e);
 		}
 		return groups;
 	}
@@ -702,15 +771,15 @@ public class GroupManagerDao {
 		return timestamp;
 	}
 	
-	public synchronized PlayerType getPlayerType(int groupid, UUID uuid){
+	public synchronized int getPlayerTypeID(int groupid, UUID uuid){
 		NameLayerPlugin.reconnectAndReintializeStatements();
-		PlayerType ptype = null;
+		int ptype = -1;
 		try {
 			getPlayerType.setInt(1, groupid);
 			getPlayerType.setString(2, uuid.toString());
 			ResultSet set = getPlayerType.executeQuery();
 			if(set.next()){
-				ptype = PlayerType.getPlayerType(set.getString(1));
+				ptype = set.getInt(1);
 			}
 		} catch (SQLException e) {
 			plugin.getLogger().log(Level.WARNING, "Problem getting player " + uuid + " type within group " + groupid, e);
@@ -743,33 +812,36 @@ public class GroupManagerDao {
 		NameLayerPlugin.reconnectAndReintializeStatements();
 		try {
 			addMember.setString(1, member.toString());
-			addMember.setString(2, role.name());
+			addMember.setInt(2, role.getId());
 			addMember.setString(3, faction);
 			addMember.execute();
 		} catch (SQLException e) {
-			plugin.getLogger().log(Level.WARNING, "Problem adding " + member + " as " + role.toString() 
+			plugin.getLogger().log(Level.WARNING, "Problem adding " + member + " as " + role 
 					+ " to group " + faction, e);
 		}
 	}
 	
-	public synchronized List<UUID> getAllMembers(String groupName, PlayerType role){
+	public synchronized Map <UUID, PlayerType> getAllMembers(String groupName, PlayerTypeHandler handler){
 		NameLayerPlugin.reconnectAndReintializeStatements();
-		List<UUID> members = new ArrayList<UUID>();
+		Map <UUID, PlayerType> members = new TreeMap<UUID, PlayerType>();
 		try {
 			getMembers.setString(1, groupName);
-			getMembers.setString(2, role.name());
 			ResultSet set = getMembers.executeQuery();
 			while(set.next()){
 				String uuid = set.getString(1);
+				int typeId = set.getInt(2);
 				if (uuid == null) {
 					continue;
 				}
-				members.add(UUID.fromString(uuid));
+				PlayerType type = handler.getType(typeId);
+				if (type == null) {
+					continue;
+				}
+				members.put(UUID.fromString(uuid), type);
 			}
-			return members;
 		} catch (SQLException e) {
-			plugin.getLogger().log(Level.WARNING, "Problem getting all " + role.toString() 
-					+ " for group " + groupName, e);
+			plugin.getLogger().log(Level.WARNING, "Problem getting all members" + 
+			" for group " + groupName, e);
 		}
 		return members;
 	}
@@ -863,11 +935,11 @@ public class GroupManagerDao {
 		}
 	}
 
-	public synchronized void addPermission(String groupName, String role, List <PermissionType> perms){
+	public synchronized void addPermission(String groupName, PlayerType role, List <PermissionType> perms){
 		NameLayerPlugin.reconnectAndReintializeStatements();
 		for(PermissionType perm : perms) {
 			try {
-				addPermission.setString(1, role);
+				addPermission.setInt(1, role.getId());
 				addPermission.setInt(2, perm.getId());
 				addPermission.setString(3, groupName);
 				addPermission.execute();
@@ -879,41 +951,108 @@ public class GroupManagerDao {
 		}
 	}
 	
-	public synchronized Map<PlayerType, List<PermissionType>> getPermissions(String group){
+	public synchronized PlayerTypeHandler getPermissions(Group group){
 		NameLayerPlugin.reconnectAndReintializeStatements();
-		Map<PlayerType, List<PermissionType>> perms = new HashMap<PlayerType, List<PermissionType>>();
+		PlayerTypeHandler handler = null;
 		try {
-			getPermission.setString(1, group);
-			ResultSet set = getPermission.executeQuery();
-			while(set.next()){
-				PlayerType type = PlayerType.getPlayerType(set.getString(1));
-				List<PermissionType> listPerm = perms.get(type);
-				if (listPerm == null) {
-					listPerm = new ArrayList<PermissionType>();
-					perms.put(type, listPerm);
-				}
-				int id = set.getInt(2);
-				PermissionType perm = PermissionType.getPermission(id);
-				if (perm != null && !listPerm.contains(perm)) {
-					listPerm.add(perm);
-				}
+			getPlayerTypeRoot.setString(1, group.getName());
+			ResultSet rootNameSet = getPlayerTypeRoot.executeQuery();
+			if (!rootNameSet.next()) {
+				return PlayerTypeHandler.createStandardTypes(group);
 			}
+			String rootName = rootNameSet.getString(1);
+			PlayerType root = new PlayerType(rootName, 0, null, group);
+			handler = new PlayerTypeHandler(root, group, false);
+			recursivelyLoadPlayerType(group, handler, root);
 		} catch (SQLException e) {
 			plugin.getLogger().log(Level.WARNING, "Problem getting permissions for group " + group, e);
 		}
-		return perms;
+		return handler;
+	}
+	
+	public synchronized void addPlayerType(Group g, PlayerType type) {
+		NameLayerPlugin.reconnectAndReintializeStatements();
+		try {
+			addPlayerType.setInt(1, type.getId());
+			addPlayerType.setString(2, type.getName());
+			addPlayerType.setString(3, g.getName());
+			addPlayerType.execute();
+		} catch (SQLException e) {
+			plugin.getLogger().log(Level.WARNING, "Problem adding player type " + type.getName() + " for group" + g.getName(), e);
+		} 
+	}
+	
+	public synchronized void removePlayerType(Group g, PlayerType type) {
+		NameLayerPlugin.reconnectAndReintializeStatements();
+		try {
+			removePlayerType.setInt(1, type.getId());
+			removePlayerType.setString(2, g.getName());
+			removePlayerType.execute();
+			removePlayerTypeMember.setString(1, g.getName());
+			removePlayerTypeMember.setInt(2, type.getId());
+			removePlayerTypeMember.execute();
+			removeInvitationByPlayerType.setString(1, g.getName());
+			removeInvitationByPlayerType.setInt(2, type.getId());
+			removeInvitationByPlayerType.execute();
+		} catch (SQLException e) {
+			plugin.getLogger().log(Level.WARNING, "Problem removing player type " + type.getName() + " for group" + g.getName(), e);
+		} 
+	}
+	
+	public synchronized void updatePlayerTypeName(Group g, PlayerType type) {
+		NameLayerPlugin.reconnectAndReintializeStatements();
+		try {
+			renamePlayerType.setString(1, type.getName());
+			renamePlayerType.setInt(2, type.getId());
+			renamePlayerType.setString(3, g.getName());
+			renamePlayerType.execute();
+		} catch (SQLException e) {
+			plugin.getLogger().log(Level.WARNING, "Problem updating player type name for " + type.getName() + " with id " + type.getId() + " for group" + g.getName(), e);
+		} 
+	}
+
+	private void recursivelyLoadPlayerType(Group group, PlayerTypeHandler handler, PlayerType parentVertex) {
+		try {
+			getChildrenPlayerTypes.setString(1, group.getName());
+			getChildrenPlayerTypes.setInt(2, parentVertex.getId());
+			ResultSet childSet = getChildrenPlayerTypes.executeQuery();
+			while (childSet.next()) {
+				String childName = childSet.getString(1);
+				int childId = childSet.getInt(2);
+				getPermission.setString(1, group.getName());
+				getPermission.setInt(2, childId);
+				ResultSet permSet = getPermission.executeQuery();
+				List <PermissionType> permList = new LinkedList<PermissionType>();
+				while (permSet.next()) {
+					int permId = permSet.getInt(1);
+					PermissionType perm = PermissionType.getPermission(permId);
+					if (perm == null) {
+						//doesnt exist right now, which is fine
+						continue;
+					}
+					permList.add(perm);
+				}
+				PlayerType child = new PlayerType(childName, childId, parentVertex, permList, group);
+				handler.registerType(child, false);
+				recursivelyLoadPlayerType(group, handler, child);
+			}
+		} catch (SQLException e) {
+			plugin.getLogger().log(Level.WARNING, "Problem getting player types for group " + group.getName(), e);
+		}
+		//getChildrenPlayerTypes = db.prepareStatement("select gpt.type_name, gpt.type_id from groupPlayerTypes gpt inner join 
+		//faction_id fi on fi.group_id=gpt.group_id where fi.group_name=? and gpt.parent_id=?;");
 	}
 	
 	public synchronized void removePermission(String group, PlayerType pType, PermissionType perm){
 		NameLayerPlugin.reconnectAndReintializeStatements();
 		try {
 			removePermission.setString(1, group);
-			removePermission.setString(2, pType.name());
+			removePermission.setInt(2, pType.getId());
 			removePermission.setInt(3, perm.getId());
 			removePermission.execute();
 		} catch (SQLException e) {
 			plugin.getLogger().log(Level.WARNING, "Problem removing permissions for group " + group
-					+ " on playertype " + pType.name(), e);
+					+ " on playertype " + pType.getName(), e);
 		}
 	}
 	
@@ -941,26 +1080,6 @@ public class GroupManagerDao {
 			plugin.getLogger().log(Level.WARNING, "Problem getting permissions from db", e);
 		}
 		return perms;
-	}
-	
-	public synchronized void addNewDefaultPermission(List <PlayerType> playerTypes, PermissionType perm) {
-		try {
-			ResultSet set = getAllGroupIds.executeQuery();
-			List <PermissionType> perms = new LinkedList<PermissionType>();
-			perms.add(perm);
-			while(set.next()) {
-				int groupId = set.getInt(1);
-				for(PlayerType pType:playerTypes) {
-					addPermissionById.setInt(1, groupId);
-					addPermissionById.setString(2, pType.name());
-					addPermissionById.setInt(3, perm.getId());
-					addPermissionById.execute();
-				}
-			}
-		}
-		catch (SQLException e) {
-			plugin.getLogger().log(Level.WARNING, "Error initiating default perms for permission " + perm + " for player types " + playerTypes, e);
-		}
 	}
 	
 	public synchronized int countGroups(){
@@ -1015,6 +1134,7 @@ public class GroupManagerDao {
 	 * @param uuid
 	 */
 	public synchronized void autoAcceptGroups(UUID uuid){
+		NameLayerPlugin.reconnectAndReintializeStatements();
 		try {
 			addAutoAcceptGroup.setString(1, uuid.toString());
 			addAutoAcceptGroup.execute();
@@ -1028,6 +1148,7 @@ public class GroupManagerDao {
 	 * @return Returns true if they should auto accept.
 	 */
 	public synchronized boolean shouldAutoAcceptGroups(UUID uuid){
+		NameLayerPlugin.reconnectAndReintializeStatements();
 		try {
 			getAutoAcceptGroup.setString(1, uuid.toString());
 			ResultSet set = getAutoAcceptGroup.executeQuery();
@@ -1039,6 +1160,7 @@ public class GroupManagerDao {
 	}
 	
 	public synchronized void removeAutoAcceptGroup(UUID uuid){
+		NameLayerPlugin.reconnectAndReintializeStatements();
 		try {
 			removeAutoAcceptGroup.setString(1, uuid.toString());
 			removeAutoAcceptGroup.execute();
@@ -1048,6 +1170,7 @@ public class GroupManagerDao {
 	}
 	
 	public synchronized void setDefaultGroup(UUID uuid, String groupName){
+		NameLayerPlugin.reconnectAndReintializeStatements();
 		try {
 			setDefaultGroup.setString(1, uuid.toString());
 			setDefaultGroup.setString(2, groupName );
@@ -1059,6 +1182,7 @@ public class GroupManagerDao {
 	}
 	
 	public synchronized void changeDefaultGroup(UUID uuid, String groupName){
+		NameLayerPlugin.reconnectAndReintializeStatements();
 		try {
 			changeDefaultGroup.setString(1, groupName);
 			changeDefaultGroup.setString(2, uuid.toString());
@@ -1070,6 +1194,7 @@ public class GroupManagerDao {
 	}
 
 	public synchronized String getDefaultGroup(UUID uuid) {
+		NameLayerPlugin.reconnectAndReintializeStatements();
 		try {
 			getDefaultGroup.setString(1, uuid.toString());
 			ResultSet set = getDefaultGroup.executeQuery();
@@ -1083,6 +1208,7 @@ public class GroupManagerDao {
 	}
 	
 	public synchronized Map <UUID, String> getAllDefaultGroups() {
+		NameLayerPlugin.reconnectAndReintializeStatements();
 		Map <UUID, String> groups = null;
 		try {
 			ResultSet set = getAllDefaultGroups.executeQuery();
@@ -1104,6 +1230,7 @@ public class GroupManagerDao {
 	 * @param group This is the group that we are changing the founder of.
 	 */
 	public synchronized void setFounder(UUID uuid, Group group) {
+		NameLayerPlugin.reconnectAndReintializeStatements();
 		try {
 			updateOwner.setString(1, uuid.toString());
 			updateOwner.setString(2, group.getName());
@@ -1114,19 +1241,21 @@ public class GroupManagerDao {
 		}
 	}
 	
-	public synchronized void addGroupInvitation(UUID uuid, String groupName, String role){
+	public synchronized void addGroupInvitation(UUID uuid, String groupName, PlayerType role){
+		NameLayerPlugin.reconnectAndReintializeStatements();
 		try {
 			addGroupInvitation.setString(1, uuid.toString());
 			addGroupInvitation.setString(2, groupName);
-			addGroupInvitation.setString(3, role); 
+			addGroupInvitation.setInt(3, role.getId()); 
 			addGroupInvitation.execute();
 		} catch (SQLException e) {
 			plugin.getLogger().log(Level.WARNING, "Problem adding group " + groupName + " invite for "
-					+ uuid + " with role " + role, e);
+					+ uuid + " with role " + role.getName(), e);
 		}
 	}
 	
 	public synchronized void removeGroupInvitation(UUID uuid, String groupName){
+		NameLayerPlugin.reconnectAndReintializeStatements();
 		try {
 			removeGroupInvitation.setString(1, uuid.toString());
 			removeGroupInvitation.setString(2, groupName);
@@ -1147,18 +1276,17 @@ public class GroupManagerDao {
 		if(group == null){
 			return;
 		}
-		
+		NameLayerPlugin.reconnectAndReintializeStatements();		
 		try {
 			loadGroupInvitation.setString(1, playerUUID.toString());
 			loadGroupInvitation.setString(2, group.getName());
 			ResultSet set = loadGroupInvitation.executeQuery();
 			while(set.next()){
-				String role = set.getString("role");
-				PlayerType type = null;
-				if(role != null){
-					type = PlayerType.getPlayerType(role);
+				int roleId = set.getInt(1);
+				PlayerType type = group.getPlayerTypeHandler().getType(roleId);
+				if (type != null) {
+					group.addInvite(playerUUID, type, false);
 				}
-				group.addInvite(playerUUID, type, false);
 			}
 		} catch(SQLException e) {
 			plugin.getLogger().log(Level.WARNING, "Problem loading group " + group.getName() 
@@ -1166,31 +1294,29 @@ public class GroupManagerDao {
 		}
 	}
 	
-	public synchronized Map <UUID, PlayerType> getInvitesForGroup(String groupName) {
-		Map <UUID, PlayerType> invs = new TreeMap<UUID, GroupManager.PlayerType>();
-		if (groupName == null) {
+	public synchronized Map <UUID, PlayerType> getInvitesForGroup(Group g) {
+		NameLayerPlugin.reconnectAndReintializeStatements();
+		Map <UUID, PlayerType> invs = new TreeMap<UUID, PlayerType>();
+		if (g == null) {
 			return invs;
 		}
 		try {
-			loadGroupInvitationsForGroup.setString(1, groupName);
+			loadGroupInvitationsForGroup.setString(1, g.getName());
 			ResultSet set = loadGroupInvitationsForGroup.executeQuery();
 			while(set.next()) {
 				String uuid = set.getString(1);
-				String role = set.getString(2);
+				int roleId = set.getInt(2);
 				UUID playerUUID = null;
 				if (uuid != null){
 					playerUUID = UUID.fromString(uuid);
 				}
-				PlayerType pType = null;
-				if(role != null){
-					pType = PlayerType.getPlayerType(role);
-				}
-				if (uuid != null && pType != null) {
-					invs.put(playerUUID, pType);
+				PlayerType type = g.getPlayerTypeHandler().getType(roleId);
+				if (uuid != null && type != null) {
+					invs.put(playerUUID, type);
 				}
 			}
 		}catch (SQLException e) {
-			plugin.getLogger().log(Level.WARNING, "Problem loading group invitations for group " + groupName, e);
+			plugin.getLogger().log(Level.WARNING, "Problem loading group invitations for group " + g.getName(), e);
 		}
 		return invs;
 	}
@@ -1199,12 +1325,13 @@ public class GroupManagerDao {
 	 * Use this method to load all invitations to all groups.
 	 */
 	public synchronized void loadGroupsInvitations(){
+		NameLayerPlugin.reconnectAndReintializeStatements();
 		try {
 			ResultSet set = loadGroupsInvitations.executeQuery();
 			while(set.next()){
-				String uuid = set.getString("uuid");
-				String group = set.getString("groupName");
-				String role = set.getString("role");
+				String uuid = set.getString(1);
+				String group = set.getString(2);
+				int roleId = set.getInt(3);
 				UUID playerUUID = null;
 				if (uuid != null){
 					playerUUID = UUID.fromString(uuid);
@@ -1213,15 +1340,16 @@ public class GroupManagerDao {
 				if(group != null){
 					g = GroupManager.getGroup(group);
 				}
+				else {
+					continue;
+				}
+				if (g == null) {
+					continue;
+				}
 				PlayerType type = null;
-				if(role != null){
-					type = PlayerType.getPlayerType(role);
-				}
-				
-				if(g != null){
-					g.addInvite(playerUUID, type, false);
-					PlayerListener.addNotification(playerUUID, g);
-				}
+				type = g.getPlayerTypeHandler().getType(roleId);
+				g.addInvite(playerUUID, type, false);
+				PlayerListener.addNotification(playerUUID, g);
 			}
 		} catch (SQLException e) {
 			plugin.getLogger().log(Level.WARNING, "Problem loading all group invitations", e);
@@ -1229,6 +1357,7 @@ public class GroupManagerDao {
 	}
 	
 	public synchronized void logNameChange(UUID uuid, String oldName, String newName) {
+		NameLayerPlugin.reconnectAndReintializeStatements();
 		try {
 			logNameChange.setString(1, uuid.toString());
 			logNameChange.setString(2, oldName);
@@ -1242,6 +1371,7 @@ public class GroupManagerDao {
 	}
 	
 	public synchronized boolean hasChangedNameBefore(UUID uuid) {
+		NameLayerPlugin.reconnectAndReintializeStatements();
 		try {
 			checkForNameChange.setString(1, uuid.toString());
 			ResultSet set = checkForNameChange.executeQuery();
@@ -1259,6 +1389,7 @@ public class GroupManagerDao {
 	}
 	
 	public synchronized void addBlackListMember(String groupName, UUID player) {
+		NameLayerPlugin.reconnectAndReintializeStatements();
 		try {
 			addBlacklistMember.setString(1, player.toString());
 			addBlacklistMember.setString(2, groupName);
@@ -1270,6 +1401,7 @@ public class GroupManagerDao {
 	}
 	
 	public synchronized void removeBlackListMember(String groupName, UUID player) {
+		NameLayerPlugin.reconnectAndReintializeStatements();
 		try {
 			removeBlackListMember.setString(1, groupName);
 			removeBlackListMember.setString(2, player.toString());
@@ -1281,6 +1413,7 @@ public class GroupManagerDao {
 	}
 	
 	public synchronized Set<UUID> getBlackListMembers(String groupName) {
+		NameLayerPlugin.reconnectAndReintializeStatements();
 		Set<UUID> uuids = new HashSet<UUID>();
 		try {
 			getBlackListMembers.setString(1, groupName);
@@ -1305,6 +1438,7 @@ public class GroupManagerDao {
 	 * @return
 	 */
 	public List<Integer> getAllIDs(String groupName) {
+		NameLayerPlugin.reconnectAndReintializeStatements();
 		if (groupName == null) {
 			return null;
 		}

@@ -1,6 +1,5 @@
 package vg.civcraft.mc.namelayer.command.commands;
 
-import org.bukkit.Bukkit;
 import org.bukkit.command.CommandSender;
 
 import vg.civcraft.mc.namelayer.NameAPI;

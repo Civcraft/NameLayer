@@ -2,20 +2,15 @@ package vg.civcraft.mc.namelayer;
 
 import java.sql.Timestamp;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Level;
 
 import org.bukkit.Bukkit;
-import org.bukkit.ChatColor;
 import org.bukkit.entity.Player;
-
-import com.google.common.collect.Maps;
 
 import vg.civcraft.mc.namelayer.database.GroupManagerDao;
 import vg.civcraft.mc.namelayer.events.GroupCreateEvent;
@@ -24,21 +19,18 @@ import vg.civcraft.mc.namelayer.events.GroupMergeEvent;
 import vg.civcraft.mc.namelayer.events.GroupTransferEvent;
 import vg.civcraft.mc.namelayer.group.Group;
 import vg.civcraft.mc.namelayer.misc.Mercury;
-import vg.civcraft.mc.namelayer.permission.GroupPermission;
-import vg.civcraft.mc.namelayer.permission.PermissionHandler;
 import vg.civcraft.mc.namelayer.permission.PermissionType;
+import vg.civcraft.mc.namelayer.permission.PlayerType;
 
 public class GroupManager{
 	
 	private static GroupManagerDao groupManagerDao;
-	private PermissionHandler permhandle;
 	
 	private static Map<String, Group> groupsByName = new ConcurrentHashMap<String, Group>();
 	private static Map<Integer, Group> groupsById = new ConcurrentHashMap<Integer, Group>();
 	
 	public GroupManager(){
 		groupManagerDao = NameLayerPlugin.getGroupManagerDao();
-		permhandle = new PermissionHandler();
 	}
 	
 	/**
@@ -62,7 +54,6 @@ public class GroupManager{
 				event.getGroupName(), event.getOwner(), 
 				event.getPassword());
 		if (id > -1) {
-			initiateDefaultPerms(event.getGroupName()); // give default perms to a newly create group
 			GroupManager.getGroup(id); // force a recache from DB.
 			/*group.setGroupIds(groupManagerDao.getAllIDs(event.getGroupName()));
 			group.addMember(event.getOwner(), PlayerType.OWNER);
@@ -96,7 +87,6 @@ public class GroupManager{
 		
 		// Unlinks subgroups.
 		group.prepareForDeletion();
-		deleteGroupPerms(group);
 		groupManagerDao.deleteGroup(groupName);
 		groupsByName.remove(groupName);
 		for (int id : group.getGroupIds()) {
@@ -129,7 +119,7 @@ public class GroupManager{
 			NameLayerPlugin.log(Level.INFO, "Group transfer event was cancelled for group: " + g.getName());
 			return;
 		}
-		g.addMember(uuid, PlayerType.OWNER);
+		g.addMember(uuid, g.getPlayerTypeHandler().getOwnerType());
 		g.setOwner(uuid);
 		if (NameLayerPlugin.isMercuryEnabled()){
 			String message = "transfer " + g.getName();
@@ -177,7 +167,6 @@ public class GroupManager{
 			Group.link(group, subMerge, false);
 			invalidateCache(subMerge.getName());
 		}
-		deleteGroupPerms(toMerge);
 		toMerge.setDisciplined(true);
 		invalidateCache(toMerge.getName()); // Removes merge group from cache & invalidates object
 		invalidateCache(group.getName()); // Means next access will requery the group, good.
@@ -292,18 +281,6 @@ public class GroupManager{
 			return group;
 		}
 	}
-	
-	/**
-	 * DO NOT WORK WITH THE PERMISSION OBJECT ITSELF TO DETERMINE ACCESS. Use the methods provided in this class instead, as they
-	 * respect all the permission inheritation stuff
-	 */
-	public GroupPermission getPermissionforGroup(Group group){
-		if (group == null) {
-			NameLayerPlugin.getInstance().getLogger().log(Level.INFO, "getPermissionForGroup failed, caller passed in null", new Exception());
-			return null;
-		}
-		return permhandle.getGroupPermission(group);
-	}
 		
 	public boolean hasAccess(String groupname, UUID player, PermissionType perm) {
 		if (groupname == null) {
@@ -329,10 +306,9 @@ public class GroupManager{
 				return false;
 			}
 		}
-		GroupPermission perms = getPermissionforGroup(group);
 		for(PlayerType rank : getRecursivePlayerTypes(group, player)) {
-			if (perms.hasPermission(rank, perm)) {
-				//player has right rank in the group itself or at least one super group
+			if (rank.hasPermission(perm)) {
+				//player has permission in the group itself or at least one super group
 				return true;
 			}
 		}		
@@ -350,16 +326,6 @@ public class GroupManager{
 		}
 		return perms;
 	}
-			
-	// == PERMISSION HANDLING ============================================================= //
-	
-	private void deleteGroupPerms(Group group){
-		if (group == null) {
-			NameLayerPlugin.getInstance().getLogger().log(Level.INFO, "deleteGroupPerms failed, caller passed in null", new Exception());
-			return;
-		}
-		permhandle.deletePerms(group);
-	}
 	
 	public List<String> getAllGroupNames(UUID uuid){
 		if (uuid == null) {
@@ -367,27 +333,6 @@ public class GroupManager{
 			return new ArrayList<String>();
 		}
 		return groupManagerDao.getGroupNames(uuid);
-	}
-	
-	private void initiateDefaultPerms(String group){
-		if (group == null) {
-			NameLayerPlugin.getInstance().getLogger().log(Level.INFO, "initiateDefaultPerms failed, caller passed in null", new Exception());
-			return;
-		}
-		Map <PlayerType, List <PermissionType>> defaultPermMapping = new HashMap<GroupManager.PlayerType, List<PermissionType>>();
-		for(PermissionType perm : PermissionType.getAllPermissions()) {
-			for(PlayerType type : perm.getDefaultPermLevels()) {
-				List <PermissionType> perms = defaultPermMapping.get(type);
-				if (perms == null) {
-					perms = new LinkedList<PermissionType>();
-					defaultPermMapping.put(type, perms);
-				}
-				perms.add(perm);
-			}
-		}
-		for (Entry <PlayerType, List <PermissionType>> entry: defaultPermMapping.entrySet()){
-			groupManagerDao.addPermission(group, entry.getKey().name(), entry.getValue());
-		}
 	}
 	
 	public String getDefaultGroup(UUID uuid){
@@ -451,107 +396,5 @@ public class GroupManager{
 		}
 
 		return groupManagerDao.getTimestamp(group);
-	}
-
-	/**
-	 * In ascending order
-	 * Add an enum here if you wish to add more than the four default tiers of
-	 * roles.
-	 */
-	public enum PlayerType{
-		MEMBERS,
-		MODS,
-		ADMINS,
-		OWNER,
-		NOT_BLACKLISTED;//anyone, who is not blacklisted
-		
-		private final static Map<String, PlayerType> BY_NAME = Maps.newHashMap();
-		
-		static {
-			for (PlayerType rank : values()) {
-				BY_NAME.put(rank.name(), rank);
-			}
-		}
-		
-		public static PlayerType getPlayerType(String type){
-			return BY_NAME.get(type.toUpperCase());
-		}
-		
-		public static String getStringOfTypes() {
-			StringBuilder ranks = new StringBuilder();
-			for (String rank: BY_NAME.keySet()) {
-				ranks.append(rank);
-				ranks.append(" ");
-			}
-			return ranks.toString();
-		}
-		
-		public static void displayPlayerTypes(Player p) {
-			p.sendMessage(ChatColor.RED 
-					+ "That PlayerType does not exists.\n"
-					+ "The current types are: " + getStringOfTypes());
-		}
-		
-		public static void displayPlayerTypesnllpt(Player p) {
-			p.sendMessage(ChatColor.GREEN 
-					+ "The current types are: " + getStringOfTypes()); 
-			//dont yell at player for nllpt
-		}
-		
-		public static PlayerType getByID(int id) {
-			switch(id) {
-			case 0:
-				return PlayerType.NOT_BLACKLISTED;
-			case 1:
-				return PlayerType.MEMBERS;
-			case 2:
-				return PlayerType.MODS;
-			case 3:
-				return PlayerType.ADMINS;
-			case 4:
-				return PlayerType.OWNER;
-			default:
-				return null;
-			}
-		}
-		
-		public static int getID(PlayerType type) {
-			if (type == null) {
-				return -1;
-			}
-			switch (type) {
-				case NOT_BLACKLISTED:
-					return 0;
-				case MEMBERS:
-					return 1;
-				case MODS:
-					return 2;
-				case ADMINS:
-					return 3;
-				case OWNER:
-					return 4;
-				default:
-					return -1;
-			}
-		}
-		
-		public static String getNiceRankName(PlayerType pType) {
-			if (pType == null) {
-				return "RANK_ERROR";
-			}
-			switch (pType) {
-			case MEMBERS:
-				return "Member";
-			case MODS:
-				return "Mod";
-			case ADMINS:
-				return "Admin";
-			case OWNER:
-				return "Owner";
-			case NOT_BLACKLISTED:
-				return "Anyone who is not blacklisted";
-			}
-			return "RANK_ERROR";
-		}
 	}
 }

@@ -8,14 +8,12 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
 import vg.civcraft.mc.namelayer.GroupManager;
-import vg.civcraft.mc.namelayer.GroupManager.PlayerType;
 import vg.civcraft.mc.namelayer.NameAPI;
 import vg.civcraft.mc.namelayer.command.PlayerCommandMiddle;
 import vg.civcraft.mc.namelayer.command.TabCompleters.GroupMemberTabCompleter;
 import vg.civcraft.mc.namelayer.command.TabCompleters.GroupTabCompleter;
 import vg.civcraft.mc.namelayer.group.Group;
-import vg.civcraft.mc.namelayer.permission.GroupPermission;
-import vg.civcraft.mc.namelayer.permission.PermissionType;
+import vg.civcraft.mc.namelayer.permission.PlayerType;
 
 public class RemoveMember extends PlayerCommandMiddle {
 
@@ -35,7 +33,7 @@ public class RemoveMember extends PlayerCommandMiddle {
 			return true;
 		}
 		Player p = (Player) sender;
-		Group group = gm.getGroup(args[0]);
+		Group group = GroupManager.getGroup(args[0]);
 		if (groupIsNull(sender, args[0], group)) {
 			return true;
 		}
@@ -52,35 +50,14 @@ public class RemoveMember extends PlayerCommandMiddle {
 		}
 		
 		String playerName = NameAPI.getCurrentName(uuid);
-		PlayerType t = group.getPlayerType(executor); // playertype for the player running the command.
 		PlayerType toBeRemoved = group.getPlayerType(uuid);
-		if (toBeRemoved == null){
-			p.sendMessage(ChatColor.RED + "That player is not on the group.");
-			return true;
-		}
-		boolean allowed = false;
-		switch (toBeRemoved){ // depending on the type the executor wants to add the player to
-		case MEMBERS:
-			allowed = gm.hasAccess(group, executor, PermissionType.getPermission("MEMBERS"));
-			break;
-		case MODS:
-			allowed = gm.hasAccess(group, executor, PermissionType.getPermission("MODS"));
-			break;
-		case ADMINS:
-			allowed = gm.hasAccess(group, executor, PermissionType.getPermission("ADMINS"));
-			break;
-		case OWNER:
-			allowed = gm.hasAccess(group, executor, PermissionType.getPermission("OWNER"));
-			break;
-		}
-		
-		if (!allowed && !(p.isOp() || p.hasPermission("namelayer.admin"))){
-			p.sendMessage(ChatColor.RED + "You do not have permissions to modify this group.");
+		if (!group.isMember(executor)) {
+			p.sendMessage(ChatColor.RED + "You are not on this group");
 			return true;
 		}
 		
-		if (!group.isMember(uuid)){
-			p.sendMessage(ChatColor.RED + "That player is not on the group.");
+		if (!group.isMember(uuid) || (!canModifyRank(group, p, toBeRemoved) && !(p.isOp() || p.hasPermission("namelayer.admin")))){
+			p.sendMessage(ChatColor.RED + "You do not have permissions to modify this players rank");
 			return true;
 		}
 		

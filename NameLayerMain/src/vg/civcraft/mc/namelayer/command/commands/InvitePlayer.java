@@ -12,12 +12,11 @@ import net.md_5.bungee.api.chat.TextComponent;
 
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
-import org.bukkit.OfflinePlayer;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
 import vg.civcraft.mc.mercury.MercuryAPI;
-import vg.civcraft.mc.namelayer.GroupManager.PlayerType;
+import vg.civcraft.mc.namelayer.GroupManager;
 import vg.civcraft.mc.namelayer.NameAPI;
 import vg.civcraft.mc.namelayer.NameLayerPlugin;
 import vg.civcraft.mc.namelayer.command.PlayerCommandMiddle;
@@ -25,16 +24,16 @@ import vg.civcraft.mc.namelayer.command.TabCompleters.GroupTabCompleter;
 import vg.civcraft.mc.namelayer.command.TabCompleters.MemberTypeCompleter;
 import vg.civcraft.mc.namelayer.group.Group;
 import vg.civcraft.mc.namelayer.listeners.PlayerListener;
-import vg.civcraft.mc.namelayer.permission.GroupPermission;
-import vg.civcraft.mc.namelayer.permission.PermissionType;
+import vg.civcraft.mc.namelayer.permission.PlayerType;
+import vg.civcraft.mc.namelayer.permission.PlayerTypeHandler;
 
 public class InvitePlayer extends PlayerCommandMiddle{
 
 	public InvitePlayer(String name) {
 		super(name);
 		setIdentifier("nlip");
-		setDescription("Invite a player to the PlayerType " + PlayerType.getStringOfTypes() + " of a group.");
-		setUsage("/nlip <group> <player> (PlayerType- default MEMBERS)");
+		setDescription("Invite a player to a group.");
+		setUsage("/nlip <group> <player> [PlayerType]");
 		setArguments(2,3);
 	}
 
@@ -46,7 +45,7 @@ public class InvitePlayer extends PlayerCommandMiddle{
 		final boolean isPlayer = s instanceof Player;
 		final Player p = isPlayer ? (Player)s : null;
 		final boolean isAdmin = !isPlayer || p.hasPermission("namelayer.admin");
-		final Group group = gm.getGroup(targetGroup);
+		final Group group = GroupManager.getGroup(targetGroup);
 		if (groupIsNull(s, targetGroup, group)) {
 			return true;
 		}
@@ -59,7 +58,7 @@ public class InvitePlayer extends PlayerCommandMiddle{
 			s.sendMessage(ChatColor.RED + "The player has never played before.");
 			return true;
 		}
-		if (group.isCurrentMember(targetAccount)) { // So a player can't demote someone who is above them.
+		if (group.isMember(targetAccount)) {
 			s.sendMessage(ChatColor.RED + "Player is already a member."
 					+ "Use /nlpp to change their PlayerType.");
 			return true;
@@ -68,16 +67,13 @@ public class InvitePlayer extends PlayerCommandMiddle{
 			s.sendMessage(ChatColor.RED + "This player is currently blacklisted, you have to unblacklist him before inviting him to the group");
 			return true;
 		}
-		final PlayerType pType = targetType != null ? PlayerType.getPlayerType(targetType) : PlayerType.MEMBERS;
+		PlayerTypeHandler typeHandler = group.getPlayerTypeHandler();
+		final PlayerType pType = targetType != null ? typeHandler.getType(targetType) : typeHandler.getDefaultInvitationType();
 		if (pType == null) {
-			if (p != null) {
-				PlayerType.displayPlayerTypes(p);
-			} else {
-				s.sendMessage("Invalid player type");
-			}
+			sendPlayerTypes(group, s, targetType);
 			return true;
 		}
-		if (pType == PlayerType.NOT_BLACKLISTED) {
+		if (pType == typeHandler.getBlacklistedType() || pType == typeHandler.getDefaultNonMemberType()) {
 			p.sendMessage(ChatColor.RED + "I think we both know that this shouldnt be possible");
 			return true;
 		}
@@ -89,24 +85,8 @@ public class InvitePlayer extends PlayerCommandMiddle{
 				s.sendMessage(ChatColor.RED + "You are not on that group.");
 				return true;
 			}
-			boolean allowed = false;
-			switch (pType) { // depending on the type the executor wants to add the player to
-				case MEMBERS:
-					allowed = gm.hasAccess(group, executor, PermissionType.getPermission("MEMBERS"));
-					break;
-				case MODS:
-					allowed = gm.hasAccess(group, executor, PermissionType.getPermission("MODS"));
-					break;
-				case ADMINS:
-					allowed = gm.hasAccess(group, executor, PermissionType.getPermission("ADMINS"));
-					break;
-				case OWNER:
-					allowed = gm.hasAccess(group, executor, PermissionType.getPermission("OWNER"));
-					break;
-				default:
-					allowed = false;
-					break;
-			}
+			//check whether player rank is above the one he wants to invite to
+			boolean allowed = canModifyRank(group, p, pType);
 			if (!allowed) {
 				s.sendMessage(ChatColor.RED + "You do not have permissions to modify this group.");
 				return true;
@@ -150,9 +130,9 @@ public class InvitePlayer extends PlayerCommandMiddle{
 				if(inviter != null){
 					String inviterName = NameAPI.getCurrentName(inviter);
 					msg = "You have been invited to the group " + group.getName()
-							+ " by " + inviterName + ".\n";
+							+ " as " + pType.getName() + " by " + inviterName + "\n";
 				} else {
-					msg = "You have been invited to the group " + group.getName()+ ".\n";
+					msg = "You have been invited to the group " + group.getName()+ " as " + pType.getName() + "\n";
 				}
 				TextComponent message = new TextComponent(msg + "Click this message to accept. If you wish to toggle invites "
 						+ "so they always are accepted please run /nltaai");
@@ -193,7 +173,7 @@ public class InvitePlayer extends PlayerCommandMiddle{
 		} else if (args.length == 2) {
 			List<String> namesToReturn = new ArrayList<String>();
 			if (NameLayerPlugin.isMercuryEnabled()) {
-				Set<String> players = MercuryAPI.instance.getAllPlayers();
+				Set<String> players = MercuryAPI.getAllPlayers();
 				for (String x: players) {
 					if (x.toLowerCase().startsWith(args[1].toLowerCase()))
 						namesToReturn.add(x);
@@ -207,8 +187,13 @@ public class InvitePlayer extends PlayerCommandMiddle{
 			}
 			return namesToReturn;
 		}
-		else if (args.length == 3)
-			return MemberTypeCompleter.complete(args[2]);
+		else if (args.length == 3) {
+			Group g = GroupManager.getGroup(args [0]);
+			if (g == null) {
+				return null;
+			}
+			return MemberTypeCompleter.complete(g, args[2]);
+		}
 
 		else return null;
 	}

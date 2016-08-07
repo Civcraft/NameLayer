@@ -7,15 +7,15 @@ import org.bukkit.ChatColor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
-import vg.civcraft.mc.namelayer.GroupManager.PlayerType;
+import vg.civcraft.mc.namelayer.GroupManager;
 import vg.civcraft.mc.namelayer.NameAPI;
 import vg.civcraft.mc.namelayer.command.PlayerCommandMiddle;
 import vg.civcraft.mc.namelayer.command.TabCompleters.GroupTabCompleter;
 import vg.civcraft.mc.namelayer.command.TabCompleters.MemberTypeCompleter;
 import vg.civcraft.mc.namelayer.command.TabCompleters.PermissionCompleter;
 import vg.civcraft.mc.namelayer.group.Group;
-import vg.civcraft.mc.namelayer.permission.GroupPermission;
 import vg.civcraft.mc.namelayer.permission.PermissionType;
+import vg.civcraft.mc.namelayer.permission.PlayerType;
 
 public class ModifyPermissions extends PlayerCommandMiddle{
 
@@ -34,16 +34,11 @@ public class ModifyPermissions extends PlayerCommandMiddle{
 			return true;
 		}
 		Player p = (Player) sender;
-		Group g = gm.getGroup(args[0]);
+		Group g = GroupManager.getGroup(args[0]);
 		if (groupIsNull(sender, args[0], g)) {
 			return true;
 		}
 		UUID uuid = NameAPI.getUUID(p.getName());
-		PlayerType type = g.getPlayerType(uuid);
-		if (type == null){
-			p.sendMessage(ChatColor.RED + "You are not on this group.");
-			return true;
-		}
 		if (g.isDisciplined()){
 			p.sendMessage(ChatColor.RED + "This group is currently disiplined.");
 			return true;
@@ -53,9 +48,9 @@ public class ModifyPermissions extends PlayerCommandMiddle{
 			return true;
 		}
 		String info = args[1];
-		PlayerType playerType = PlayerType.getPlayerType(args[2].toUpperCase());
+		PlayerType playerType = g.getPlayerTypeHandler().getType((args[2]));
 		if (playerType == null){
-			PlayerType.displayPlayerTypes(p);
+			sendPlayerTypes(g, sender,args[2]);
 			return true;
 		}
 		PermissionType pType = PermissionType.getPermission(args[3]);
@@ -70,27 +65,21 @@ public class ModifyPermissions extends PlayerCommandMiddle{
 						+ "The current types are: " + sb.toString());
 			return true;
 		}
-		GroupPermission gPerm = gm.getPermissionforGroup(g);
 		if (info.equalsIgnoreCase("add")){
-			if (gPerm.hasPermission(playerType, pType))
+			if (playerType.hasPermission(pType))
 				sender.sendMessage(ChatColor.RED + "This PlayerType already has the PermissionType: " + pType.getName());
 			else {
-				if (playerType == PlayerType.NOT_BLACKLISTED && pType == PermissionType.getPermission("JOIN_PASSWORD")) {
-					//we need to prevent players from explicitly adding people to this permission group
-					sender.sendMessage(ChatColor.RED + "You can't explicitly add players to this group. Per default any non blacklisted person will"
-							+ "be included in this permission group");
-				}
-				gPerm.addPermission(playerType, pType);
+				playerType.addPermission(pType, true);
 				sender.sendMessage(ChatColor.GREEN + "The PermissionType: " + pType.getName() + " was successfully added to the PlayerType: " +
-				playerType.name());
+				playerType.getName());
 				checkRecacheGroup(g);
 			}
 		}
 		else if (info.equalsIgnoreCase("remove")){
-			if (gPerm.hasPermission(playerType, pType)){
-				gPerm.removePermission(playerType, pType);
+			if (playerType.hasPermission(pType)){
+				playerType.removePermission(pType, true);
 				sender.sendMessage(ChatColor.GREEN + "The PermissionType: " + pType.getName() + " was successfully removed from" +
-						" the PlayerType: " + playerType.name());
+						" the PlayerType: " + playerType.getName());
 				checkRecacheGroup(g);
 			}
 			else
@@ -121,7 +110,11 @@ public class ModifyPermissions extends PlayerCommandMiddle{
 			}
 
 		} else if (args.length == 3) {
-			return MemberTypeCompleter.complete(args[2]);
+			Group g = GroupManager.getGroup(args [0]);
+			if (g == null) {
+				return null;
+			}
+			return MemberTypeCompleter.complete(g, args[2]);
 		} else if (args.length == 4) {
 			return PermissionCompleter.complete(args[3]);
 		}

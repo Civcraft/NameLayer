@@ -10,7 +10,6 @@ import org.bukkit.event.Listener;
 import vg.civcraft.mc.mercury.MercuryAPI;
 import vg.civcraft.mc.mercury.events.AsyncPluginBroadcastMessageEvent;
 import vg.civcraft.mc.namelayer.GroupManager;
-import vg.civcraft.mc.namelayer.GroupManager.PlayerType;
 import vg.civcraft.mc.namelayer.NameLayerPlugin;
 import vg.civcraft.mc.namelayer.command.commands.InvitePlayer;
 import vg.civcraft.mc.namelayer.NameAPI;
@@ -18,6 +17,7 @@ import vg.civcraft.mc.namelayer.events.GroupAddInvitation;
 import vg.civcraft.mc.namelayer.events.GroupInvalidationEvent;
 import vg.civcraft.mc.namelayer.events.GroupRemoveInvitation;
 import vg.civcraft.mc.namelayer.group.Group;
+import vg.civcraft.mc.namelayer.permission.PlayerType;
 
 public class MercuryMessageListener implements Listener{
 	
@@ -37,37 +37,37 @@ public class MercuryMessageListener implements Listener{
 		if (reason.equals("recache")){
 			GroupInvalidationEvent e = new GroupInvalidationEvent(reason, group);
 			Bukkit.getPluginManager().callEvent(e);
-			if (gm.getGroup(group) != null) {
+			if (GroupManager.getGroup(group) != null) {
 				gm.invalidateCache(group);
 			}
 		}
 		else if (reason.equals("delete")){
 			GroupInvalidationEvent e = new GroupInvalidationEvent(reason, group);
 			Bukkit.getPluginManager().callEvent(e);
-			if (gm.getGroup(group) != null) {
+			if (GroupManager.getGroup(group) != null) {
 				gm.invalidateCache(group);
 			}
 		}
 		else if (reason.equals("merge")){
 			GroupInvalidationEvent e = new GroupInvalidationEvent(reason, group, message[2]);
 			Bukkit.getPluginManager().callEvent(e);
-			if (gm.getGroup(group) != null) {
+			if (GroupManager.getGroup(group) != null) {
 				gm.invalidateCache(group);
 			}
-			if (gm.getGroup(message [2]) != null) {
+			if (GroupManager.getGroup(message [2]) != null) {
 				gm.invalidateCache(message [2]);
 			}
 		}
 		else if (reason.equals("transfer")){
 			GroupInvalidationEvent e = new GroupInvalidationEvent(reason, message[2]);
 			Bukkit.getPluginManager().callEvent(e);
-			if (gm.getGroup(group) != null) {
+			if (GroupManager.getGroup(group) != null) {
 				gm.invalidateCache(group);
 			}
 		}
 		else if (reason.equals("addInvitation")){
-			Group playerGroup = gm.getGroup(Integer.parseInt(group));
-			PlayerType pType = PlayerType.getPlayerType(message[2]);
+			Group playerGroup = GroupManager.getGroup(Integer.parseInt(group));
+			PlayerType pType = playerGroup.getPlayerTypeHandler().getType(message [2]);
 			UUID invitedPlayerUUID = UUID.fromString(message[3]);
 			UUID inviterUUID = null;
 			if(message.length >= 5){
@@ -80,7 +80,7 @@ public class MercuryMessageListener implements Listener{
 			}
 		}
 		else if (reason.equals("removeInvitation")){
-			Group playerGroup = gm.getGroup(Integer.parseInt(group));
+			Group playerGroup = GroupManager.getGroup(Integer.parseInt(group));
 			UUID invitedPlayerUUID = UUID.fromString(message[2]);
 			GroupRemoveInvitation e = new GroupRemoveInvitation(playerGroup.getName(), invitedPlayerUUID);
 			Bukkit.getPluginManager().callEvent(e);	

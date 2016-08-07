@@ -9,6 +9,7 @@ import org.bukkit.ChatColor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
+import vg.civcraft.mc.namelayer.GroupManager;
 import vg.civcraft.mc.namelayer.NameAPI;
 import vg.civcraft.mc.namelayer.NameLayerPlugin;
 import vg.civcraft.mc.namelayer.command.PlayerCommandMiddle;
@@ -38,12 +39,12 @@ public class MergeGroups extends PlayerCommandMiddle{
 			p.sendMessage(ChatColor.RED + "Group merging is currently active. Please wait for this to finish.");
 			return true;
 		}
-		final Group g = gm.getGroup(args[0]);
+		final Group g = GroupManager.getGroup(args[0]);
 		if (groupIsNull(sender, args[0], g)) {
 			return true;
 		}
 
-		final Group toMerge = gm.getGroup(args[1]);
+		final Group toMerge = GroupManager.getGroup(args[1]);
 		if (groupIsNull(sender, args[1], toMerge)) {
 			return true;
 		}
