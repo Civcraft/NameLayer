@@ -18,6 +18,7 @@ import vg.civcraft.mc.namelayer.GroupManager.PlayerType;
 import vg.civcraft.mc.namelayer.NameAPI;
 import vg.civcraft.mc.namelayer.NameLayerPlugin;
 import vg.civcraft.mc.namelayer.database.GroupManagerDao;
+import vg.civcraft.mc.namelayer.misc.Mercury;
 
 public class Group {
 	
@@ -42,7 +43,7 @@ public class Group {
 			db = NameLayerPlugin.getGroupManagerDao();
 		}
 		
-		this.name = name;
+		this.name = name.replace("|", "");
 		this.password = password;
 		this.owner = owner;
 		this.isDisciplined = disciplined;
@@ -317,23 +318,38 @@ public class Group {
 	 * @param type- The PlayerType to add. If a preexisting PlayerType is found, 
 	 * it will be overwritten.
 	 */
-	public void addMember(UUID uuid, PlayerType type) {
+	
+	public void addMember(UUID uuid, PlayerType type){
+		addMember(uuid,type,true);
+	}
+	
+	public void addMember(UUID uuid, PlayerType type, boolean savetodb) {
 		if (type == PlayerType.NOT_BLACKLISTED) {
 			return;
 		}
-		if (isMember(uuid, type)) {
-			db.removeMember(uuid, name);
+		if (savetodb) {
+			if (isMember(uuid, type)){
+				db.removeMember(uuid, name);
+			}
+			db.addMember(uuid, name, type);
+			Mercury.addMember(this.name, uuid.toString(), type.toString());
 		}
 		players.put(uuid, type);
-		db.addMember(uuid, name, type);
 	}
 
 	/**
 	 * Removes the Player from the Group.
 	 * @param uuid- The UUID of the Player.
 	 */
-	public void removeMember(UUID uuid) {
-		db.removeMember(uuid, name);
+	public void removeMember(UUID uuid){
+		removeMember(uuid,true);
+	}
+	
+	public void removeMember(UUID uuid, boolean savetodb) {
+		if (savetodb){
+			db.removeMember(uuid, name);
+			Mercury.remMember(this.name,uuid.toString());
+		}
 		players.remove(uuid);
 	}
 
@@ -366,6 +382,7 @@ public class Group {
 		}
 		if (saveToDb) {		
 			db.addSubGroup(supergroup.getName(), subgroup.getName());
+			Mercury.linkGroup(supergroup.name, subgroup.getName());
 		}
 		
 		return true;
@@ -376,7 +393,10 @@ public class Group {
 	 * @param supergroup
 	 * @param subgroup
 	 */
-	public static boolean unlink(Group supergroup, Group subgroup) {
+	public static boolean unlink(Group supergroup, Group subgroup){
+		return unlink(supergroup,subgroup, true);
+	}
+	public static boolean unlink(Group supergroup, Group subgroup, boolean savetodb) {
 		if (supergroup == null || subgroup == null) { 
 			return false;
 		}
@@ -389,7 +409,10 @@ public class Group {
 			supergroup.subgroups.remove(subgroup);
 		}		
 						
-		db.removeSubGroup(supergroup.getName(), subgroup.getName());
+		if (savetodb){
+			db.removeSubGroup(supergroup.getName(), subgroup.getName());
+			Mercury.unlinkGroup(supergroup.name, subgroup.name);
+		}
 		
 		return true;
 	}
@@ -490,21 +513,44 @@ public class Group {
 	 * Sets the password for a group. Set the parameter as null to remove the password.
 	 * @param password- The password of the group.
 	 */
-	public void setPassword(String password) {
+	public void setPassword(String password){
+		setPassword(password,true);
+	}
+	public void setPassword(String password, boolean savetodb) {
 		this.password = password;
-		db.updatePassword(name, password);
+		if (savetodb){
+			db.updatePassword(name, password);
+			Mercury.setPassword(this.name, password);
+		}
 	}
 
 	/**
 	 * Sets the owner of the group.
 	 * @param uuid- The UUID of the Player.
 	 */
-	public void setOwner(UUID uuid) {
+	public void setOwner(UUID uuid){
+		setOwner(uuid,true);
+	}
+	
+	public void setOwner(UUID uuid, boolean savetodb) {
 		this.owner = uuid;
-		db.setFounder(uuid, this);
+		if (savetodb){
+			db.setFounder(uuid, this);
+			Mercury.setFounder(this.name, uuid.toString());
+		}
+	}
+	
+	public void setDisciplined(boolean value){
+		setDisciplined(value, true);
 	}
 
-	public void setDisciplined(boolean value) { this.isDisciplined = value; }
+	public void setDisciplined(boolean value, boolean savetodb) {
+		this.isDisciplined = value;
+		if (savetodb){
+			db.setDisciplined(this, value);
+			Mercury.setDisciplined(this.name, this.isDisciplined);
+		}
+	}
 
 	public void setValid(boolean valid) { this.isValid = valid; }
 

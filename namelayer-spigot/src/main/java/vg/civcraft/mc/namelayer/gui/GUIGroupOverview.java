@@ -27,7 +27,6 @@ import vg.civcraft.mc.namelayer.NameAPI;
 import vg.civcraft.mc.namelayer.NameLayerPlugin;
 import vg.civcraft.mc.namelayer.GroupManager.PlayerType;
 import vg.civcraft.mc.namelayer.group.Group;
-import vg.civcraft.mc.namelayer.misc.Mercury;
 import vg.civcraft.mc.namelayer.permission.GroupPermission;
 import vg.civcraft.mc.namelayer.permission.PermissionType;
 
@@ -74,6 +73,7 @@ public class GUIGroupOverview {
 			
 			@Override
 			public void clicked(Player p) {
+				// TODO: Autoacceptance needs a cache to reduce db calls.
 				if (autoAccept){
 					NameLayerPlugin.log(Level.INFO,
 							p.getName() + " turned autoaccept for invites off "
@@ -325,10 +325,6 @@ public class GUIGroupOverview {
 											.getGroupLimit()
 									+ " groups! Please delete un-needed groups if you wish to create more.");
 						}
-						if (NameLayerPlugin.isMercuryEnabled()) {
-							String msg = "recache " + g.getName();
-							Mercury.invalidateGroup(msg);
-						}
 						showScreen();
 					}
 				};
@@ -405,10 +401,6 @@ public class GUIGroupOverview {
 													+ "via gui");
 									gro.addMember(p.getUniqueId(), pType);
 									p.sendMessage(ChatColor.GREEN + "You have successfully been added to "  + gro.getName());
-									if (NameLayerPlugin.isMercuryEnabled()) {
-										String msg = "recache " + gro.getName();
-										Mercury.invalidateGroup(msg);
-									}
 									showScreen();
 								}
 								
