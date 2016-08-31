@@ -26,7 +26,6 @@ import org.bukkit.Bukkit;
 import com.google.common.collect.Lists;
 
 import vg.civcraft.mc.namelayer.GroupManager;
-import vg.civcraft.mc.namelayer.GroupManager.PlayerType;
 import vg.civcraft.mc.namelayer.NameLayerPlugin;
 import vg.civcraft.mc.namelayer.database.Database;
 import vg.civcraft.mc.namelayer.group.Group;
@@ -596,6 +595,113 @@ public class GroupManagerDao {
 
 			ver = updateVersion(ver, plugin.getName());
 			logger.log(Level.INFO, "Database update to Version thirteen took {0} seconds", (System.currentTimeMillis() - first_time) / 1000);
+		}
+		
+		if (ver == 13){
+			long first_time = System.currentTimeMillis();
+			logger.log(Level.INFO, "Database updating to version fourteen, reworking player types");
+			//leftover from previous upgrade
+			cleanExecute("drop table permissions");
+			//player type group mapping table
+			cleanExecute("create table if not exists groupPlayerTypes(type_id int not null autoincrement, "
+					+ "group_id int not null foreign key references faction_id (group_id) on delete cascade,"
+					+ "rank_id int not null, type_name varchar(40) not null, parent_rank_id int, primary key(type_id), "
+					+ "unique key(group_id,type_id), index groupPlayerTypes_tupel (group_id, rank_id));");
+			
+			//init new default player types for all groups
+			cleanExecute("insert into groupPlayerTypes (group_id,rank_id,type_name) select group_id, 0, 'OWNER' from faction_id;");
+			cleanExecute("insert into groupPlayerTypes (group_id,rank_id,type_name,parent_rank_id) select group_id, 1, 'ADMINS',0 from faction_id;");
+			cleanExecute("insert into groupPlayerTypes (group_id,rank_id,type_name,parent_rank_id) select group_id, 2, 'MODS',1 from faction_id;");
+			cleanExecute("insert into groupPlayerTypes (group_id,rank_id,type_name,parent_rank_id) select group_id, 3, 'MEMBERS',2 from faction_id;");
+			cleanExecute("insert into groupPlayerTypes (group_id,rank_id,type_name,parent_rank_id) select group_id, 4, 'DEFAULT',0 from faction_id;");
+			cleanExecute("insert into groupPlayerTypes (group_id,rank_id,type_name,parent_rank_id) select group_id, 5, 'BLACKLISTED',4 from faction_id;");
+			
+			
+			//update permission table
+			cleanExecute("alter table permissionByGroup drop primary key;");
+			cleanExecute("alter table permissionByGroup add type_id int;");
+			cleanExecute("alter table permissionByGroup add temp_rank_id int default null;");
+			cleanExecute("update permissionByGroup set temp_rank_id=0 where role='OWNER';");
+			cleanExecute("update permissionByGroup set temp_rank_id=1 where role='ADMINS';");
+			cleanExecute("update permissionByGroup set temp_rank_id=2 where role='MODS';");
+			cleanExecute("update permissionByGroup set temp_rank_id=3 where role='MEMBERS';");
+			cleanExecute("update permissionByGroup set temp_rank_id=4 where role='NOT_BLACKLISTED';");
+			//maybe some broken entries exist, we make sure to clean those out
+			cleanExecute("delete from faction_member WHERE temp_rank_id IS NULL;");
+			cleanExecute("alter table permissionByGroup drop column role;");
+			cleanExecute("update pbg set pbg.type_id=gpt.type_id from permissionByGroup as pbg inner join groupPlayerTypes as gpt "
+					+ "on gpt.group_id=pbg.group_id and pbg.temp_rank_id = gpt.rank_id");
+			cleanExecute("alter table permissionByGroup drop column temp_rank_id;");
+			cleanExecute("alter table permissionByGroup drop column group_id;");
+			cleanExecute("delete from permissionByGroup where type_id is null;");
+			cleanExecute("alter table permissionByGroup alter column type_id int not null foreign key references groupPlayerTypes(type_id) on delete cascade;");
+			cleanExecute("alter table permissionByGroup add constraint foreign key (perm_id) references permissionIdMapping(perm_id) on delete cascade;");
+			cleanExecute("alter table permissionByGroup add constraint uniquePermissions unique key(type_id, perm_id");
+			cleanExecute("create index permissionTypeIdIndex on permissionByGroup(type_id);");
+			
+			
+			//update group member table
+			cleanExecute("alter table faction_member add foreign key(group_id) references faction_id(group_id) on delete cascade");
+			cleanExecute("alter table faction_member add type_id int;");
+			cleanExecute("alter table faction_member add temp_rank_id int;");
+			cleanExecute("update faction_member set temp_rank_id=0 where role='OWNER';");
+			cleanExecute("update faction_member set temp_rank_id=1 where role='ADMINS';");
+			cleanExecute("update faction_member set temp_rank_id=2 where role='MODS';");
+			cleanExecute("update faction_member set temp_rank_id=3 where role='MEMBERS';");
+			cleanExecute("update faction_member set temp_rank_id=4 where role='NOT_BLACKLISTED';");
+			//maybe some broken entries exist, we make sure to clean those out
+			cleanExecute("delete from faction_member WHERE temp_rank_id IS NULL;");
+			cleanExecute("alter table faction_member drop column role;");
+			cleanExecute("update fm set fm.type_id=gpt.type_id from faction_member as fm inner join groupPlayerTypes as gpt "
+					+ "on gpt.group_id=fm.group_id and fm.temp_rank_id = gpt.rank_id");
+			cleanExecute("alter table faction_member drop column temp_rank_id;");
+			cleanExecute("alter table faction_member drop column group_id;");
+			cleanExecute("delete from faction_member where type_id is null;");
+			cleanExecute("alter table faction_member alter column type_id int not null foreign key references groupPlayerTypes(type_id) on delete cascade;");
+			cleanExecute("alter table faction_member add constraint uniqueMembers unique key(type_id, member_name");
+			//index both
+			cleanExecute("create index memberTypeIdIndex on faction_member(type_id);");
+			cleanExecute("create index groupMemberIndex on faction_member(member_name);");
+
+			//invitation table uses names as identifier, so we fix faction_id before getting to invitations
+			cleanExecute("create table mergedGroups (oldGroup int not null, newGroup int not null references faction_id (group_id) on delete cascade, primary key(mergedGroups)");
+			cleanExecute("insert into mergedGroups (oldGroup, newGroup) select fi.group_id,fa.group_id from faction_id fi left join "
+					+ "(select max(group_id) as newId from faction_id group by group_name;) ma"
+					+ "on ma.newId = fi.group_id inner join (select max(group_id) as max, group_name as newId from faction_id group by group_name;) fa on fa.group_name=fi.group_name;");
+			cleanExecute("delete from faction_id where group_id in (select fi.group_id from faction_id fi left join "
+					+ "(select max(group_id) as newId from faction_id group by group_name;) ma on ma.newId = fi.group_id)");
+			
+			
+			//update invitation table
+			cleanExecute("alter table group_invitation drop primary key;");
+			cleanExecute("alter table group_invitation add group_id int;");
+			cleanExecute("update gi set gi.group_id = fi.group_id from group_invitation as gi inner join faction_id as fi on fi.group_name=gi.group_name");
+			cleanExecute("delete from group_invitation where group_id is null");
+			cleanExecute("alter table group_invitation drop column group_name;");
+			cleanExecute("alter table group_invitation add type_id int");
+			cleanExecute("alter table group_invitation add temp_rank_id int;");
+			cleanExecute("update group_invitation set temp_rank_id=0 where role='OWNER';");
+			cleanExecute("update group_invitation set temp_rank_id=1 where role='ADMINS';");
+			cleanExecute("update group_invitation set temp_rank_id=2 where role='MODS';");
+			cleanExecute("update group_invitation set temp_rank_id=3 where role='MEMBERS';");
+			cleanExecute("update group_invitation set temp_rank_id=4 where role='NOT_BLACKLISTED';");
+			cleanExecute("delete from group_invitation WHERE temp_rank_id IS NULL;");
+			cleanExecute("alter table group_invitation drop column role;");
+			cleanExecute("update gi set gi.type_id=gpt.type_id from group_invitation as gi inner join groupPlayerTypes gpt "
+					+ "on gpt.group_id=fm.group_id and fm.temp_rank_id = gpt.rank_id");
+			cleanExecute("alter table group_invitation drop column temp_rank_id;");
+			cleanExecute("alter table group_invitation drop column group_id;");
+			cleanExecute("delete from group_invitation where type_id is null;");
+			cleanExecute("alter table group_invitation alter column type_id int not null foreign key references groupPlayerTypes(type_id) on delete cascade;");
+			cleanExecute("alter table group_invitation add constraint uniqueInvitations unique key(type_id, uuid");
+			//index both
+			cleanExecute("create index inviteTypeIdIndex on group_invitation(type_id);");
+			cleanExecute("create index inviteUUIDIndex on group_invitation(uuid);");
+			
+			
+			
+			ver = updateVersion(ver, plugin.getName());
+			logger.log(Level.INFO, "Database update to Version fourteen took {0} seconds", (System.currentTimeMillis() - first_time) / 1000);
 		}
 		
 		logger.log(Level.INFO, "Database update took {0} seconds", (System.currentTimeMillis() - begin_time) / 1000);

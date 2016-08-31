@@ -24,7 +24,6 @@ import vg.civcraft.mc.namelayer.events.GroupMergeEvent;
 import vg.civcraft.mc.namelayer.events.GroupTransferEvent;
 import vg.civcraft.mc.namelayer.group.Group;
 import vg.civcraft.mc.namelayer.misc.Mercury;
-import vg.civcraft.mc.namelayer.permission.GroupPermission;
 import vg.civcraft.mc.namelayer.permission.PermissionHandler;
 import vg.civcraft.mc.namelayer.permission.PermissionType;
 
@@ -501,107 +500,5 @@ public class GroupManager{
 		}
 
 		return groupManagerDao.getTimestamp(group);
-	}
-
-	/**
-	 * In ascending order
-	 * Add an enum here if you wish to add more than the four default tiers of
-	 * roles.
-	 */
-	public enum PlayerType{
-		MEMBERS,
-		MODS,
-		ADMINS,
-		OWNER,
-		NOT_BLACKLISTED;//anyone, who is not blacklisted
-		
-		private final static Map<String, PlayerType> BY_NAME = Maps.newHashMap();
-		
-		static {
-			for (PlayerType rank : values()) {
-				BY_NAME.put(rank.name(), rank);
-			}
-		}
-		
-		public static PlayerType getPlayerType(String type){
-			return BY_NAME.get(type.toUpperCase());
-		}
-		
-		public static String getStringOfTypes() {
-			StringBuilder ranks = new StringBuilder();
-			for (String rank: BY_NAME.keySet()) {
-				ranks.append(rank);
-				ranks.append(" ");
-			}
-			return ranks.toString();
-		}
-		
-		public static void displayPlayerTypes(Player p) {
-			p.sendMessage(ChatColor.RED 
-					+ "That PlayerType does not exists.\n"
-					+ "The current types are: " + getStringOfTypes());
-		}
-		
-		public static void displayPlayerTypesnllpt(Player p) {
-			p.sendMessage(ChatColor.GREEN 
-					+ "The current types are: " + getStringOfTypes()); 
-			//dont yell at player for nllpt
-		}
-		
-		public static PlayerType getByID(int id) {
-			switch(id) {
-			case 0:
-				return PlayerType.NOT_BLACKLISTED;
-			case 1:
-				return PlayerType.MEMBERS;
-			case 2:
-				return PlayerType.MODS;
-			case 3:
-				return PlayerType.ADMINS;
-			case 4:
-				return PlayerType.OWNER;
-			default:
-				return null;
-			}
-		}
-		
-		public static int getID(PlayerType type) {
-			if (type == null) {
-				return -1;
-			}
-			switch (type) {
-				case NOT_BLACKLISTED:
-					return 0;
-				case MEMBERS:
-					return 1;
-				case MODS:
-					return 2;
-				case ADMINS:
-					return 3;
-				case OWNER:
-					return 4;
-				default:
-					return -1;
-			}
-		}
-		
-		public static String getNiceRankName(PlayerType pType) {
-			if (pType == null) {
-				return "RANK_ERROR";
-			}
-			switch (pType) {
-			case MEMBERS:
-				return "Member";
-			case MODS:
-				return "Mod";
-			case ADMINS:
-				return "Admin";
-			case OWNER:
-				return "Owner";
-			case NOT_BLACKLISTED:
-				return "Anyone who is not blacklisted";
-			}
-			return "RANK_ERROR";
-		}
 	}
 }
