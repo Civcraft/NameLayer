@@ -13,6 +13,7 @@ import vg.civcraft.mc.civmodcore.inventorygui.Clickable;
 import vg.civcraft.mc.civmodcore.inventorygui.ClickableInventory;
 import vg.civcraft.mc.civmodcore.inventorygui.DecorationStack;
 import vg.civcraft.mc.civmodcore.itemHandling.ISUtils;
+import vg.civcraft.mc.namelayer.GroupManager;
 import vg.civcraft.mc.namelayer.NameLayerPlugin;
 import vg.civcraft.mc.namelayer.command.commands.MergeGroups;
 import vg.civcraft.mc.namelayer.group.Group;
@@ -182,6 +183,7 @@ public class MergeGUI extends AbstractGroupGUI {
 			@Override
 			public void clicked(Player p) {
 				requestMerge(groupName);
+				ClickableInventory.forceCloseInventory(p);
 			}
 		}, 11);
 		confirmInv.setSlot(new Clickable(no) {
@@ -196,7 +198,7 @@ public class MergeGUI extends AbstractGroupGUI {
 	}
 
 	private void requestMerge(String mergeGroupName) {
-		final Group otherGroup = gm.getGroup(mergeGroupName);
+		final Group otherGroup = GroupManager.getGroup(mergeGroupName);
 		if (otherGroup == null) {
 			p.sendMessage(ChatColor.RED
 					+ "Something went wrong, please try again");

@@ -99,7 +99,7 @@ public class PlayerListener implements Listener{
 			}
 		}
 		if (g != null) {
-			g.setDefaultGroup(p.getUniqueId());
+			NameLayerPlugin.getDefaultGroupHandler().setDefaultGroup(p, g);
 		}
 		
 	}
@@ -113,7 +113,6 @@ public class PlayerListener implements Listener{
 			return null;
 		}
 		g.setGroupId(id);
-		NameLayerPlugin.getBlackList().initEmptyBlackList(name);
 		return g;
 	}
 }

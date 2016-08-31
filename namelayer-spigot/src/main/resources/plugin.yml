@@ -16,12 +16,8 @@ commands:
    nldig:
     aliases: [nldisiplinegroup, nldisablegroup, nldisable]
     permission: namelayer.admin
-   nlgls:
-    aliases: [nlglobalstats]
    nlgs:
     aliases: [nlgroupstats]
-   nlid:
-    aliases: [nlinfodump]
    nlip:
     aliases: [nlinviteplayer, nlinvite, invite]
    nljg:
@@ -30,7 +26,6 @@ commands:
     aliases: [nllistgroups, nllistg, listgroups]
    nllm:
     aliases: [nllistmembers, nllistm, listmembers]
-   nllcm:
    nllp:
     aliases: [nllistpermissions, nllistperms, listpermissions]
    nlpp:
@@ -43,9 +38,6 @@ commands:
     aliases: [nlremovemember, nlremove, nlkick, kickmember, removemember]
    nlri:
     aliases: [nlrevokeinvite, nluninvite, revoke, uninvite, revokeinvite]
-   nllink:
-   nlunlink:
-   nllsg:
    nlsp:
     aliases: [nlsetpassword, nlsetpass, setpass, setpassword]
    nltg:
@@ -66,15 +58,13 @@ commands:
     aliases: [nlsetdefaultgroup, nlsetdefault, setdefault, setdefaultgroup]
    nlgdg:
     aliases: [nlgetdefaultgroup, nlgetdefault, getdefaultgroup]
-   nlun:
-    aliases: [updatename]
-   nlsbl:
-    aliases: [showblacklist, listblacklist]
-   nlbl:
-    aliases: [blacklist, addblacklist]
-   nlubl:
-    aliases: [removeblacklist, unblacklist]
    nl:
+   nlapt:
+    aliases: [nlcpt, nlcreateplayertype, createplayertype, addplayertype, nladdplayertype]
+   nlrpt:
+    aliases: [nlrenameplayertype, nlchangeplayertypename, changeplayertypename, renameplayertype, renamerank]
+   nldpt:
+    aliases: [nldeleteplayertype, deleteplayertype, nlremoveplayertype, removeplayertype]
 
 permissions:
    namelayer.admin:

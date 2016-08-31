@@ -23,11 +23,11 @@ import vg.civcraft.mc.namelayer.group.Group;
 import vg.civcraft.mc.namelayer.permission.PlayerType;
 import vg.civcraft.mc.namelayer.permission.PlayerTypeHandler;
 
-public class InvitationGUI extends AbstractGroupGUI {
-
+public class BlackListGUI extends AbstractGroupGUI {
+	
 	private MainGroupGUI parent;
 
-	public InvitationGUI(Group g, Player p, MainGroupGUI parent) {
+	public BlackListGUI(Group g, Player p, MainGroupGUI parent) {
 		super(g, p);
 		this.parent = parent;
 	}
@@ -37,14 +37,14 @@ public class InvitationGUI extends AbstractGroupGUI {
 		ClickableInventory ci = new ClickableInventory(36, g.getName());
 		int slot = 0;
 		for (final PlayerType type : handler.getAllTypes()) {
-			if (!handler.isMemberType(type)) {
+			if (!handler.isBlackListedType(type)) {
 				continue;
 			}
 			ItemStack is = MenuUtils.getPlayerTypeStack(type);
 			ISUtils.setName(is, ChatColor.GOLD + type.getName());
 			Clickable c;
 			if (gm.hasAccess(g, p.getUniqueId(), type.getInvitePermissionType())) {
-				ISUtils.addLore(is, ChatColor.GREEN + "Click to invite someone as " + type.getName());
+				ISUtils.addLore(is, ChatColor.GREEN + "Click to blacklist someone as this rank");
 				c = new Clickable(is) {
 
 					@Override
@@ -53,7 +53,7 @@ public class InvitationGUI extends AbstractGroupGUI {
 					}
 				};
 			} else {
-				ISUtils.addLore(is, ChatColor.GREEN + "You dont have permission to invite to this rank");
+				ISUtils.addLore(is, ChatColor.GREEN + "You dont have permission to blacklist as this rank");
 				c = new DecorationStack(is);
 			}
 			ci.setSlot(c, slot++);
@@ -72,7 +72,7 @@ public class InvitationGUI extends AbstractGroupGUI {
 
 	public void selectName(final PlayerType type) {
 		p.sendMessage(ChatColor.GOLD
-				+ "Enter the name of the player to invite or \"cancel\" to exit this prompt. You may also enter multiple names separated by a space to invite all of them");
+				+ "Enter the name of the player to blacklist or \"cancel\" to exit this prompt. You may also enter multiple names separated by a space to blacklist all of them");
 		ClickableInventory.forceCloseInventory(p);
 		new Dialog(p, NameLayerPlugin.getInstance()) {
 
@@ -116,16 +116,16 @@ public class InvitationGUI extends AbstractGroupGUI {
 						if (g.isTracked(blackUUID)) {
 							p.sendMessage(ChatColor.RED
 									+ NameAPI.getCurrentName(blackUUID)
-									+ " is already either a member or blacklisted for this group and can't be invited");
+									+ " is already either a member or blacklisted for this group and can't be blacklisted");
 							continue;
 						}
 						NameLayerPlugin.log(
 								Level.INFO,
-								p.getName() + " invited " + NameAPI.getCurrentName(blackUUID) + " for group "
+								p.getName() + " blacklisted " + NameAPI.getCurrentName(blackUUID) + " for group "
 										+ g.getName() + " via gui");
 						g.addToTracking(blackUUID, type);
 						p.sendMessage(ChatColor.GREEN + NameAPI.getCurrentName(blackUUID)
-								+ " was successfully invited as " + type.getName());
+								+ " was successfully blacklisted as " + type.getName());
 					}
 				} else {
 					p.sendMessage(ChatColor.RED + "You lost permission to do this");

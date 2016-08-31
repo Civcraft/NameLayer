@@ -14,11 +14,10 @@ import vg.civcraft.mc.civmodcore.annotations.CivConfig;
 import vg.civcraft.mc.civmodcore.annotations.CivConfigType;
 import vg.civcraft.mc.civmodcore.annotations.CivConfigs;
 import vg.civcraft.mc.civmodcore.dao.ManagedDatasource;
-import vg.civcraft.mc.namelayer.command.CommandHandler;
+import vg.civcraft.mc.namelayer.command.NameLayerCommandHandler;
 import vg.civcraft.mc.namelayer.database.AssociationList;
 import vg.civcraft.mc.namelayer.database.GroupManagerDao;
 import vg.civcraft.mc.namelayer.group.AutoAcceptHandler;
-import vg.civcraft.mc.namelayer.group.BlackList;
 import vg.civcraft.mc.namelayer.group.DefaultGroupHandler;
 import vg.civcraft.mc.namelayer.listeners.AssociationListener;
 import vg.civcraft.mc.namelayer.listeners.MercuryMessageListener;
@@ -29,7 +28,6 @@ import vg.civcraft.mc.namelayer.permission.PermissionType;
 
 public class NameLayerPlugin extends ACivMod{
 	private static AssociationList associations;
-	private static BlackList blackList;
 	private static GroupManagerDao groupManagerDao;
 	private static DefaultGroupHandler defaultGroupHandler;
 	private static NameLayerPlugin instance;
@@ -62,11 +60,10 @@ public class NameLayerPlugin extends ACivMod{
 		registerListeners();
 		if (loadGroups){
 			PermissionType.initialize();
-			blackList = new BlackList();
 			groupManagerDao.loadGroupsInvitations();
 			defaultGroupHandler = new DefaultGroupHandler();
 			autoAcceptHandler = new AutoAcceptHandler(groupManagerDao.loadAllAutoAccept());
-			handle = new CommandHandler();
+			handle = new NameLayerCommandHandler();
 			handle.registerCommands();
 		}
 	}
@@ -203,26 +200,6 @@ public class NameLayerPlugin extends ACivMod{
 					message +
 					"\n --------------------------------------");
 	}
-	/**
-	 * Updates the version number for a plugin. You must specify what 
-	 * the current version number is.
-	 * @param currentVersion- The current version of the plugin.
-	 * @param pluginName- The plugin name.
-	 * @return Returns the new version of the db.
-	 */
-	@Deprecated
-	public static void insertVersionNum(int currentVersion, String pluginName){
-		throw new UnsupportedOperationException("insertVersionNum is no longer supported. Extend CivModCore and use ManagedDatasource"); 
-	}
-	/**
-	 * Checks the version of a specific plugin's db.
-	 * @param name- The name of the plugin.
-	 * @return Returns the version of the plugin or 0 if none was found.
-	 */
-	@Deprecated
-	public static int getVersionNum(String pluginName){
-		throw new UnsupportedOperationException("getVersionNum is no longer supported. Extend CivModCore and use ManagedDatasource");
-	}
 	
 	public static String getSpecialAdminGroup(){
 		return "Name_Layer_Special";
@@ -243,10 +220,6 @@ public class NameLayerPlugin extends ACivMod{
 	
 	public int getGroupLimit(){
 		return groupLimit;
-	}
-	
-	public static BlackList getBlackList() {
-		return blackList;
 	}
 	
 	public static AutoAcceptHandler getAutoAcceptHandler() {

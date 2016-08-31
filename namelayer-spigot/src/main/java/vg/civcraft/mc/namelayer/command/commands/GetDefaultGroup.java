@@ -1,22 +1,20 @@
 package vg.civcraft.mc.namelayer.command.commands;
 
 import java.util.List;
-import java.util.UUID;
 
 import org.bukkit.ChatColor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
-import vg.civcraft.mc.namelayer.NameAPI;
-import vg.civcraft.mc.namelayer.command.PlayerCommandMiddle;
-import vg.civcraft.mc.namelayer.command.TabCompleters.GroupTabCompleter;
+import vg.civcraft.mc.civmodcore.command.PlayerCommand;
+import vg.civcraft.mc.namelayer.NameLayerPlugin;
 
-public class GetDefaultGroup extends PlayerCommandMiddle{
+public class GetDefaultGroup extends PlayerCommand {
 
 	public GetDefaultGroup(String name) {
 		super(name);
 		setIdentifier("nlgdg");
-		setDescription("Get a players default group");
+		setDescription("Get your default group");
 		setUsage("/nlgdg");
 		setArguments(0,0);
 	}
@@ -28,9 +26,7 @@ public class GetDefaultGroup extends PlayerCommandMiddle{
 			return true;
 		}
 		Player p = (Player) sender;
-		UUID uuid = NameAPI.getUUID(p.getName());
-
-		String x = gm.getDefaultGroup(uuid);
+		String x = NameLayerPlugin.getDefaultGroupHandler().getDefaultGroup(p);
 		if(x == null){
 			p.sendMessage(ChatColor.RED + "You do not currently have a default group use /nlsdg to set it");
 		}
@@ -43,13 +39,6 @@ public class GetDefaultGroup extends PlayerCommandMiddle{
 
 	@Override
 	public List<String> tabComplete(CommandSender sender, String[] args) {
-		if (!(sender instanceof Player))
-			return null;
-
-		if (args.length == 1)
-			return GroupTabCompleter.complete(args[0], null, (Player) sender);
-		else{
-			return GroupTabCompleter.complete(null, null, (Player)sender);
-		}
+		return null;
 	}
 }
