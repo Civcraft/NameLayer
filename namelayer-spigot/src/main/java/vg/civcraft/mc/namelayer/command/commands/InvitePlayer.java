@@ -1,8 +1,6 @@
 package vg.civcraft.mc.namelayer.command.commands;
 
-import java.util.ArrayList;
 import java.util.List;
-import java.util.Set;
 import java.util.UUID;
 
 import net.md_5.bungee.api.chat.ClickEvent;
@@ -16,10 +14,10 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
 import vg.civcraft.mc.civmodcore.command.PlayerCommand;
-import vg.civcraft.mc.mercury.MercuryAPI;
 import vg.civcraft.mc.namelayer.GroupManager;
 import vg.civcraft.mc.namelayer.NameAPI;
 import vg.civcraft.mc.namelayer.NameLayerPlugin;
+import vg.civcraft.mc.namelayer.command.NameLayerTabCompleter;
 import vg.civcraft.mc.namelayer.group.Group;
 import vg.civcraft.mc.namelayer.listeners.PlayerListener;
 import vg.civcraft.mc.namelayer.misc.Mercury;
@@ -59,11 +57,6 @@ public class InvitePlayer extends PlayerCommand {
 			s.sendMessage(ChatColor.RED + "The player has never played before.");
 			return true;
 		}
-		if (group.isTracked(targetAccount)) { // So a player can't demote someone who is above them.
-			s.sendMessage(ChatColor.RED + "Player is already tracked."
-					+ "Use /nlpp to change their PlayerType.");
-			return true;
-		}
 		PlayerTypeHandler handler = group.getPlayerTypeHandler();
 		final PlayerType pType = targetType != null ? handler.getType(targetType) : handler.getDefaultInvitationType();
 		if (pType == null) {
@@ -73,13 +66,23 @@ public class InvitePlayer extends PlayerCommand {
 		if (!isAdmin) {
 			// Perform access check
 			final UUID executor = p.getUniqueId();
-			if (!NameAPI.getGroupManager().canModifyRank(executor, group, pType)) {
+			PlayerType executorType = group.getPlayerType(executor);
+			PermissionType permNeeded = pType.getInvitePermissionType();
+			if (!executorType.hasPermission(permNeeded)) {
 				s.sendMessage(ChatColor.RED + "You do not have permissions to invite to this player type");
 				return true;
 			}
+		}
+		if (group.isTracked(targetAccount)) {
+			s.sendMessage(ChatColor.RED + "Player is already tracked."
+					+ "Use /nlpp to change their PlayerType.");
+			return true;
+		}
+		if (!isAdmin) {
 			sendInvitation(group, pType, targetAccount, p.getUniqueId(), true);
 			Mercury.addInvite(group.getGroupId(), pType.toString(), targetAccount, p.getUniqueId().toString());
-		} else {
+		}
+		else {
 			sendInvitation(group, pType, targetAccount, null, true);
 			Mercury.addInvite(group.getGroupId(), pType.toString(), targetAccount, null);
 		}
@@ -145,30 +148,18 @@ public class InvitePlayer extends PlayerCommand {
 			return null;
 		}
 		if (args.length < 2) {
-			if (args.length == 0)
-				return GroupTabCompleter.complete(null, null, (Player) sender);
-			else
-				return GroupTabCompleter.complete(args[0], null, (Player)sender);
-
-		} else if (args.length == 2) {
-			List<String> namesToReturn = new ArrayList<String>();
-			if (NameLayerPlugin.isMercuryEnabled()) {
-				Set<String> players = MercuryAPI.getAllPlayers();
-				for (String x: players) {
-					if (x.toLowerCase().startsWith(args[1].toLowerCase()))
-						namesToReturn.add(x);
-				}
+			if (args.length == 0) {
+				return NameLayerTabCompleter.completeGroupWithPermission(null, null, (Player) sender);
 			}
 			else {
-				for (Player p: Bukkit.getOnlinePlayers()) {
-					if (p.getName().toLowerCase().startsWith(args[0].toLowerCase()))
-						namesToReturn.add(p.getName());
-				}
+				return NameLayerTabCompleter.completeGroupWithPermission(args[0], null, (Player)sender);
 			}
-			return namesToReturn;
+
+		} else if (args.length == 2) {
+			return NameLayerTabCompleter.completeOnlinePlayer(args[1]);
 		}
 		else if (args.length == 3)
-			return MemberTypeCompleter.complete(args[2]);
+			return NameLayerTabCompleter.completePlayerType(args [2], GroupManager.getGroup(args [0]));
 
 		else return null;
 	}

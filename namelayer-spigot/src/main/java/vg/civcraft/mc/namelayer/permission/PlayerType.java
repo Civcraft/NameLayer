@@ -6,6 +6,7 @@ import java.util.List;
 
 import vg.civcraft.mc.namelayer.NameLayerPlugin;
 import vg.civcraft.mc.namelayer.group.Group;
+import vg.civcraft.mc.namelayer.misc.Mercury;
 
 public class PlayerType {
 
@@ -60,9 +61,9 @@ public class PlayerType {
 	public PlayerType getParent() {
 		return parent;
 	}
-	
-	public List <PlayerType> getAllParents() {
-		List <PlayerType> types = new LinkedList<PlayerType>();
+
+	public List<PlayerType> getAllParents() {
+		List<PlayerType> types = new LinkedList<PlayerType>();
 		if (parent != null) {
 			types.add(parent);
 			types.addAll(parent.getAllParents());
@@ -112,7 +113,7 @@ public class PlayerType {
 	 * Utility method to recursively collect all children of a player type
 	 */
 	private List<PlayerType> getRecursiveChildren() {
-		//deep search
+		// deep search
 		List<PlayerType> types = new LinkedList<PlayerType>();
 		for (PlayerType child : children) {
 			types.add(child);
@@ -184,6 +185,7 @@ public class PlayerType {
 		}
 		perms.add(perm);
 		if (saveToDb) {
+			Mercury.addPerm(group.getName(), getId(), perm.getName());
 			NameLayerPlugin.getGroupManagerDao().addPermissionAsync(group, this, perm);
 		}
 		return true;
@@ -209,13 +211,8 @@ public class PlayerType {
 			return false;
 		}
 		perms.remove(perm);
-		// enforce consistent structure by updating children
-		for (PlayerType type : getRecursiveChildren()) {
-			if (type.hasPermission(perm)) {
-				type.removePermission(perm, saveToDb);
-			}
-		}
 		if (saveToDb) {
+			Mercury.remPerm(group.getName(), getId(), perm.getName());
 			NameLayerPlugin.getGroupManagerDao().removePermissionAsync(group, this, perm);
 		}
 		return true;
@@ -248,6 +245,20 @@ public class PlayerType {
 	 */
 	public int getId() {
 		return id;
+	}
+
+	/**
+	 * @return The permission required to add/invite players to this rank
+	 */
+	public PermissionType getInvitePermissionType() {
+		return PermissionType.getInvitePermission(getId());
+	}
+
+	/**
+	 * @return The permission required to remove players from this rank
+	 */
+	public PermissionType getRemovalPermissionType() {
+		return PermissionType.getRemovePermission(getId());
 	}
 
 	@Override

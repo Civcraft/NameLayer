@@ -226,4 +226,17 @@ public class Mercury {
 		msg.append(id);
 		MercuryAPI.sendGlobalMessage(msg.toString(), "namelayer");
 	}
+	
+	public static void renamePlayerType(String group, int id, String newName) {
+		if (isEnabled() == false)
+			return;
+		StringBuilder msg = new StringBuilder();
+		msg.append("renamePlayerType|");
+		msg.append(group);
+		msg.append("|");
+		msg.append(id);
+		msg.append("|");
+		msg.append(newName);
+		MercuryAPI.sendGlobalMessage(msg.toString(), "namelayer");
+	}
 }

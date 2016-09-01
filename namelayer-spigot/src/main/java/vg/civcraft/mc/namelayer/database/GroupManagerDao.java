@@ -1195,6 +1195,11 @@ public class GroupManagerDao {
 		//this should also remove all permissions associated with this type
 	}
 	
+	public void updatePlayerTypeName(Group g, PlayerType type) {
+		//this will be called after the name of the type is already updated
+		//simply write new name to db, based on group and type id
+	}
+	
 	public PlayerTypeHandler getPlayerTypes(Group g) {
 		//constructs a new player type handler based on information retrieved from db
 		//this includes loading all permissions

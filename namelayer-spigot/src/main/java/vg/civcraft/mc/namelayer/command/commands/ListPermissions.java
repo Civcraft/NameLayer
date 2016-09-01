@@ -7,22 +7,20 @@ import org.bukkit.ChatColor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
-import vg.civcraft.mc.namelayer.GroupManager.PlayerType;
+import vg.civcraft.mc.civmodcore.command.PlayerCommand;
+import vg.civcraft.mc.namelayer.GroupManager;
 import vg.civcraft.mc.namelayer.NameAPI;
-import vg.civcraft.mc.namelayer.command.PlayerCommandMiddle;
-import vg.civcraft.mc.namelayer.command.TabCompleters.GroupTabCompleter;
-import vg.civcraft.mc.namelayer.command.TabCompleters.MemberTypeCompleter;
 import vg.civcraft.mc.namelayer.group.Group;
-import vg.civcraft.mc.namelayer.permission.GroupPermission;
 import vg.civcraft.mc.namelayer.permission.PermissionType;
+import vg.civcraft.mc.namelayer.permission.PlayerType;
 
-public class ListPermissions extends PlayerCommandMiddle{
+public class ListPermissions extends PlayerCommand {
 
 	public ListPermissions(String name) {
 		super(name);
 		setIdentifier("nllp");
 		setDescription("Show permissions for a PlayerType in a specific group.");
-		setUsage("/nllp <group> <PlayerType>");
+		setUsage("/nllp <group> [PlayerType]");
 		setArguments(1,2);
 	}
 
@@ -33,16 +31,13 @@ public class ListPermissions extends PlayerCommandMiddle{
 			return true;
 		}
 		Player p = (Player) sender;
-		Group g = gm.getGroup(args[0]);
-		if (groupIsNull(sender, args[0], g)) {
+		Group g = GroupManager.getGroup(args[0]);
+		if (g == null) {
+			p.sendMessage(ChatColor.RED + "This group doesn't exist");
 			return true;
 		}
 		UUID uuid = NameAPI.getUUID(p.getName());
 		PlayerType playerType = g.getPlayerType(uuid);
-		if (playerType == null){
-			p.sendMessage(ChatColor.RED + "You do not have access to this group.");
-			return true;
-		}
 		String perms = null;
 		GroupPermission gPerm = gm.getPermissionforGroup(g);
 		if(args.length > 1){

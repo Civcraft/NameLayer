@@ -196,5 +196,11 @@ public class MercuryMessageListener implements Listener{
 			PlayerType type = group.getPlayerTypeHandler().getType(Integer.parseInt(message [2]));
 			group.getPlayerTypeHandler().deleteType(type, false);
 		}
+		else if(reason.equals("renamePlayerType")) {
+			Group group = GroupManager.getGroup(groupname);
+			PlayerType type = group.getPlayerTypeHandler().getType(Integer.parseInt(message [2]));
+			String newName = message [3];
+			group.getPlayerTypeHandler().renameType(type, newName, false);
+		}
 	}
 }

@@ -3,13 +3,13 @@ package vg.civcraft.mc.namelayer.command.commands;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
+import vg.civcraft.mc.civmodcore.command.PlayerCommand;
 import vg.civcraft.mc.namelayer.NameAPI;
-import vg.civcraft.mc.namelayer.command.PlayerCommandMiddle;
 import vg.civcraft.mc.namelayer.listeners.PlayerListener;
 
 import java.util.List;
 
-public class ListCurrentInvites extends PlayerCommandMiddle{
+public class ListCurrentInvites extends PlayerCommand {
 
 	public ListCurrentInvites(String name) {
 		super(name);

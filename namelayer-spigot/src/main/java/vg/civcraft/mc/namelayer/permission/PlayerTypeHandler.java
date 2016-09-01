@@ -7,9 +7,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 
-import vg.civcraft.mc.namelayer.NameAPI;
 import vg.civcraft.mc.namelayer.NameLayerPlugin;
 import vg.civcraft.mc.namelayer.group.Group;
+import vg.civcraft.mc.namelayer.misc.Mercury;
 
 /**
  * The different ranks players can have in a group. Ranks can dynamically be
@@ -187,9 +187,9 @@ public class PlayerTypeHandler {
 		}
 		PermissionType invPermission = PermissionType.getInvitePermission(type.getId());
 		PermissionType remPermission = PermissionType.getRemovePermission(type.getId());
-		Map <PlayerType, List <PermissionType>> permsToRemove = new HashMap<PlayerType, List<PermissionType>>();
-		for(PlayerType otherType : getAllTypes()) {
-			List <PermissionType> perms = new LinkedList<PermissionType>();
+		Map<PlayerType, List<PermissionType>> permsToRemove = new HashMap<PlayerType, List<PermissionType>>();
+		for (PlayerType otherType : getAllTypes()) {
+			List<PermissionType> perms = new LinkedList<PermissionType>();
 			if (otherType.hasPermission(invPermission)) {
 				otherType.removePermission(invPermission, false);
 				perms.add(invPermission);
@@ -205,6 +205,7 @@ public class PlayerTypeHandler {
 		typesByName.remove(type.getName());
 		typesById.remove(type.getId());
 		if (saveToD) {
+			Mercury.removePlayerType(group.getName(), type.getId());
 			NameLayerPlugin.getGroupManagerDao().removePlayerType(group, type);
 			NameLayerPlugin.getGroupManagerDao().removeAllPermissions(group, permsToRemove);
 		}
@@ -234,10 +235,12 @@ public class PlayerTypeHandler {
 		PermissionType invPerm = PermissionType.getInvitePermission(type.getId());
 		PermissionType removePerm = PermissionType.getRemovePermission(type.getId());
 		Map<PlayerType, List<PermissionType>> permissionsToSave = new HashMap<PlayerType, List<PermissionType>>();
-		// copy permissions from parent, we dont want to save the perm changes to the db directly, because we will batch them
-		//additionally other servers will change those permissions without explicitly being told to do so when
-		//they are notified of the new player type creation
-		for(PermissionType perm : type.getParent().getAllPermissions()) {
+		// copy permissions from parent, we dont want to save the perm changes
+		// to the db directly, because we will batch them
+		// additionally other servers will change those permissions without
+		// explicitly being told to do so when
+		// they are notified of the new player type creation
+		for (PermissionType perm : type.getParent().getAllPermissions()) {
 			type.addPermission(perm, false);
 		}
 		permissionsToSave.put(type, type.getParent().getAllPermissions());
@@ -253,6 +256,7 @@ public class PlayerTypeHandler {
 		typesByName.put(type.getName(), type);
 		typesById.put(type.getId(), type);
 		if (saveToDb) {
+			Mercury.addPlayerType(group.getName(), type.getName(), type.getId(), type.getParent().getId());
 			NameLayerPlugin.getGroupManagerDao().addAllPermissions(group.getGroupId(), permissionsToSave);
 			NameLayerPlugin.getGroupManagerDao().registerPlayerType(group, type);
 		}
@@ -298,7 +302,8 @@ public class PlayerTypeHandler {
 		type.setName(name);
 		typesByName.put(name, type);
 		if (writeToDb) {
-
+			Mercury.renamePlayerType(group.getName(), type.getId(), name);
+			NameLayerPlugin.getGroupManagerDao().updatePlayerTypeName(group, type);
 		}
 	}
 

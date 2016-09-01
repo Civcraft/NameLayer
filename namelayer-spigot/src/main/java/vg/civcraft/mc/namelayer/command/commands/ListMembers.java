@@ -9,59 +9,47 @@ import org.bukkit.entity.Player;
 
 import com.google.common.collect.Lists;
 
+import vg.civcraft.mc.civmodcore.command.PlayerCommand;
 import vg.civcraft.mc.namelayer.GroupManager;
-import vg.civcraft.mc.namelayer.GroupManager.PlayerType;
 import vg.civcraft.mc.namelayer.NameAPI;
-import vg.civcraft.mc.namelayer.command.PlayerCommandMiddle;
-import vg.civcraft.mc.namelayer.command.TabCompleters.GroupTabCompleter;
-import vg.civcraft.mc.namelayer.command.TabCompleters.MemberTypeCompleter;
+import vg.civcraft.mc.namelayer.command.NameLayerTabCompleter;
 import vg.civcraft.mc.namelayer.group.Group;
 import vg.civcraft.mc.namelayer.permission.PermissionType;
+import vg.civcraft.mc.namelayer.permission.PlayerType;
 
-public class ListMembers extends PlayerCommandMiddle {
+public class ListMembers extends PlayerCommand {
 
 	public ListMembers(String name) {
 		super(name);
 		setIdentifier("nllm");
 		setDescription("List the members in a group");
-		setUsage("/nllm <group> (PlayerType)");
-		setArguments(1,3);
+		setUsage("/nllm <group> [PlayerType]");
+		setArguments(1,2);
 	}
 
 	@Override
-	public boolean execute(CommandSender sender, String[] args) {
-		if (!(sender instanceof Player)) {
-			sender.sendMessage(ChatColor.LIGHT_PURPLE + "No can do.");
+	public boolean execute(CommandSender sender, String[] args) {		
+		String groupname = args[0];
+		Group group = GroupManager.getGroup(groupname);
+		if (group == null) {
+			sender.sendMessage(ChatColor.RED + "This group doesn't exist");
 			return true;
 		}
-		
+		if (sender instanceof Player) {
+		GroupManager gm = NameAPI.getGroupManager();
 		Player p = (Player) sender;
 		UUID uuid = NameAPI.getUUID(p.getName());
-		String groupname = args[0];
-		
-		Group group = gm.getGroup(groupname);
-		if (groupIsNull(sender, groupname, group)) {
-			return true;
-		}
-		
-		if (!p.hasPermission("namelayer.admin")) {
-			if (!group.isMember(uuid)) {
-				p.sendMessage(ChatColor.RED + "You're not on this group.");
-				return true;
-			}
-	
 			if (!gm.hasAccess(group, uuid, PermissionType.getPermission("GROUPSTATS"))) {
 				p.sendMessage(ChatColor.RED 
 						+ "You don't have permission to run that command.");
 				return true;
 			}
 		}
-		
 		List<UUID> uuids = null;
 		if (args.length == 3) {
 			String nameMin = args[1], nameMax = args[2];
 			
-			List<UUID> members = group.getAllMembers();
+			List<UUID> members = group.getAllTracked();
 			uuids = Lists.newArrayList();
 			
 			for (UUID member : members) {
@@ -73,17 +61,16 @@ public class ListMembers extends PlayerCommandMiddle {
 			}
 		} else if (args.length == 2) {
 			String playerRank = args[1];
-			PlayerType filterType = PlayerType.getPlayerType(playerRank);
+			PlayerType filterType = group.getPlayerTypeHandler().getType(playerRank);
 			
 			if (filterType == null) {
-				// user entered invalid type, show them
-				PlayerType.displayPlayerTypes(p);
-				return true;
+				sender.sendMessage(ChatColor.RED + "The player type you entered was not valid");
+				return false;
 			}
 			
-			uuids = group.getAllMembers(filterType);
+			uuids = group.getAllTrackedByType(filterType);
 		} else {
-			uuids = group.getAllMembers();
+			uuids = group.getAllTracked();
 		}
 		
 		StringBuilder sb = new StringBuilder();
@@ -96,7 +83,7 @@ public class ListMembers extends PlayerCommandMiddle {
 			sb.append(")\n");
 		}
 		
-		p.sendMessage(sb.toString());
+		sender.sendMessage(sb.toString());
 		return true;
 	}
 
@@ -104,14 +91,13 @@ public class ListMembers extends PlayerCommandMiddle {
 	public List<String> tabComplete(CommandSender sender, String[] args) {
 		if (!(sender instanceof Player)) {
 			return null;
-		}
-			
+		}	
 		if (args.length == 0)
-			return GroupTabCompleter.complete(null, null, (Player) sender);
+			return NameLayerTabCompleter.completeGroupWithPermission(null, PermissionType.getPermission("GROUPSTATS"), (Player) sender);
 		else if (args.length == 1)
-			return GroupTabCompleter.complete(args[0], null, (Player)sender);
+			return NameLayerTabCompleter.completeGroupWithPermission(args [0], PermissionType.getPermission("GROUPSTATS"), (Player) sender);
 		else if (args.length == 2)
-			return MemberTypeCompleter.complete(args[1]);
+			return NameLayerTabCompleter.completeOnlinePlayer(args[1]);
 
 		return null;
 	}

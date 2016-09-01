@@ -7,14 +7,14 @@ import org.bukkit.ChatColor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
-import vg.civcraft.mc.namelayer.GroupManager.PlayerType;
+import vg.civcraft.mc.civmodcore.command.PlayerCommand;
+import vg.civcraft.mc.namelayer.GroupManager;
 import vg.civcraft.mc.namelayer.NameAPI;
-import vg.civcraft.mc.namelayer.command.PlayerCommandMiddle;
+import vg.civcraft.mc.namelayer.command.NameLayerTabCompleter;
 import vg.civcraft.mc.namelayer.group.Group;
-import vg.civcraft.mc.namelayer.permission.GroupPermission;
-import vg.civcraft.mc.namelayer.permission.PermissionType;
+import vg.civcraft.mc.namelayer.permission.PlayerType;
 
-public class JoinGroup extends PlayerCommandMiddle{
+public class JoinGroup extends PlayerCommand {
 
 	public JoinGroup(String name) {
 		super(name);
@@ -32,12 +32,13 @@ public class JoinGroup extends PlayerCommandMiddle{
 			return true;
 		}
 		Player p = (Player) sender;
-		Group g = gm.getGroup(args[0]);
-		if (groupIsNull(sender, args[0], g)) {
+		Group g = GroupManager.getGroup(args[0]);
+		if (g == null) {
+			p.sendMessage(ChatColor.RED + "This group doesn't exist");
 			return true;
 		}
 		if (g.isDisciplined()){
-			p.sendMessage(ChatColor.RED + "This group is disiplined.");
+			p.sendMessage(ChatColor.RED + "This group is disciplined.");
 			return true;
 		}
 		if (g.getPassword() == null){
@@ -49,24 +50,32 @@ public class JoinGroup extends PlayerCommandMiddle{
 			return true;
 		}
 		UUID uuid = NameAPI.getUUID(p.getName());
-		GroupPermission groupPerm = gm.getPermissionforGroup(g);
-		PlayerType pType = groupPerm.getFirstWithPerm(PermissionType.getPermission("JOIN_PASSWORD"));
-		if (pType == null){
-			p.sendMessage(ChatColor.RED + "Someone derped. This group does not have the specified permission to let you join, sorry.");
+		PlayerType pType = g.getPlayerTypeHandler().getDefaultPasswordJoinType();
+		if (pType == null) {
+			p.sendMessage(ChatColor.RED + "No default type for players joining with a password is set for this group. You can't join while this is the case");
 			return true;
 		}
-		if (g.isCurrentMember(uuid, pType)){
-			p.sendMessage(ChatColor.RED + "You are already a member.");
+		if (g.isTracked(uuid)) {
+			PlayerType currentType = g.getPlayerType(uuid);
+			if (g.getPlayerTypeHandler().isMemberType(currentType)) {
+				p.sendMessage(ChatColor.RED + "You are already a member of this group");
+			}
+			else {
+				p.sendMessage(ChatColor.RED + "You are blacklisted on this group");
+			}
 			return true;
 		}
 		g.addToTracking(uuid, pType);
-		p.sendMessage(ChatColor.GREEN + "You have successfully been added to this group.");
+		p.sendMessage(ChatColor.GREEN + "You have successfully joined " + g.getName() + " as " + pType.getName());
 		return true;
 	}
 
 	public List<String> tabComplete(CommandSender sender, String[] args) {
-		return null;
+		if (args.length == 0) {
+			return NameLayerTabCompleter.completeGroupWithPermission(null, null, (Player) sender);
+		}
+		else {
+			return NameLayerTabCompleter.completeGroupWithPermission(args[0], null, (Player)sender);
+		}
 	}
-
-
 }

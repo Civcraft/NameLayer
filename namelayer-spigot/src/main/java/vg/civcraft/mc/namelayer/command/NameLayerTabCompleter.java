@@ -3,13 +3,17 @@ package vg.civcraft.mc.namelayer.command;
 import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 
+import org.bukkit.Bukkit;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
+import vg.civcraft.mc.mercury.MercuryAPI;
 import vg.civcraft.mc.namelayer.GroupManager;
 import vg.civcraft.mc.namelayer.NameAPI;
+import vg.civcraft.mc.namelayer.NameLayerPlugin;
 import vg.civcraft.mc.namelayer.group.Group;
 import vg.civcraft.mc.namelayer.listeners.PlayerListener;
 import vg.civcraft.mc.namelayer.permission.PermissionType;
@@ -122,5 +126,25 @@ public class NameLayerTabCompleter {
 		}
 
 		return result;
+	}
+	
+	public static List<String> completeOnlinePlayer(String lastArg) {
+		List<String> namesToReturn = new ArrayList<String>();
+		if (NameLayerPlugin.isMercuryEnabled()) {
+			Set<String> players = MercuryAPI.getAllPlayers();
+			for (String x: players) {
+				if (x.toLowerCase().startsWith(lastArg.toLowerCase()))  {
+					namesToReturn.add(x);
+				}
+			}
+		}
+		else {
+			for (Player p: Bukkit.getOnlinePlayers()) {
+				if (p.getName().toLowerCase().startsWith(lastArg.toLowerCase())) {
+					namesToReturn.add(p.getName());
+				}
+			}
+		}
+		return namesToReturn;
 	}
 }
