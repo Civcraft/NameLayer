@@ -63,7 +63,7 @@ public class Mercury {
 		MercuryAPI.sendGlobalMessage(msg.toString(), "namelayer");
 	}
 
-	public static void addPerm(String group, String ptype, String permtype) {
+	public static void addPerm(String group, int ptype, String permtype) {
 		if (isEnabled() == false)
 			return;
 		StringBuilder msg = new StringBuilder();
@@ -74,7 +74,7 @@ public class Mercury {
 		MercuryAPI.sendGlobalMessage(msg.toString(), "namelayer");
 	}
 
-	public static void remPerm(String group, String ptype, String permtype) {
+	public static void remPerm(String group, int ptype, String permtype) {
 		if (isEnabled() == false)
 			return;
 		StringBuilder msg = new StringBuilder();
@@ -103,26 +103,6 @@ public class Mercury {
 		msg.append("removeMember|");
 		msg.append(group); msg.append("|");
 		msg.append(uuid);
-		MercuryAPI.sendGlobalMessage(msg.toString(), "namelayer");
-	}
-
-	public static void linkGroup(String supergroup, String subgroup) {
-		if (isEnabled() == false)
-			return;
-		StringBuilder msg = new StringBuilder();
-		msg.append("link|");
-		msg.append(supergroup); msg.append("|");
-		msg.append(subgroup);
-		MercuryAPI.sendGlobalMessage(msg.toString(), "namelayer");
-	}
-
-	public static void unlinkGroup(String supergroup, String subgroup) {
-		if (isEnabled() == false)
-			return;
-		StringBuilder msg = new StringBuilder();
-		msg.append("unlink|");
-		msg.append(supergroup); msg.append("|");
-		msg.append(subgroup);
 		MercuryAPI.sendGlobalMessage(msg.toString(), "namelayer");
 	}
 
@@ -181,28 +161,6 @@ public class Mercury {
 		MercuryAPI.sendGlobalMessage(msg.toString(), "namelayer");
 	}
 
-	public static void blacklistAdd(String group, String uuid) {
-		// Mercury.message("blAdd " + groupName + " " + uuid.toString());
-		if (isEnabled() == false)
-			return;
-		StringBuilder msg = new StringBuilder();
-		msg.append("blAdd|");
-		msg.append(group); msg.append("|");
-		msg.append(uuid);
-		MercuryAPI.sendGlobalMessage(msg.toString(), "namelayer");		
-	}
-
-	public static void blacklistRem(String group, String uuid) {
-		// Mercury.message("blRem " + groupName + " " + uuid.toString());
-		if (isEnabled() == false)
-			return;
-		StringBuilder msg = new StringBuilder();
-		msg.append("blRem|");
-		msg.append(group); msg.append("|");
-		msg.append(uuid);
-		MercuryAPI.sendGlobalMessage(msg.toString(), "namelayer");		
-	}
-
 	public static void defaultGroup(String group, String uuid) {
 		// Mercury.message("defaultGroup " + g.getName() + " " + uuid.toString());
 		if (isEnabled() == false)
@@ -240,6 +198,32 @@ public class Mercury {
 		StringBuilder msg = new StringBuilder();
 		msg.append("recache|");
 		msg.append(group);
+		MercuryAPI.sendGlobalMessage(msg.toString(), "namelayer");
+	}
+	
+	public static void addPlayerType(String group, String typeName, int typeId, int parentId) {
+		if (isEnabled() == false)
+			return;
+		StringBuilder msg = new StringBuilder();
+		msg.append("addPlayerType|");
+		msg.append(group);
+		msg.append("|");
+		msg.append(typeName);
+		msg.append("|");
+		msg.append(typeId);
+		msg.append("|");
+		msg.append(parentId);
+		MercuryAPI.sendGlobalMessage(msg.toString(), "namelayer");
+	}
+	
+	public static void removePlayerType(String group, int id) {
+		if (isEnabled() == false)
+			return;
+		StringBuilder msg = new StringBuilder();
+		msg.append("remPlayerType|");
+		msg.append(group);
+		msg.append("|");
+		msg.append(id);
 		MercuryAPI.sendGlobalMessage(msg.toString(), "namelayer");
 	}
 }

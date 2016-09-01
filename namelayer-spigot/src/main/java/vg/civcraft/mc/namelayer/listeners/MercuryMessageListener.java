@@ -19,6 +19,7 @@ import vg.civcraft.mc.namelayer.events.GroupRemoveInvitation;
 import vg.civcraft.mc.namelayer.group.Group;
 import vg.civcraft.mc.namelayer.permission.PermissionType;
 import vg.civcraft.mc.namelayer.permission.PlayerType;
+import vg.civcraft.mc.namelayer.permission.PlayerTypeHandler;
 
 public class MercuryMessageListener implements Listener{
 	
@@ -153,7 +154,7 @@ public class MercuryMessageListener implements Listener{
 		}
 		else if (reason.equals("permadd")){
 			Group group = GroupManager.getGroup(groupname);
-			PlayerType ptype = group.getPlayerTypeHandler().getType(message [2]);
+			PlayerType ptype = group.getPlayerTypeHandler().getType(Integer.parseInt(message [2]));
 			PermissionType permt = PermissionType.getPermission(message[3]);
 			if (group != null){
 				ptype.addPermission(permt, false);
@@ -161,7 +162,7 @@ public class MercuryMessageListener implements Listener{
 		}
 		else if (reason.equals("permrem")){
 			Group group = GroupManager.getGroup(groupname);
-			PlayerType ptype = group.getPlayerTypeHandler().getType(message [2]);
+			PlayerType ptype = group.getPlayerTypeHandler().getType(Integer.parseInt(message [2]));
 			PermissionType permt = PermissionType.getPermission(message[3]);
 			if (group != null){
 				ptype.removePermission(permt, false);
@@ -181,6 +182,19 @@ public class MercuryMessageListener implements Listener{
 		else if (reason.equals("addAutoAccept")) {
 			UUID uuid = UUID.fromString(message[1]);
 			NameLayerPlugin.getAutoAcceptHandler().setAutoAccept(uuid, true, false);
+		}
+		else if(reason.equals("addPlayerType")) {
+			Group group = GroupManager.getGroup(groupname);
+			PlayerTypeHandler handler = group.getPlayerTypeHandler();
+			String typeName = message[2];
+			int newId = Integer.parseInt(message [3]);
+			PlayerType parent = handler.getType(Integer.parseInt(message [4]));
+			handler.registerType(new PlayerType(typeName, newId, parent, group), false);
+		}
+		else if(reason.equals("remPlayerType")) {
+			Group group = GroupManager.getGroup(groupname);
+			PlayerType type = group.getPlayerTypeHandler().getType(Integer.parseInt(message [2]));
+			group.getPlayerTypeHandler().deleteType(type, false);
 		}
 	}
 }

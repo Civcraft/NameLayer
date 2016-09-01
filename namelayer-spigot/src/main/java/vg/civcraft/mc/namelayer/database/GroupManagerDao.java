@@ -1053,6 +1053,10 @@ public class GroupManagerDao {
 			
 		});
 	}
+	
+	public void removeAllPermissions(Group g, Map <PlayerType, List <PermissionType>> perms) {
+		//TODO remove all of those, definitely batch
+	}
 
 	public void addPermission(Group group, PlayerType type, PermissionType perm) {
 		//TODO Redo this
@@ -1183,12 +1187,12 @@ public class GroupManagerDao {
 	}
 	
 	public void registerPlayerType(Group g, PlayerType type) {
-		//when creating a new node (player type) it should initially copy the exact permissions from it's parent
-		//so just realizing the same on a sql level would probably be best
+		//insert new player type together with its parent, id, group id and name
 	}
 	
 	public void removePlayerType(Group g, PlayerType type) {
 		//just completly remove from the db
+		//this should also remove all permissions associated with this type
 	}
 	
 	public PlayerTypeHandler getPlayerTypes(Group g) {

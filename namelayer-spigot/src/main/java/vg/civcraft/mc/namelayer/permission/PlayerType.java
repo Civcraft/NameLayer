@@ -60,6 +60,15 @@ public class PlayerType {
 	public PlayerType getParent() {
 		return parent;
 	}
+	
+	public List <PlayerType> getAllParents() {
+		List <PlayerType> types = new LinkedList<PlayerType>();
+		if (parent != null) {
+			types.add(parent);
+			types.addAll(parent.getAllParents());
+		}
+		return types;
+	}
 
 	/**
 	 * Each instance has a name, which can be modified dynamically and should

@@ -15,13 +15,11 @@ import org.bukkit.ChatColor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
+import vg.civcraft.mc.civmodcore.command.PlayerCommand;
 import vg.civcraft.mc.mercury.MercuryAPI;
 import vg.civcraft.mc.namelayer.GroupManager;
 import vg.civcraft.mc.namelayer.NameAPI;
 import vg.civcraft.mc.namelayer.NameLayerPlugin;
-import vg.civcraft.mc.namelayer.command.PlayerCommandMiddle;
-import vg.civcraft.mc.namelayer.command.TabCompleters.GroupTabCompleter;
-import vg.civcraft.mc.namelayer.command.TabCompleters.MemberTypeCompleter;
 import vg.civcraft.mc.namelayer.group.Group;
 import vg.civcraft.mc.namelayer.listeners.PlayerListener;
 import vg.civcraft.mc.namelayer.misc.Mercury;
@@ -29,7 +27,7 @@ import vg.civcraft.mc.namelayer.permission.PermissionType;
 import vg.civcraft.mc.namelayer.permission.PlayerType;
 import vg.civcraft.mc.namelayer.permission.PlayerTypeHandler;
 
-public class InvitePlayer extends PlayerCommandMiddle{
+public class InvitePlayer extends PlayerCommand {
 
 	public InvitePlayer(String name) {
 		super(name);
@@ -48,7 +46,8 @@ public class InvitePlayer extends PlayerCommandMiddle{
 		final Player p = isPlayer ? (Player)s : null;
 		final boolean isAdmin = !isPlayer || p.hasPermission("namelayer.admin");
 		final Group group = GroupManager.getGroup(targetGroup);
-		if (groupIsNull(s, targetGroup, group)) {
+		if (group == null) {
+			p.sendMessage(ChatColor.RED + "This group doesn't exist");
 			return true;
 		}
 		if (!isAdmin && group.isDisciplined()) {
@@ -60,57 +59,22 @@ public class InvitePlayer extends PlayerCommandMiddle{
 			s.sendMessage(ChatColor.RED + "The player has never played before.");
 			return true;
 		}
-		if (group.isCurrentMember(targetAccount)) { // So a player can't demote someone who is above them.
-			s.sendMessage(ChatColor.RED + "Player is already a member."
+		if (group.isTracked(targetAccount)) { // So a player can't demote someone who is above them.
+			s.sendMessage(ChatColor.RED + "Player is already tracked."
 					+ "Use /nlpp to change their PlayerType.");
-			return true;
-		}
-		if(NameLayerPlugin.getBlackList().isBlacklisted(group, targetAccount)) {
-			s.sendMessage(ChatColor.RED + "This player is currently blacklisted, you have to unblacklist him before inviting him to the group");
 			return true;
 		}
 		PlayerTypeHandler handler = group.getPlayerTypeHandler();
 		final PlayerType pType = targetType != null ? handler.getType(targetType) : handler.getDefaultInvitationType();
 		if (pType == null) {
-			if (p != null) {
-				PlayerType.displayPlayerTypes(p);
-			} else {
-				s.sendMessage("Invalid player type");
-			}
-			return true;
-		}
-		if (pType == PlayerType.NOT_BLACKLISTED) {
-			p.sendMessage(ChatColor.RED + "I think we both know that this shouldnt be possible");
+			s.sendMessage(ChatColor.RED + "The player type you entered was not valid and no default invitation type was set");
 			return true;
 		}
 		if (!isAdmin) {
 			// Perform access check
 			final UUID executor = p.getUniqueId();
-			final PlayerType t = group.getPlayerType(executor); // playertype for the player running the command.
-			if (t == null) {
-				s.sendMessage(ChatColor.RED + "You are not on that group.");
-				return true;
-			}
-			boolean allowed = false;
-			switch (pType) { // depending on the type the executor wants to add the player to
-				case MEMBERS:
-					allowed = gm.hasAccess(group, executor, PermissionType.getPermission("MEMBERS"));
-					break;
-				case MODS:
-					allowed = gm.hasAccess(group, executor, PermissionType.getPermission("MODS"));
-					break;
-				case ADMINS:
-					allowed = gm.hasAccess(group, executor, PermissionType.getPermission("ADMINS"));
-					break;
-				case OWNER:
-					allowed = gm.hasAccess(group, executor, PermissionType.getPermission("OWNER"));
-					break;
-				default:
-					allowed = false;
-					break;
-			}
-			if (!allowed) {
-				s.sendMessage(ChatColor.RED + "You do not have permissions to modify this group.");
+			if (!NameAPI.getGroupManager().canModifyRank(executor, group, pType)) {
+				s.sendMessage(ChatColor.RED + "You do not have permissions to invite to this player type");
 				return true;
 			}
 			sendInvitation(group, pType, targetAccount, p.getUniqueId(), true);

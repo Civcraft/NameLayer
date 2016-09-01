@@ -2,14 +2,14 @@ package vg.civcraft.mc.namelayer.command.commands;
 
 import org.bukkit.ChatColor;
 import org.bukkit.command.CommandSender;
-import org.bukkit.entity.Player;
 
-import vg.civcraft.mc.namelayer.command.PlayerCommandMiddle;
+import vg.civcraft.mc.civmodcore.command.PlayerCommand;
+import vg.civcraft.mc.namelayer.GroupManager;
 import vg.civcraft.mc.namelayer.group.Group;
 
 import java.util.List;
 
-public class DisciplineGroup extends PlayerCommandMiddle{
+public class DisciplineGroup extends PlayerCommand{
 
 	public DisciplineGroup(String name) {
 		super(name);
@@ -21,17 +21,10 @@ public class DisciplineGroup extends PlayerCommandMiddle{
 
 	@Override
 	public boolean execute(CommandSender sender, String[] args) {
-		if (!(sender instanceof Player))
-			sender.sendMessage(ChatColor.AQUA + "Meh, fine, just this one.");
-		// checks and stuff should be in plugin.yml so going to assume that sender has perms
-		// naaaaaaa
-		Player p = (Player) sender;
-		Group g = gm.getGroup(args[0]);
-		if (groupIsNull(sender, args[0], g)) {
-			return true;
-		}
-		if (!p.isOp() || !p.hasPermission("namelayer.admin")){
-			p.sendMessage(ChatColor.RED + "You do not have permission for this op command.");
+		//permission handling for this group is done by plugin.yml
+		Group g = GroupManager.getGroup(args[0]);
+		if (g == null) {
+			sender.sendMessage(ChatColor.RED + "This group doesn't exist");
 			return true;
 		}
 		if (g.isDisciplined()){
@@ -40,7 +33,7 @@ public class DisciplineGroup extends PlayerCommandMiddle{
 		}
 		else{
 			g.setDisciplined(true);
-		sender.sendMessage(ChatColor.GREEN + "Group has been disabled.");
+			sender.sendMessage(ChatColor.GREEN + "Group has been disabled.");
 		}
 		return true;
 	}

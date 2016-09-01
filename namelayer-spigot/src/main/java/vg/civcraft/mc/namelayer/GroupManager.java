@@ -329,20 +329,22 @@ public class GroupManager{
 		return type.hasPermission(perm);
 	}
 	
+	public boolean canModifyRank(UUID player, Group g, PlayerType modifiedRank) {
+		if (player == null || g == null || modifiedRank == null) {
+			NameLayerPlugin.getInstance().getLogger().log(Level.INFO, "canModifyRank failed, caller passed in null", new Exception());
+			return false;
+		}
+		PlayerTypeHandler handler = g.getPlayerTypeHandler();
+		PlayerType executorRank = g.getPlayerType(player);
+		return handler.isRelated(modifiedRank, executorRank);
+	}
+	
 	public List<String> getAllGroupNames(UUID uuid){
 		if (uuid == null) {
 			NameLayerPlugin.getInstance().getLogger().log(Level.INFO, "getAllGroupNames failed, caller passed in null", new Exception());
 			return new ArrayList<String>();
 		}
 		return groupManagerDao.getGroupNames(uuid);
-	}
-	
-	public String getDefaultGroup(UUID uuid){
-		if (uuid == null) {
-			NameLayerPlugin.getInstance().getLogger().log(Level.INFO, "getDefaultGroup was cancelled, caller passed in null", new Exception());
-			return null;
-		}
-		return NameLayerPlugin.getDefaultGroupHandler().getDefaultGroup(uuid);
 	}
 
 	/**

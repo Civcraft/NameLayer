@@ -116,6 +116,30 @@ public class PermissionType {
 		permissionByName.put(name, p);
 		permissionById.put(id, p);
 	}
+	
+	public static PermissionType getInvitePermission(int id) {
+		String invitePermName = "invitePlayer" + id;
+		PermissionType invPerm = PermissionType.getPermission(invitePermName);
+		if (invPerm == null) {
+			//register type, because it was never used before, we do this with the deprecated register without a description
+			//because any further description is handled by the UI and dependent on the current name of the rank
+			registerPermission(invitePermName, new LinkedList<Integer>());
+			invPerm = getPermission(invitePermName);
+		}
+		return invPerm;
+	}
+	
+	public static PermissionType getRemovePermission(int id) {
+		String removePermName = "removePlayer" + id;
+		PermissionType removePerm = PermissionType.getPermission(removePermName);
+		if (removePerm == null) {
+			//register type, because it was never used before, we do this with the deprecated register without a description
+			//because any further description is handled by the UI and dependent on the current name of the rank
+			registerPermission(removePermName, new LinkedList<Integer>());
+			removePerm = getPermission(removePermName);
+		}
+		return removePerm;
+	}
 
 	/**
 	 * @return All existing permissions

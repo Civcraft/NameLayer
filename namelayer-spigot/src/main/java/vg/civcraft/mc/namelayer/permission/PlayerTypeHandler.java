@@ -2,10 +2,12 @@ package vg.civcraft.mc.namelayer.permission;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 
+import vg.civcraft.mc.namelayer.NameAPI;
 import vg.civcraft.mc.namelayer.NameLayerPlugin;
 import vg.civcraft.mc.namelayer.group.Group;
 
@@ -58,6 +60,30 @@ public class PlayerTypeHandler {
 			}
 		}
 		return -1;
+	}
+
+	/**
+	 * Checks whether a given type is a blacklist type, which means it's an
+	 * (indirect) child node of the default non member type
+	 * 
+	 * @param type
+	 *            PlayerType to check
+	 * @return True if the given type is a blacklist type, false if not
+	 */
+	public boolean isBlackListedType(PlayerType type) {
+		return isRelated(type, getDefaultNonMemberType());
+	}
+
+	/**
+	 * Checks whether a given type is a member type, which means its neither the
+	 * default non member type, nor a child of it
+	 * 
+	 * @param type
+	 *            PlayerType to check
+	 * @return True if the given type is a member type, false if not
+	 */
+	public boolean isMemberType(PlayerType type) {
+		return !isBlackListedType(type) && type != getDefaultNonMemberType();
 	}
 
 	/**
@@ -159,15 +185,37 @@ public class PlayerTypeHandler {
 		if (type.getParent() != null) {
 			type.getParent().removeChild(type);
 		}
+		PermissionType invPermission = PermissionType.getInvitePermission(type.getId());
+		PermissionType remPermission = PermissionType.getRemovePermission(type.getId());
+		Map <PlayerType, List <PermissionType>> permsToRemove = new HashMap<PlayerType, List<PermissionType>>();
+		for(PlayerType otherType : getAllTypes()) {
+			List <PermissionType> perms = new LinkedList<PermissionType>();
+			if (otherType.hasPermission(invPermission)) {
+				otherType.removePermission(invPermission, false);
+				perms.add(invPermission);
+			}
+			if (otherType.hasPermission(remPermission)) {
+				otherType.removePermission(remPermission, false);
+				perms.add(remPermission);
+			}
+			if (perms.size() != 0) {
+				permsToRemove.put(otherType, perms);
+			}
+		}
 		typesByName.remove(type.getName());
 		typesById.remove(type.getId());
 		if (saveToD) {
 			NameLayerPlugin.getGroupManagerDao().removePlayerType(group, type);
+			NameLayerPlugin.getGroupManagerDao().removeAllPermissions(group, permsToRemove);
 		}
 	}
 
 	/**
-	 * Registers the given player type for this instance
+	 * Registers the given player type for this instance. A new PlayerType will
+	 * always inherit all permissions of it's parent initially. Additionally all
+	 * parents, meaning not only the direct parent, but all nodes above the
+	 * newly created one get invite and remove permissions for the player type.
+	 * The new type will not inherit those permissions for itself
 	 * 
 	 * @param type
 	 *            Player type to add
@@ -176,15 +224,36 @@ public class PlayerTypeHandler {
 	 *            broadcasted via Mercury
 	 */
 	public boolean registerType(PlayerType type, boolean saveToDb) {
-		//we can always assume that the register type has a parent here, because the root is created a different way and 
-		//all other nodes should have a parent
+		// we can always assume that the register type has a parent here,
+		// because the root is created a different way and
+		// all other nodes should have a parent
 		if (type == null || type.getParent() == null || doesTypeExist(type.getName())
 				|| !doesTypeExist(type.getParent().getName())) {
 			return false;
 		}
+		PermissionType invPerm = PermissionType.getInvitePermission(type.getId());
+		PermissionType removePerm = PermissionType.getRemovePermission(type.getId());
+		Map<PlayerType, List<PermissionType>> permissionsToSave = new HashMap<PlayerType, List<PermissionType>>();
+		// copy permissions from parent, we dont want to save the perm changes to the db directly, because we will batch them
+		//additionally other servers will change those permissions without explicitly being told to do so when
+		//they are notified of the new player type creation
+		for(PermissionType perm : type.getParent().getAllPermissions()) {
+			type.addPermission(perm, false);
+		}
+		permissionsToSave.put(type, type.getParent().getAllPermissions());
+		// give all parents permissions to modify the new type
+		for (PlayerType parent : type.getAllParents()) {
+			parent.addPermission(invPerm, false);
+			parent.addPermission(removePerm, false);
+			List<PermissionType> perms = new LinkedList<PermissionType>();
+			perms.add(invPerm);
+			perms.add(removePerm);
+			permissionsToSave.put(parent, perms);
+		}
 		typesByName.put(type.getName(), type);
 		typesById.put(type.getId(), type);
 		if (saveToDb) {
+			NameLayerPlugin.getGroupManagerDao().addAllPermissions(group.getGroupId(), permissionsToSave);
 			NameLayerPlugin.getGroupManagerDao().registerPlayerType(group, type);
 		}
 		return true;
