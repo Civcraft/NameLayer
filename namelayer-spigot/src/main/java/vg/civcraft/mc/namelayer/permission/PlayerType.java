@@ -51,32 +51,100 @@ public class PlayerType {
 		}
 	}
 
+	/**
+	 * This gets the parent node of this instance. This must always be not null,
+	 * except when this instance is an owner and the root node of the graph tree
+	 * 
+	 * @return Parent node or null if no parent exists
+	 */
 	public PlayerType getParent() {
 		return parent;
 	}
 
+	/**
+	 * Each instance has a name, which can be modified dynamically and should
+	 * only be used to present a player type to a player. For internal
+	 * identifying, use ids
+	 * 
+	 * @return Name of this instance
+	 */
 	public String getName() {
 		return name;
 	}
 
+	/**
+	 * Updates the name of this instance
+	 * 
+	 * @param name
+	 *            New name
+	 */
 	void setName(String name) {
 		this.name = name;
 	}
 
-	public List<PlayerType> getChildren() {
+	/**
+	 * Gets all children nodes of this instance based on the graph modelling the
+	 * relation ship between player types for this instances group. The list
+	 * returned will always be a copy of the one used internally
+	 * 
+	 * @param recursive
+	 *            Whether children should be retrieved recursively (deep)
+	 * @return All children
+	 */
+	public List<PlayerType> getChildren(boolean recursive) {
+		if (recursive) {
+			return getRecursiveChildren();
+		}
 		// dont let them change the list itself
 		return new ArrayList<PlayerType>(children);
 	}
 
+	/**
+	 * Utility method to recursively collect all children of a player type
+	 */
+	private List<PlayerType> getRecursiveChildren() {
+		//deep search
+		List<PlayerType> types = new LinkedList<PlayerType>();
+		for (PlayerType child : children) {
+			types.add(child);
+			types.addAll(child.getRecursiveChildren());
+		}
+		return types;
+	}
+
+	/**
+	 * Checks whether the given type is a direct child of this instance
+	 * 
+	 * @param type
+	 *            Possible child
+	 * @return True if the given player type is a direct child, false if not
+	 */
 	public boolean isChildren(PlayerType type) {
 		return children.contains(type);
 	}
 
+	/**
+	 * Adds the given PlayerType as child to this instance
+	 * 
+	 * @param child
+	 *            PlayerType to add as child
+	 * @return True if it was added successfully, false if not
+	 */
 	public boolean addChild(PlayerType child) {
+		if (isChildren(child)) {
+			return false;
+		}
 		children.add(child);
 		return true;
 	}
 
+	/**
+	 * Removes the given PlayerType as child from this instance
+	 * 
+	 * @param child
+	 *            PlayerType to remove as child
+	 * @return True if it was removed successfully, false if not
+	 */
 	public boolean removeChild(PlayerType child) {
 		if (isChildren(child)) {
 			children.remove(child);
@@ -86,6 +154,16 @@ public class PlayerType {
 		}
 	}
 
+	/**
+	 * Adds the given permission to this instance
+	 * 
+	 * @param perm
+	 *            Permission to add
+	 * @param saveToDb
+	 *            Whether this action should be persisted to the db and
+	 *            broadcasted via Mercury
+	 * @return True if the permission was sucessfully added, false if not
+	 */
 	public boolean addPermission(PermissionType perm, boolean saveToDb) {
 		if (perms.contains(perm)) {
 			// already exists
@@ -96,23 +174,22 @@ public class PlayerType {
 			return false;
 		}
 		perms.add(perm);
-		List<PermissionType> permList = new LinkedList<PermissionType>();
-		permList.add(perm);
 		if (saveToDb) {
-			NameLayerPlugin.getGroupManagerDao().addPermission(group.getName(), this, permList);
+			NameLayerPlugin.getGroupManagerDao().addPermissionAsync(group, this, perm);
 		}
 		return true;
 	}
 
-	public List<PlayerType> getRecursiveChildren() {
-		List<PlayerType> types = new LinkedList<PlayerType>();
-		for (PlayerType child : children) {
-			types.add(child);
-			types.addAll(child.getRecursiveChildren());
-		}
-		return types;
-	}
-
+	/**
+	 * Removes the given permission from this instance
+	 * 
+	 * @param perm
+	 *            Permission to remove
+	 * @param saveToDb
+	 *            Whether this action should be persisted to the db and
+	 *            broadcasted via Mercury
+	 * @return True if the permission was sucessfully removed, false if not
+	 */
 	public boolean removePermission(PermissionType perm, boolean saveToDb) {
 		if (parent == null) {
 			// is root and shouldnt be modified
@@ -130,19 +207,36 @@ public class PlayerType {
 			}
 		}
 		if (saveToDb) {
-			NameLayerPlugin.getGroupManagerDao().removePermission(group.getName(), this, perm);
+			NameLayerPlugin.getGroupManagerDao().removePermissionAsync(group, this, perm);
 		}
 		return true;
 	}
 
+	/**
+	 * Checks whether this player type has the given permission
+	 * 
+	 * @param perm
+	 *            Permission to check for
+	 * @return True if this player type has the given permission, false if not
+	 */
 	public boolean hasPermission(PermissionType perm) {
 		return perms.contains(perm);
 	}
 
+	/**
+	 * @return Copy of the list containing all permissions this instance has
+	 */
 	public List<PermissionType> getAllPermissions() {
 		return new LinkedList<PermissionType>(perms);
 	}
 
+	/**
+	 * Each PlayerType has an id, which is unique for the group it is assigned
+	 * to, but not unique for all groups, for example all owner root player
+	 * types will always have id 0
+	 * 
+	 * @return Id of this instance
+	 */
 	public int getId() {
 		return id;
 	}

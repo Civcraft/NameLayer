@@ -578,7 +578,7 @@ public class MainGroupGUI extends AbstractGroupGUI {
 			NameLayerPlugin.log(Level.INFO,
 					p.getName() + " kicked " + NameAPI.getCurrentName(toRemove)
 							+ " from " + g.getName() + "via gui");
-			g.removeMember(toRemove);
+			g.removeFromTracking(toRemove);
 			p.sendMessage(ChatColor.GREEN + NameAPI.getCurrentName(toRemove)
 					+ " has been removed from the group");
 		} else {
@@ -619,15 +619,15 @@ public class MainGroupGUI extends AbstractGroupGUI {
 							+ "Could not change player rank, you should complain about this");
 					return;
 				}
-				g.removeMember(toChange);
-				g.addMember(toChange, newRank);
+				g.removeFromTracking(toChange);
+				g.addToTracking(toChange, newRank);
 				oProm.sendMessage(ChatColor.GREEN
 						+ "You have been promoted to " + getRankName(toChange)
 						+ " in (Group) " + g.getName());
 			} else {
 				// player is offline change their perms
-				g.removeMember(toChange);
-				g.addMember(toChange, newRank);
+				g.removeFromTracking(toChange);
+				g.addToTracking(toChange, newRank);
 			}
 			p.sendMessage(ChatColor.GREEN
 					+ NameAPI.getCurrentName(toChange)
@@ -1053,7 +1053,7 @@ public class MainGroupGUI extends AbstractGroupGUI {
 							}
 							NameLayerPlugin.log(Level.INFO, p.getName()
 									+ " left " + g.getName() + "via gui");
-							g.removeMember(p.getUniqueId());
+							g.removeFromTracking(p.getUniqueId());
 							p.sendMessage(ChatColor.GREEN + "You have left "
 									+ g.getName());
 						}

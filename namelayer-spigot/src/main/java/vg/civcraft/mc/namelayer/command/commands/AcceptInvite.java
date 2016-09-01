@@ -51,7 +51,7 @@ public class AcceptInvite extends PlayerCommandMiddle{
 			group.removeInvite(uuid, true);
 			return true;
 		}
-		group.addMember(uuid, type);
+		group.addToTracking(uuid, type);
 		group.removeInvite(uuid, true);
 		PlayerListener.removeNotification(uuid, group);
 		

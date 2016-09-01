@@ -399,7 +399,7 @@ public class GUIGroupOverview {
 											p.getName() + " joined with password "
 													+ " to group " + g.getName()
 													+ "via gui");
-									gro.addMember(p.getUniqueId(), pType);
+									gro.addToTracking(p.getUniqueId(), pType);
 									p.sendMessage(ChatColor.GREEN + "You have successfully been added to "  + gro.getName());
 									showScreen();
 								}

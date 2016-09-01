@@ -17,7 +17,6 @@ import org.bukkit.entity.Player;
 
 import vg.civcraft.mc.mercury.MercuryAPI;
 import vg.civcraft.mc.namelayer.GroupManager;
-import vg.civcraft.mc.namelayer.GroupManager.PlayerType;
 import vg.civcraft.mc.namelayer.NameAPI;
 import vg.civcraft.mc.namelayer.NameLayerPlugin;
 import vg.civcraft.mc.namelayer.command.PlayerCommandMiddle;
@@ -27,14 +26,16 @@ import vg.civcraft.mc.namelayer.group.Group;
 import vg.civcraft.mc.namelayer.listeners.PlayerListener;
 import vg.civcraft.mc.namelayer.misc.Mercury;
 import vg.civcraft.mc.namelayer.permission.PermissionType;
+import vg.civcraft.mc.namelayer.permission.PlayerType;
+import vg.civcraft.mc.namelayer.permission.PlayerTypeHandler;
 
 public class InvitePlayer extends PlayerCommandMiddle{
 
 	public InvitePlayer(String name) {
 		super(name);
 		setIdentifier("nlip");
-		setDescription("Invite a player to the PlayerType " + PlayerType.getStringOfTypes() + " of a group.");
-		setUsage("/nlip <group> <player> (PlayerType- default MEMBERS)");
+		setDescription("Invite a player to a group.");
+		setUsage("/nlip <group> <player> [playerType]");
 		setArguments(2,3);
 	}
 
@@ -68,7 +69,8 @@ public class InvitePlayer extends PlayerCommandMiddle{
 			s.sendMessage(ChatColor.RED + "This player is currently blacklisted, you have to unblacklist him before inviting him to the group");
 			return true;
 		}
-		final PlayerType pType = targetType != null ? PlayerType.getPlayerType(targetType) : PlayerType.MEMBERS;
+		PlayerTypeHandler handler = group.getPlayerTypeHandler();
+		final PlayerType pType = targetType != null ? handler.getType(targetType) : handler.getDefaultInvitationType();
 		if (pType == null) {
 			if (p != null) {
 				PlayerType.displayPlayerTypes(p);
@@ -130,10 +132,10 @@ public class InvitePlayer extends PlayerCommandMiddle{
 			if (shouldAutoAccept) {
 				// player auto accepts invite
 				if (saveToDB) {
-					group.addMember(invitedPlayer, pType);
+					group.addToTracking(invitedPlayer, pType);
 				}
 				else {
-					group.addMember(invitedPlayer, pType, false);
+					group.addToTracking(invitedPlayer, pType, false);
 				}
 				invitee.sendMessage(
 						ChatColor.GREEN + " You have auto-accepted invite to the group: " + group.getName());
@@ -159,10 +161,10 @@ public class InvitePlayer extends PlayerCommandMiddle{
 			// invitee is offline or on a different shard
 			if (shouldAutoAccept) {
 				if (saveToDB) {
-					group.addMember(invitedPlayer, pType);
+					group.addToTracking(invitedPlayer, pType);
 				}
 				else {
-					group.addMember(invitedPlayer, pType, false);
+					group.addToTracking(invitedPlayer, pType, false);
 				}
 			} else {
 				// Player did not auto accept

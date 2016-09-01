@@ -2,20 +2,14 @@ package vg.civcraft.mc.namelayer;
 
 import java.sql.Timestamp;
 import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Level;
 
 import org.bukkit.Bukkit;
-import org.bukkit.ChatColor;
 import org.bukkit.entity.Player;
-
-import com.google.common.collect.Maps;
 
 import vg.civcraft.mc.namelayer.database.GroupManagerDao;
 import vg.civcraft.mc.namelayer.events.GroupCreateEvent;
@@ -24,20 +18,19 @@ import vg.civcraft.mc.namelayer.events.GroupMergeEvent;
 import vg.civcraft.mc.namelayer.events.GroupTransferEvent;
 import vg.civcraft.mc.namelayer.group.Group;
 import vg.civcraft.mc.namelayer.misc.Mercury;
-import vg.civcraft.mc.namelayer.permission.PermissionHandler;
 import vg.civcraft.mc.namelayer.permission.PermissionType;
+import vg.civcraft.mc.namelayer.permission.PlayerType;
+import vg.civcraft.mc.namelayer.permission.PlayerTypeHandler;
 
 public class GroupManager{
 	
 	private static GroupManagerDao groupManagerDao;
-	private PermissionHandler permhandle;
 	
 	private static Map<String, Group> groupsByName = new ConcurrentHashMap<String, Group>();
 	private static Map<Integer, Group> groupsById = new ConcurrentHashMap<Integer, Group>();
 	
 	public GroupManager(){
 		groupManagerDao = NameLayerPlugin.getGroupManagerDao();
-		permhandle = new PermissionHandler();
 	}
 	
 	/**
@@ -66,12 +59,14 @@ public class GroupManager{
 			id = groupManagerDao.createGroup(
 				event.getGroupName(), event.getOwner(), 
 				event.getPassword());
+			group.setPlayerTypeHandler(PlayerTypeHandler.createStandardTypes(group));
+			groupManagerDao.batchSavePlayerTypeHandler(group.getPlayerTypeHandler());
 			Mercury.createGroup(group, id);
 		} else {
 			id = group.getGroupId();
+			group.setPlayerTypeHandler(groupManagerDao.getPlayerTypes(group));
 		}
 		if (id > -1 && savetodb) {
-			initiateDefaultPerms(id); // give default perms to a newly create group
 			GroupManager.getGroup(id); // force a recache from DB.
 			/*group.setGroupIds(groupManagerDao.getAllIDs(event.getGroupName()));
 			group.addMember(event.getOwner(), PlayerType.OWNER);
@@ -106,9 +101,6 @@ public class GroupManager{
 			NameLayerPlugin.getInstance().getLogger().log(Level.INFO, "Group delete was cancelled for "+ groupName);
 			return false;
 		}
-		// Unlinks subgroups.
-		group.prepareForDeletion();
-		deleteGroupPerms(group);
 		groupsByName.remove(group.getName());
 		for (int id : group.getGroupIds()) {
 			groupsById.remove(id);
@@ -144,11 +136,11 @@ public class GroupManager{
 			return;
 		}
 		if (savetodb){
-			g.addMember(uuid, PlayerType.OWNER);
+			g.addToTracking(uuid, g.getPlayerTypeHandler().getOwnerType());
 			g.setOwner(uuid);
 			Mercury.transferGroup(g, uuid);
 		} else {
-			g.addMember(uuid, PlayerType.OWNER, false);
+			g.addToTracking(uuid, g.getPlayerTypeHandler().getOwnerType(), false);
 			g.setOwner(uuid, false);
 		}
 	}
@@ -168,13 +160,6 @@ public class GroupManager{
 		if (group == null || toMerge == null) {
 			NameLayerPlugin.getInstance().getLogger().log(Level.INFO, "Group merge failed, caller passed in null", new Exception());
 			return;
-		}
-
-		// Merge brings subgroups with, but unlinks the toMerge group out from under any supergroup it had.
-		// This doesn't update the database but simply updates all _impacted_ groups in cache. The database is
-		// already updated for this.
-		for (Group subMerge : toMerge.getSubgroups()) {
-			Group.link(group, subMerge, false);
 		}
 
 		GroupMergeEvent event = new GroupMergeEvent(group, toMerge, true);
@@ -221,18 +206,6 @@ public class GroupManager{
 					// At this point, at the DB level all non-overlap members are in target group, name is reset to target,
 					// unique group header record is removed, and faction_id all point to new name.
 
-					// We handle supergroup right here right now; does its own mercury message to update in cache.
-					if (toMerge.getSuperGroup() != null) {
-						Group sup = toMerge.getSuperGroup();
-						Group.unlink(sup, toMerge); 
-						// The above handles the need to unlink any supergroup from merge in DB. This sends its own
-						// Mercury message updating everyone else to do the same in-cache so no further unlinking needs doing.
-					}
-
-					// Subgroup update is handled in doneMerge, as its a cache-only update.
-
-					deleteGroupPerms(toMerge); // commit perm updates to DB.
-
 					doneMergeGroup(group, toMerge);
 
 					// Now we are done the merging process probably, so tell everyone to invalidate their caches for these
@@ -241,22 +214,6 @@ public class GroupManager{
 				}
 			});
 		}
-	}
-	
-	public static List<Group> getSubGroups(String name) {
-		if (name == null) {
-			NameLayerPlugin.getInstance().getLogger().log(Level.INFO, "Group getSubGroups event failed, caller passed in null", new Exception());
-			return new ArrayList<Group>();
-		}
-
-		List<Group> groups = groupManagerDao.getSubGroups(name);
-		for (Group group : groups) {
-			groupsByName.put(group.getName().toLowerCase(), group);
-			for (int j : group.getGroupIds()){
-				groupsById.put(j, group);
-			}
-		}
-		return groups;
 	}
 	
 	/*
@@ -343,18 +300,6 @@ public class GroupManager{
 			return group;
 		}
 	}
-	
-	/**
-	 * DO NOT WORK WITH THE PERMISSION OBJECT ITSELF TO DETERMINE ACCESS. Use the methods provided in this class instead, as they
-	 * respect all the permission inheritation stuff
-	 */
-	public GroupPermission getPermissionforGroup(Group group){
-		if (group == null) {
-			NameLayerPlugin.getInstance().getLogger().log(Level.INFO, "getPermissionForGroup failed, caller passed in null", new Exception());
-			return null;
-		}
-		return permhandle.getGroupPermission(group);
-	}
 		
 	public boolean hasAccess(String groupname, UUID player, PermissionType perm) {
 		if (groupname == null) {
@@ -380,36 +325,8 @@ public class GroupManager{
 				return false;
 			}
 		}
-		GroupPermission perms = getPermissionforGroup(group);
-		for(PlayerType rank : getRecursivePlayerTypes(group, player)) {
-			if (perms.hasPermission(rank, perm)) {
-				//player has right rank in the group itself or at least one super group
-				return true;
-			}
-		}		
-		return false;
-	}
-	
-	private List<PlayerType> getRecursivePlayerTypes(Group group, UUID player) {
-		List<PlayerType> perms = new LinkedList<PlayerType>();
 		PlayerType type = group.getPlayerType(player);
-		if (type != null) {
-			perms.add(type);
-		}
-		if (group.hasSuperGroup()) {
-			perms.addAll(getRecursivePlayerTypes(group.getSuperGroup(), player));
-		}
-		return perms;
-	}
-			
-	// == PERMISSION HANDLING ============================================================= //
-	
-	private void deleteGroupPerms(Group group){
-		if (group == null) {
-			NameLayerPlugin.getInstance().getLogger().log(Level.INFO, "deleteGroupPerms failed, caller passed in null", new Exception());
-			return;
-		}
-		permhandle.deletePerms(group);
+		return type.hasPermission(perm);
 	}
 	
 	public List<String> getAllGroupNames(UUID uuid){
@@ -418,25 +335,6 @@ public class GroupManager{
 			return new ArrayList<String>();
 		}
 		return groupManagerDao.getGroupNames(uuid);
-	}
-	
-	private void initiateDefaultPerms(Integer groupId){
-		if (groupId == null) {
-			NameLayerPlugin.getInstance().getLogger().log(Level.INFO, "initiateDefaultPerms failed, caller passed in null", new Exception());
-			return;
-		}
-		Map <PlayerType, List <PermissionType>> defaultPermMapping = new HashMap<GroupManager.PlayerType, List<PermissionType>>();
-		for(PermissionType perm : PermissionType.getAllPermissions()) {
-			for(PlayerType type : perm.getDefaultPermLevels()) {
-				List <PermissionType> perms = defaultPermMapping.get(type);
-				if (perms == null) {
-					perms = new LinkedList<PermissionType>();
-					defaultPermMapping.put(type, perms);
-				}
-				perms.add(perm);
-			}
-		}
-		groupManagerDao.addAllPermissions(groupId, defaultPermMapping);
 	}
 	
 	public String getDefaultGroup(UUID uuid){
@@ -462,7 +360,6 @@ public class GroupManager{
 			g.setValid(false);
 			List<Integer>k = g.getGroupIds();
 			groupsByName.remove(group.toLowerCase());
-			NameLayerPlugin.getBlackList().removeFromCache(g.getName());
 			
 			boolean fail = true;
 			// You have a freaking hashmap, use it.

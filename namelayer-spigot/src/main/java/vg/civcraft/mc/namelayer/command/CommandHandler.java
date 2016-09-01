@@ -9,8 +9,6 @@ import org.bukkit.command.CommandSender;
 
 import vg.civcraft.mc.civmodcore.command.Command;
 import vg.civcraft.mc.namelayer.command.commands.AcceptInvite;
-import vg.civcraft.mc.namelayer.command.commands.AddBlacklist;
-import vg.civcraft.mc.namelayer.command.commands.LinkGroups;
 import vg.civcraft.mc.namelayer.command.commands.ChangePlayerName;
 import vg.civcraft.mc.namelayer.command.commands.CreateGroup;
 import vg.civcraft.mc.namelayer.command.commands.DeleteGroup;
@@ -22,18 +20,14 @@ import vg.civcraft.mc.namelayer.command.commands.InvitePlayer;
 import vg.civcraft.mc.namelayer.command.commands.JoinGroup;
 import vg.civcraft.mc.namelayer.command.commands.LeaveGroup;
 import vg.civcraft.mc.namelayer.command.commands.NameLayerGroupGui;
-import vg.civcraft.mc.namelayer.command.commands.ShowBlacklist;
 import vg.civcraft.mc.namelayer.command.commands.ListCurrentInvites;
 import vg.civcraft.mc.namelayer.command.commands.ListGroups;
 import vg.civcraft.mc.namelayer.command.commands.ListMembers;
 import vg.civcraft.mc.namelayer.command.commands.ListPermissions;
 import vg.civcraft.mc.namelayer.command.commands.ListPlayerTypes;
-import vg.civcraft.mc.namelayer.command.commands.ListSubGroups;
 import vg.civcraft.mc.namelayer.command.commands.MergeGroups;
 import vg.civcraft.mc.namelayer.command.commands.ModifyPermissions;
-import vg.civcraft.mc.namelayer.command.commands.RemoveBlacklist;
 import vg.civcraft.mc.namelayer.command.commands.RemoveMember;
-import vg.civcraft.mc.namelayer.command.commands.UnlinkGroups;
 import vg.civcraft.mc.namelayer.command.commands.SetPassword;
 import vg.civcraft.mc.namelayer.command.commands.ToggleAutoAcceptInvites;
 import vg.civcraft.mc.namelayer.command.commands.TransferGroup;
@@ -48,9 +42,6 @@ public class CommandHandler {
 	
 	public void registerCommands(){
 		addCommands(new AcceptInvite("AcceptInvite"));
-		addCommands(new LinkGroups("LinkGroups"));
-		addCommands(new UnlinkGroups("UnlinkGroups"));
-		addCommands(new ListSubGroups("ListSubGroups"));
 		addCommands(new CreateGroup("CreateGroup"));
 		addCommands(new DeleteGroup("DeleteGroup"));
 		addCommands(new DisciplineGroup("DisiplineGroup"));
@@ -77,9 +68,6 @@ public class CommandHandler {
 		addCommands(new SetDefaultGroup("SetDefaultGroup"));
 		addCommands(new GetDefaultGroup("GetDefaultGroup"));
 		addCommands(new UpdateName("UpdateName"));
-		addCommands(new AddBlacklist("AddBlacklist"));
-		addCommands(new RemoveBlacklist("RemoveBlacklist"));
-		addCommands(new ShowBlacklist("ShowBlacklist"));
 		addCommands(new NameLayerGroupGui("OpenGUI"));
 	}
 	

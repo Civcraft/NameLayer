@@ -6,7 +6,7 @@ import org.bukkit.event.Cancellable;
 import org.bukkit.event.Event;
 import org.bukkit.event.HandlerList;
 
-import vg.civcraft.mc.namelayer.GroupManager.PlayerType;
+import vg.civcraft.mc.namelayer.permission.PlayerType;
 
 public class GroupAddInvitation extends Event implements Cancellable{
 	private static final HandlerList handlers = new HandlerList();

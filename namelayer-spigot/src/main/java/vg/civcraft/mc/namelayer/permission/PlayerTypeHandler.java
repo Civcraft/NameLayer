@@ -30,7 +30,7 @@ public class PlayerTypeHandler {
 		this.typesById = new TreeMap<Integer, PlayerType>();
 		typesByName.put(root.getName(), root);
 		typesById.put(root.getId(), root);
-		for (PlayerType type : root.getRecursiveChildren()) {
+		for (PlayerType type : root.getChildren(true)) {
 			typesByName.put(type.getName(), type);
 			typesById.put(type.getId(), type);
 		}
@@ -138,7 +138,8 @@ public class PlayerTypeHandler {
 	}
 
 	/**
-	 * Deletes the given player type from this instance
+	 * Deletes the given player type from this instance. If this player type
+	 * still has any children, they will all be deleted recursively
 	 * 
 	 * @param type
 	 *            Player type to delete
@@ -147,6 +148,17 @@ public class PlayerTypeHandler {
 	 *            broadcasted via Mercury
 	 */
 	public void deleteType(PlayerType type, boolean saveToD) {
+		List<PlayerType> types = type.getChildren(true);
+		// retrieving children deep is implemented as deep search, so deleting
+		// nodes
+		// in reverse is guaranteed to respect the tree structure and clean up
+		// everything below the parent node
+		for (int i = types.size() - 1; i >= 0; i--) {
+			deleteType(types.get(i), saveToD);
+		}
+		if (type.getParent() != null) {
+			type.getParent().removeChild(type);
+		}
 		typesByName.remove(type.getName());
 		typesById.remove(type.getId());
 		if (saveToD) {
@@ -164,6 +176,8 @@ public class PlayerTypeHandler {
 	 *            broadcasted via Mercury
 	 */
 	public boolean registerType(PlayerType type, boolean saveToDb) {
+		//we can always assume that the register type has a parent here, because the root is created a different way and 
+		//all other nodes should have a parent
 		if (type == null || type.getParent() == null || doesTypeExist(type.getName())
 				|| !doesTypeExist(type.getParent().getName())) {
 			return false;
@@ -171,7 +185,7 @@ public class PlayerTypeHandler {
 		typesByName.put(type.getName(), type);
 		typesById.put(type.getId(), type);
 		if (saveToDb) {
-			NameLayerPlugin.getGroupManagerDao().addPlayerType(group, type);
+			NameLayerPlugin.getGroupManagerDao().registerPlayerType(group, type);
 		}
 		return true;
 	}

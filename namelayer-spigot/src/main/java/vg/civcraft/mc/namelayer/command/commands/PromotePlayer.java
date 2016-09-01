@@ -126,8 +126,8 @@ public class PromotePlayer extends PlayerCommandMiddle{
 			if(event.isCancelled()){
 				return false;
 			}
-			group.removeMember(promotee);
-			group.addMember(promotee, promoteeType);
+			group.removeFromTracking(promotee);
+			group.addToTracking(promotee, promoteeType);
 			p.sendMessage(ChatColor.GREEN + NameAPI.getCurrentName(promotee) + " has been added as (PlayerType) " +
 					promoteeType.toString() + " in (Group) " + group.getName());
 			oProm.sendMessage(ChatColor.GREEN + "You have been promoted to (PlayerType) " +
@@ -135,8 +135,8 @@ public class PromotePlayer extends PlayerCommandMiddle{
 		}
 		else{
 			//player is offline change their perms
-			group.removeMember(promotee);
-			group.addMember(promotee, promoteeType);
+			group.removeFromTracking(promotee);
+			group.addToTracking(promotee, promoteeType);
 			p.sendMessage(ChatColor.GREEN + NameAPI.getCurrentName(promotee) + " has been added as (PlayerType) " +
 					promoteeType.toString() + " in (Group) " + group.getName());
 		}

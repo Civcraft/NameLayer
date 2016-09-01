@@ -17,7 +17,6 @@ import vg.civcraft.mc.namelayer.database.AssociationList;
 import vg.civcraft.mc.namelayer.database.Database;
 import vg.civcraft.mc.namelayer.database.GroupManagerDao;
 import vg.civcraft.mc.namelayer.group.AutoAcceptHandler;
-import vg.civcraft.mc.namelayer.group.BlackList;
 import vg.civcraft.mc.namelayer.group.DefaultGroupHandler;
 import vg.civcraft.mc.namelayer.listeners.AssociationListener;
 import vg.civcraft.mc.namelayer.listeners.MercuryMessageListener;
@@ -28,7 +27,6 @@ import vg.civcraft.mc.namelayer.permission.PermissionType;
 
 public class NameLayerPlugin extends ACivMod{
 	private static AssociationList associations;
-	private static BlackList blackList;
 	private static GroupManagerDao groupManagerDao;
 	private static DefaultGroupHandler defaultGroupHandler;
 	private static NameLayerPlugin instance;
@@ -61,7 +59,6 @@ public class NameLayerPlugin extends ACivMod{
 		registerListeners();
 		if (loadGroups){
 			PermissionType.initialize();
-			blackList = new BlackList();
 			groupManagerDao.loadGroupsInvitations();
 			defaultGroupHandler = new DefaultGroupHandler();
 			autoAcceptHandler = new AutoAcceptHandler(groupManagerDao.loadAllAutoAccept());
@@ -208,10 +205,6 @@ public class NameLayerPlugin extends ACivMod{
 	
 	public int getGroupLimit(){
 		return groupLimit;
-	}
-	
-	public static BlackList getBlackList() {
-		return blackList;
 	}
 	
 	public static AutoAcceptHandler getAutoAcceptHandler() {
