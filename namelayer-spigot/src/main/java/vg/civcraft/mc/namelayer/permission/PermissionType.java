@@ -204,6 +204,8 @@ public class PermissionType {
 		// allows creating, deleting and renaming player types
 		registerPermission("PLAYERTYPES", (LinkedList<Integer>) owner.clone(),
 				"Allows creating, renaming and deleting player types for this group");
+		registerPermission("LIST_PLAYERTYPES", (LinkedList<Integer>) all.clone(),
+				"Allows listing the player types for this group");
 		// allows opening the gui
 		registerPermission("OPEN_GUI", (LinkedList<Integer>) all.clone(), "Allows opening the GUI for this group");
 	}

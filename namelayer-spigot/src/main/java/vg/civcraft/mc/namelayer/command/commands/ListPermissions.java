@@ -5,14 +5,17 @@ import java.util.UUID;
 
 import org.bukkit.ChatColor;
 import org.bukkit.command.CommandSender;
+import org.bukkit.command.TabCompleter;
 import org.bukkit.entity.Player;
 
 import vg.civcraft.mc.civmodcore.command.PlayerCommand;
 import vg.civcraft.mc.namelayer.GroupManager;
 import vg.civcraft.mc.namelayer.NameAPI;
+import vg.civcraft.mc.namelayer.command.NameLayerTabCompleter;
 import vg.civcraft.mc.namelayer.group.Group;
 import vg.civcraft.mc.namelayer.permission.PermissionType;
 import vg.civcraft.mc.namelayer.permission.PlayerType;
+import vg.civcraft.mc.namelayer.permission.PlayerTypeHandler;
 
 public class ListPermissions extends PlayerCommand {
 
@@ -26,51 +29,53 @@ public class ListPermissions extends PlayerCommand {
 
 	@Override
 	public boolean execute(CommandSender sender, String[] args) {
-		if (!(sender instanceof Player)){
-			sender.sendMessage(ChatColor.RED + "No.");
+		if (!(sender instanceof Player) && args.length == 1){
+			sender.sendMessage(ChatColor.RED + "You need to specify an explicit type to list perms for");
 			return true;
 		}
-		Player p = (Player) sender;
 		Group g = GroupManager.getGroup(args[0]);
 		if (g == null) {
-			p.sendMessage(ChatColor.RED + "This group doesn't exist");
+			sender.sendMessage(ChatColor.RED + "This group doesn't exist");
 			return true;
 		}
-		UUID uuid = NameAPI.getUUID(p.getName());
-		PlayerType playerType = g.getPlayerType(uuid);
-		String perms = null;
-		GroupPermission gPerm = gm.getPermissionforGroup(g);
+		PlayerType playerType = null;
+		if (sender instanceof Player) {
+			Player p = (Player) sender;
+			UUID uuid = NameAPI.getUUID(p.getName());
+			playerType = g.getPlayerType(uuid);
+		}
+		PlayerTypeHandler handler = g.getPlayerTypeHandler();
 		if(args.length > 1){
-			if (!gm.hasAccess(g, uuid, PermissionType.getPermission("LIST_PERMS"))){
-					p.sendMessage(ChatColor.RED + "You do not have permission in this group to run this command.");
-					return true;
+			if (sender instanceof Player) {
+				if (!NameAPI.getGroupManager().hasAccess(g, ((Player) sender).getUniqueId(), PermissionType.getPermission("LIST_PERMS"))){
+						sender.sendMessage(ChatColor.RED + "You do not have permission to run this command for " + g.getName());
+						return true;
+				}
 			}
-			PlayerType check = PlayerType.getPlayerType(args[1]);
-			if (check == null){
-				PlayerType.displayPlayerTypes(p);
+			playerType = handler.getType(args [1]);
+			if (playerType == null){
+				sender.sendMessage(ChatColor.RED + args[1] + " is not a valid player type for " + g.getName());
 				return true;
 			}
-			perms = gPerm.listPermsforPlayerType(check);
 		}
-		else
-			perms = gPerm.listPermsforPlayerType(playerType);
-			
-		p.sendMessage(ChatColor.GREEN + perms);
+		StringBuilder sb = new StringBuilder();
+		sb.append(ChatColor.GREEN + "Permissions for " + playerType.getName() + " are: ");
+		for(PermissionType perm : playerType.getAllPermissions()) {
+			sb.append(perm.getName());
+			sb.append(" ");
+		}
+		sender.sendMessage(ChatColor.GREEN + sb.toString());
 		return true;
 	}
 
 	@Override
 	public List<String> tabComplete(CommandSender sender, String[] args) {
-		if (!(sender instanceof Player))
-			return null;
-
-		if (args.length == 0)
-			return GroupTabCompleter.complete(null, null, (Player) sender);
-		else if (args.length == 1)
-			return GroupTabCompleter.complete(args[0], null, (Player)sender);
+		if (args.length == 0 && (sender instanceof Player))
+			return NameLayerTabCompleter.completeGroupWithPermission(null, null, (Player) sender);
+		else if (args.length == 1 && (sender instanceof Player))
+			return NameLayerTabCompleter.completeGroupWithPermission(args [0], null, (Player) sender);
 		else if (args.length == 2)
-			return MemberTypeCompleter.complete(args[1]);
-
+			return NameLayerTabCompleter.completePlayerType(args[1], GroupManager.getGroup(args[0]));
 		return  null;
 	}
 
