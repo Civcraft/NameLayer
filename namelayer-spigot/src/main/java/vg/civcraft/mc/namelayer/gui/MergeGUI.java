@@ -182,6 +182,7 @@ public class MergeGUI extends AbstractGroupGUI {
 			@Override
 			public void clicked(Player p) {
 				requestMerge(groupName);
+				ClickableInventory.forceCloseInventory(p);
 			}
 		}, 11);
 		confirmInv.setSlot(new Clickable(no) {
