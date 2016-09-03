@@ -43,12 +43,6 @@ public class ListPlayerTypes extends PlayerCommand {
 			sender.sendMessage(ChatColor.RED + "This group doesn't exist");
 			return true;
 		}
-		if(sender instanceof Player) {
-			if (!NameAPI.getGroupManager().hasAccess(group, ((Player) sender).getUniqueId(), PermissionType.getPermission("LIST_PLAYERTYPES"))) {
-				sender.sendMessage(ChatColor.RED + "You dont have permission list player types for " + group.getName());
-				return true;
-			}
-		}
 		StringBuilder sb = new StringBuilder();
 		sb.append(ChatColor.GREEN + "Player types for " + group.getName() + " are: ");
 		for(PlayerType type: group.getPlayerTypeHandler().getAllTypes()) {

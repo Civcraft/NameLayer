@@ -118,7 +118,7 @@ public class PermissionType {
 	}
 	
 	public static PermissionType getInvitePermission(int id) {
-		String invitePermName = "invitePlayer" + id;
+		String invitePermName = "invitePlayer#" + id;
 		PermissionType invPerm = PermissionType.getPermission(invitePermName);
 		if (invPerm == null) {
 			//register type, because it was never used before, we do this with the deprecated register without a description
@@ -130,7 +130,7 @@ public class PermissionType {
 	}
 	
 	public static PermissionType getRemovePermission(int id) {
-		String removePermName = "removePlayer" + id;
+		String removePermName = "removePlayer#" + id;
 		PermissionType removePerm = PermissionType.getPermission(removePermName);
 		if (removePerm == null) {
 			//register type, because it was never used before, we do this with the deprecated register without a description
@@ -165,16 +165,6 @@ public class PermissionType {
 		// clone the list every time so changing the list of one perm later
 		// doesn't affect other perms
 
-		// allows adding/removing members
-		registerPermission("MEMBERS", (LinkedList<Integer>) modAndAbove.clone(),
-				"Allows inviting new members and removing existing members");
-		// allows blacklisting/unblacklisting players and viewing the blacklist
-		registerPermission("BLACKLIST", (LinkedList<Integer>) modAndAbove.clone(),
-				"Allows viewing this group's blacklist, adding players to the blacklist "
-						+ "and removing players from the blacklist");
-		// allows adding/removing mods
-		registerPermission("MODS", (LinkedList<Integer>) adminAndAbove.clone(),
-				"Allows inviting new mods and removing existing mods");
 		// allows adding/modifying a password for the group
 		registerPermission("PASSWORD", (LinkedList<Integer>) adminAndAbove.clone(),
 				"Allows viewing this groups password and changing or removing it");
@@ -185,12 +175,6 @@ public class PermissionType {
 		registerPermission("GROUPSTATS", (LinkedList<Integer>) adminAndAbove.clone(),
 				"Gives access to various group statistics such as member "
 						+ "counts by permission type, who owns the group etc.");
-		// allows to add/remove admins
-		registerPermission("ADMINS", (LinkedList<Integer>) owner.clone(),
-				"Allows inviting new admins and removing existing admins");
-		// allows to add/remove owners
-		registerPermission("OWNER", (LinkedList<Integer>) owner.clone(),
-				"Allows inviting new owners and removing existing owners");
 		// allows to modify the permissions for different permissions groups
 		registerPermission("PERMS", (LinkedList<Integer>) owner.clone(), "Allows modifying permissions for this group");
 		// allows deleting the group
@@ -204,8 +188,6 @@ public class PermissionType {
 		// allows creating, deleting and renaming player types
 		registerPermission("PLAYERTYPES", (LinkedList<Integer>) owner.clone(),
 				"Allows creating, renaming and deleting player types for this group");
-		registerPermission("LIST_PLAYERTYPES", (LinkedList<Integer>) all.clone(),
-				"Allows listing the player types for this group");
 		// allows opening the gui
 		registerPermission("OPEN_GUI", (LinkedList<Integer>) all.clone(), "Allows opening the GUI for this group");
 	}

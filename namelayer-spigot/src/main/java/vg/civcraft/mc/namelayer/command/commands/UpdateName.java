@@ -12,12 +12,12 @@ import org.bukkit.ChatColor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
+import vg.civcraft.mc.civmodcore.command.PlayerCommand;
 import vg.civcraft.mc.namelayer.NameAPI;
 import vg.civcraft.mc.namelayer.NameLayerPlugin;
-import vg.civcraft.mc.namelayer.command.PlayerCommandMiddle;
 import vg.civcraft.mc.namelayer.misc.NameFetcher;
 
-public class UpdateName extends PlayerCommandMiddle {
+public class UpdateName extends PlayerCommand {
 
 	private Map<UUID, String> newNames;
 

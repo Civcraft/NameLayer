@@ -5,7 +5,6 @@ import java.util.UUID;
 
 import org.bukkit.ChatColor;
 import org.bukkit.command.CommandSender;
-import org.bukkit.command.TabCompleter;
 import org.bukkit.entity.Player;
 
 import vg.civcraft.mc.civmodcore.command.PlayerCommand;
