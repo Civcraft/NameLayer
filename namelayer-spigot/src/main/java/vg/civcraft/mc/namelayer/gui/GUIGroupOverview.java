@@ -1,7 +1,5 @@
 package vg.civcraft.mc.namelayer.gui;
 
-import java.nio.charset.Charset;
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.LinkedList;
@@ -25,10 +23,10 @@ import vg.civcraft.mc.civmodcore.itemHandling.ISUtils;
 import vg.civcraft.mc.namelayer.GroupManager;
 import vg.civcraft.mc.namelayer.NameAPI;
 import vg.civcraft.mc.namelayer.NameLayerPlugin;
-import vg.civcraft.mc.namelayer.GroupManager.PlayerType;
+import vg.civcraft.mc.namelayer.command.commands.CreateGroup;
 import vg.civcraft.mc.namelayer.group.Group;
-import vg.civcraft.mc.namelayer.permission.GroupPermission;
 import vg.civcraft.mc.namelayer.permission.PermissionType;
+import vg.civcraft.mc.namelayer.permission.PlayerType;
 
 public class GUIGroupOverview {
 
@@ -139,7 +137,7 @@ public class GUIGroupOverview {
 	}
 
 	private List<Clickable> getGroupClickables() {
-		String defaultGroupName = gm.getDefaultGroup(p.getUniqueId());
+		String defaultGroupName = NameLayerPlugin.getDefaultGroupHandler().getDefaultGroup(p.getUniqueId());
 		List<String> groupNames = gm.getAllGroupNames(p.getUniqueId());
 		List<Clickable> result = new ArrayList<Clickable>();
 		Set<String> alreadyProcessed = new HashSet<String>();
@@ -157,31 +155,13 @@ public class GUIGroupOverview {
 				continue;
 			}
 			ItemStack is = null;
-			switch (pType) {
-			case MEMBERS:
-				is = new ItemStack(Material.LEATHER_CHESTPLATE);
-				ISUtils.addLore(is, ChatColor.AQUA + "Your rank: Member");
-				break;
-			case MODS:
-				is = new ItemStack(Material.GOLD_CHESTPLATE);
-				ISUtils.addLore(is, ChatColor.AQUA + "Your rank: Mod");
-				break;
-			case ADMINS:
-				is = new ItemStack(Material.IRON_CHESTPLATE);
-				ISUtils.addLore(is, ChatColor.AQUA + "Your rank: Admin");
-				break;
-			case OWNER:
-				is = new ItemStack(Material.DIAMOND_CHESTPLATE);
-				if (g.isOwner(p.getUniqueId())) {
-					ISUtils.addLore(is, ChatColor.AQUA
-							+ "Your rank: Primary owner");
-				} else {
-					ISUtils.addLore(is, ChatColor.AQUA + "Your rank: Owner");
-				}
-				break;
+			if (g.isOwner(p.getUniqueId())) {
+				is = new ItemStack(Material.OBSIDIAN);
+				ISUtils.addLore(is, ChatColor.AQUA + "Your rank: Primary owner");
 			}
-			if (is == null) {
-				continue;
+			else {
+				is = MenuUtils.getPlayerTypeStack(pType.getId());
+				ISUtils.addLore(is, ChatColor.AQUA + "Your rank: " + pType.getName());
 			}
 			ItemMeta im = is.getItemMeta();
 			im.addItemFlags(ItemFlag.HIDE_ATTRIBUTES, ItemFlag.HIDE_ENCHANTS);
@@ -197,9 +177,9 @@ public class GUIGroupOverview {
 				ISUtils.addLore(
 						is,
 						ChatColor.AQUA
-								+ String.valueOf(g.getAllMembers().size())
-								+ " member"
-								+ (g.getAllMembers().size() > 1 ? "s" : ""));
+								+ String.valueOf(g.getAllTracked().size())
+								+ " player"
+								+ (g.getAllTracked().size() > 1 ? "s" : "" + " tracked"));
 			}
 			ISUtils.setName(is, ChatColor.GOLD + g.getName());
 			if (gm.hasAccess(g, p.getUniqueId(),
@@ -276,19 +256,7 @@ public class GUIGroupOverview {
 							showScreen();
 							return;
 						}
-						Charset latin1 = StandardCharsets.ISO_8859_1;
-						boolean invalidChars = false;
-						if (!latin1.newEncoder().canEncode(groupName)) {
-							invalidChars = true;
-						}
-
-						for (char c : groupName.toCharArray()) {
-							if (Character.isISOControl(c)) {
-								invalidChars = true;
-							}
-						}
-
-						if (invalidChars) {
+						if (CreateGroup.isConformName(groupName)) {
 							p.sendMessage(ChatColor.RED
 									+ "You used characters, which are not allowed");
 							showScreen();
@@ -312,8 +280,6 @@ public class GUIGroupOverview {
 							return;
 						}
 						g.setGroupId(id);
-						NameLayerPlugin.getBlackList().initEmptyBlackList(
-								groupName);
 						p.sendMessage(ChatColor.GREEN + "The group "
 								+ g.getName() + " was successfully created.");
 						if (NameLayerPlugin.getInstance().getGroupLimit() == gm
@@ -361,7 +327,7 @@ public class GUIGroupOverview {
 							showScreen();
 							return;
 						}
-						final Group g = gm.getGroup(groupName);
+						final Group g = GroupManager.getGroup(groupName);
 						if (g == null) {
 							p.sendMessage(ChatColor.RED + "This group doesn't exist");
 							showScreen();
@@ -388,8 +354,7 @@ public class GUIGroupOverview {
 								}
 								else {
 									Group gro = ensureFreshGroup(g);
-									GroupPermission groupPerm = gm.getPermissionforGroup(gro);
-									PlayerType pType = groupPerm.getFirstWithPerm(PermissionType.getPermission("JOIN_PASSWORD"));
+									PlayerType pType = gro.getPlayerTypeHandler().getDefaultPasswordJoinType();
 									if (pType == null){
 										p.sendMessage(ChatColor.RED + "Someone derped. This group does not have the specified permission to let you join, sorry.");
 										showScreen();
@@ -400,10 +365,9 @@ public class GUIGroupOverview {
 													+ " to group " + g.getName()
 													+ "via gui");
 									gro.addToTracking(p.getUniqueId(), pType);
-									p.sendMessage(ChatColor.GREEN + "You have successfully been added to "  + gro.getName());
+									p.sendMessage(ChatColor.GREEN + "You have successfully joined "  + gro.getName() + " as " + pType.getName());
 									showScreen();
 								}
-								
 							}
 						};
 					}

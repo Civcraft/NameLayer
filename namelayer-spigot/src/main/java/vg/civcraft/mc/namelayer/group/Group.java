@@ -107,14 +107,14 @@ public class Group {
 	}
 
 	/**
-	 * Gives the uuids of the members whose name starts with the given String,
+	 * Gives the uuids of the tracked players whose name starts with the given String,
 	 * this is not case-sensitive
 	 * 
 	 * @param prefix
 	 *            start of the players name
-	 * @return list of all players whose name starts with the given string
+	 * @return list of all players whose name starts with the given string and are tracked in this group
 	 */
-	public List<UUID> getMembersByName(String prefix) {
+	public List<UUID> getTrackedByName(String prefix) {
 		List<UUID> uuids = Lists.newArrayList();
 		List<UUID> members = getAllTracked();
 
@@ -129,17 +129,17 @@ public class Group {
 	}
 
 	/**
-	 * Gives the uuids of players who are in this group and whos name is within
+	 * Gives the uuids of players who are tracked by this group and whose name is within
 	 * the given range.
 	 * 
 	 * @param lowerLimit
 	 *            lexicographically lowest acceptable name
 	 * @param upperLimit
 	 *            lexicographically highest acceptable name
-	 * @return list of uuids of all players in the group whose name is within
+	 * @return list of uuids of all players tracked by the group whose name is within
 	 *         the given range
 	 */
-	public List<UUID> getMembersInNameRange(String lowerLimit, String upperLimit) {
+	public List<UUID> getTrackedInNameRange(String lowerLimit, String upperLimit) {
 		List<UUID> uuids = Lists.newArrayList();
 		List<UUID> members = getAllTracked();
 

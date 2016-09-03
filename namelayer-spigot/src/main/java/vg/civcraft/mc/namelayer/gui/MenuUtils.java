@@ -1,8 +1,5 @@
 package vg.civcraft.mc.namelayer.gui;
 
-import java.util.LinkedList;
-import java.util.List;
-import java.util.ListIterator;
 import java.util.UUID;
 
 import org.bukkit.ChatColor;
@@ -37,37 +34,27 @@ public class MenuUtils {
 		return null; // TODO?
 	}
 	
-	/**
-	 * Doesn't work
-	 */
-	public static List <String> splitLore(String lore) {
-		System.out.println("Splitting " + lore);
-		LinkedList <String> splitLore = new LinkedList<String>();
-		int maxLineLength = 50;
-		StringBuilder sb = new StringBuilder();
-		String [] split = lore.split(" ");
-		for(int i = 0; i < split.length; i++) {
-			String word = split [i];
-			if ((sb.length() + word.length()) > maxLineLength) {
-				//max line length reached
-				if (sb.length() == 0) {
-					//if empty, the word alone fills the line length so put it in anyway
-					sb.append(word);
-				}
-				else {
-					//include word in next run
-					i--;
-				}
-				//add finished line
-				splitLore.add(sb.toString());
-				sb = new StringBuilder();
-			}
-			else {
-				//just append, line not full yet
-				sb.append(" ");
-				sb.append(word);
-			}
+	public static ItemStack getPlayerTypeStack(int id) {
+		if (id < 16) {
+			ItemStack is = new ItemStack(Material.STAINED_CLAY);
+			is.setDurability((short) id);
+			return is;
 		}
-		return splitLore;
+		if (id < 32) {
+			ItemStack is = new ItemStack(Material.STAINED_GLASS);
+			is.setDurability((short) (id - 16));
+			return is;
+		}
+		if (id < 48) {
+			ItemStack is = new ItemStack(Material.WOOL);
+			is.setDurability((short) (id - 32));
+			return is;
+		}
+		if (id < 64) {
+			ItemStack is = new ItemStack(Material.STAINED_GLASS_PANE);
+			is.setDurability((short) (id - 48));
+			return is;
+		}
+		return new ItemStack(Material.OBSIDIAN);
 	}
 }
