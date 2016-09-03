@@ -21,6 +21,7 @@ public class PlayerTypeHandler {
 	private PlayerType root;
 	private PlayerType defaultInvitationType;
 	private PlayerType defaultPasswordJoinType;
+	//storage in lookup map by name is only done in lower case
 	private Map<String, PlayerType> typesByName;
 	private Map<Integer, PlayerType> typesById;
 	private final static int MAXIMUM_TYPE_COUNT = 27;
@@ -30,10 +31,10 @@ public class PlayerTypeHandler {
 		this.group = group;
 		this.typesByName = new HashMap<String, PlayerType>();
 		this.typesById = new TreeMap<Integer, PlayerType>();
-		typesByName.put(root.getName(), root);
+		typesByName.put(root.getName().toLowerCase(), root);
 		typesById.put(root.getId(), root);
 		for (PlayerType type : root.getChildren(true)) {
-			typesByName.put(type.getName(), type);
+			typesByName.put(type.getName().toLowerCase(), type);
 			typesById.put(type.getId(), type);
 		}
 	}
@@ -46,7 +47,7 @@ public class PlayerTypeHandler {
 	 * @return True if such a player type exists, false if not
 	 */
 	public boolean doesTypeExist(String name) {
-		return typesByName.get(name) != null;
+		return typesByName.get(name.toLowerCase()) != null;
 	}
 
 	/**
@@ -103,7 +104,7 @@ public class PlayerTypeHandler {
 	 * @return PlayerType with that id or null if no such player type exists
 	 */
 	public PlayerType getType(String name) {
-		return typesByName.get(name);
+		return typesByName.get(name.toLowerCase());
 	}
 
 	/**
@@ -202,7 +203,13 @@ public class PlayerTypeHandler {
 				permsToRemove.put(otherType, perms);
 			}
 		}
-		typesByName.remove(type.getName());
+		if (defaultInvitationType == type) {
+			defaultInvitationType = null;
+		}
+		if (defaultPasswordJoinType == type) {
+			defaultPasswordJoinType = null;
+		}
+		typesByName.remove(type.getName().toLowerCase());
 		typesById.remove(type.getId());
 		if (saveToD) {
 			MercuryManager.removePlayerType(group.getName(), type.getId());
@@ -253,7 +260,7 @@ public class PlayerTypeHandler {
 			perms.add(removePerm);
 			permissionsToSave.put(parent, perms);
 		}
-		typesByName.put(type.getName(), type);
+		typesByName.put(type.getName().toLowerCase(), type);
 		typesById.put(type.getId(), type);
 		if (saveToDb) {
 			MercuryManager.addPlayerType(group.getName(), type.getName(), type.getId(), type.getParent().getId());
@@ -298,9 +305,9 @@ public class PlayerTypeHandler {
 	 *            broadcasted via Mercury
 	 */
 	public void renameType(PlayerType type, String name, boolean writeToDb) {
-		typesByName.remove(type.getName());
+		typesByName.remove(type.getName().toLowerCase());
 		type.setName(name);
-		typesByName.put(name, type);
+		typesByName.put(name.toLowerCase(), type);
 		if (writeToDb) {
 			MercuryManager.renamePlayerType(group.getName(), type.getId(), name);
 			NameLayerPlugin.getGroupManagerDao().updatePlayerTypeName(group, type);

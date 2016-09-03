@@ -105,11 +105,10 @@ public class ModifyPermissions extends PlayerCommand {
 			}
 
 		} else if (args.length == 3) {
-			return MemberTypeCompleter.complete(args[2]);
+			return NameLayerTabCompleter.completePlayerType(args [2], GroupManager.getGroup(args [0]));
 		} else if (args.length == 4) {
-			return PermissionCompleter.complete(args[3]);
+			return NameLayerTabCompleter.completePermission(args [3]);
 		}
-
 		return  null;
 	}
 }

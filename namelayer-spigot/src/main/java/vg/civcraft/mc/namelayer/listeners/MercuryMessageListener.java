@@ -3,6 +3,8 @@ package vg.civcraft.mc.namelayer.listeners;
 import java.util.UUID;
 
 import org.bukkit.Bukkit;
+import org.bukkit.ChatColor;
+import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
@@ -201,6 +203,15 @@ public class MercuryMessageListener implements Listener{
 			PlayerType type = group.getPlayerTypeHandler().getType(Integer.parseInt(message [2]));
 			String newName = message [3];
 			group.getPlayerTypeHandler().renameType(type, newName, false);
+		}
+		else if(reason.equals("promotePlayer")) {
+			Group group = GroupManager.getGroup(groupname);
+			Player p = Bukkit.getPlayer(UUID.fromString(message[2]));
+			UUID executor = UUID.fromString(message [3]);
+			if (p != null) {
+				p.sendMessage(ChatColor.GREEN + "Your rank in " + group.getName() + " was changed from "
+						+ message [4] + " to " + message [5] + " by " + NameAPI.getCurrentName(executor));
+			}
 		}
 	}
 }

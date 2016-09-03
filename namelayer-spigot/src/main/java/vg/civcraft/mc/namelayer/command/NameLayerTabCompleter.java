@@ -7,7 +7,6 @@ import java.util.Set;
 import java.util.UUID;
 
 import org.bukkit.Bukkit;
-import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
 import vg.civcraft.mc.mercury.MercuryAPI;
@@ -20,23 +19,6 @@ import vg.civcraft.mc.namelayer.permission.PermissionType;
 import vg.civcraft.mc.namelayer.permission.PlayerType;
 
 public class NameLayerTabCompleter {
-
-	public static List<String> complete(String groupName, String playerName, CommandSender sender) {
-		Group g = GroupManager.getGroup(groupName);
-		if (g != null || !(sender instanceof Player)) {
-			NameAPI.getGroupManager().
-			if (NameAPI.getGroupManager().hasAccess(groupName, sender.getUniqueId(),
-					PermissionType.getPermission("MEMBERS"))) {
-				ArrayList<String> result = new ArrayList<String>();
-				List<UUID> uuids = g.getMembersByName(playerName);
-				for (UUID uuid : uuids) {
-					result.add(NameAPI.getCurrentName(uuid));
-				}
-				return result;
-			}
-		}
-		return null;
-	}
 
 	public static List<String> completeGroupWithPermission(String lastArg, PermissionType accessLevel, Player sender) {
 		UUID uuid = NameAPI.getUUID(sender.getName());

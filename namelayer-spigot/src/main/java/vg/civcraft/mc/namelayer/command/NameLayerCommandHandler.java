@@ -7,7 +7,9 @@ import vg.civcraft.mc.civmodcore.command.Command;
 import vg.civcraft.mc.namelayer.command.commands.AcceptInvite;
 import vg.civcraft.mc.namelayer.command.commands.ChangePlayerName;
 import vg.civcraft.mc.namelayer.command.commands.CreateGroup;
+import vg.civcraft.mc.namelayer.command.commands.CreatePlayerType;
 import vg.civcraft.mc.namelayer.command.commands.DeleteGroup;
+import vg.civcraft.mc.namelayer.command.commands.DeletePlayerType;
 import vg.civcraft.mc.namelayer.command.commands.DisciplineGroup;
 import vg.civcraft.mc.namelayer.command.commands.GroupStats;
 import vg.civcraft.mc.namelayer.command.commands.InvitePlayer;
@@ -22,6 +24,7 @@ import vg.civcraft.mc.namelayer.command.commands.ListPlayerTypes;
 import vg.civcraft.mc.namelayer.command.commands.MergeGroups;
 import vg.civcraft.mc.namelayer.command.commands.ModifyPermissions;
 import vg.civcraft.mc.namelayer.command.commands.RemoveMember;
+import vg.civcraft.mc.namelayer.command.commands.RenamePlayerType;
 import vg.civcraft.mc.namelayer.command.commands.SetPassword;
 import vg.civcraft.mc.namelayer.command.commands.ToggleAutoAcceptInvites;
 import vg.civcraft.mc.namelayer.command.commands.TransferGroup;
@@ -59,5 +62,8 @@ public class NameLayerCommandHandler extends vg.civcraft.mc.civmodcore.command.C
 		addCommands(new SetDefaultGroup("SetDefaultGroup"));
 		addCommands(new GetDefaultGroup("GetDefaultGroup"));
 		addCommands(new NameLayerGroupGui("OpenGUI"));
+		addCommands(new CreatePlayerType("CreatePlayerType"));
+		addCommands(new DeletePlayerType("DeletePlayerType"));
+		addCommands(new RenamePlayerType("RenamePlayerType"));
 	}
 }

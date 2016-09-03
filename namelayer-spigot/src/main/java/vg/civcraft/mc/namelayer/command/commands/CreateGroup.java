@@ -41,28 +41,12 @@ public class CreateGroup extends PlayerCommand {
 			return true;
 		}
 		
-		//enforce regulations on the name
+		//enforce regulations on the name	
 		if (name.length() > 32) {
 			p.sendMessage(ChatColor.RED + "The group name is not allowed to contain more than 32 characters");
 			return true;
 		}
-		Charset latin1 = StandardCharsets.ISO_8859_1;
-		boolean invalidChars = false;
-		if (!latin1.newEncoder().canEncode(name)) {
-			invalidChars = true;
-		}
-		//cant allow them to hurt mercury :(
-		if (name.contains("|")) {
-			invalidChars = true;
-		}
-		
-		for(char c:name.toCharArray()) {
-			if (Character.isISOControl(c)) {
-				invalidChars = true;
-			}
-		}
-		
-		if(invalidChars) {
+		if(!isConformName(name)) {
 			p.sendMessage(ChatColor.RED + "You used characters, which are not allowed");
 			return true;
 		}
@@ -95,5 +79,24 @@ public class CreateGroup extends PlayerCommand {
 
 	public List<String> tabComplete(CommandSender sender, String[] args) {
 		return null;
+	}
+	
+	public static boolean isConformName(String name) {
+		Charset latin1 = StandardCharsets.ISO_8859_1;
+		boolean invalidChars = false;
+		if (!latin1.newEncoder().canEncode(name)) {
+			invalidChars = true;
+		}
+		//cant allow them to hurt mercury :(
+		if (name.contains("|")) {
+			invalidChars = true;
+		}
+		
+		for(char c:name.toCharArray()) {
+			if (Character.isISOControl(c)) {
+				invalidChars = true;
+			}
+		}
+		return invalidChars;
 	}
 }

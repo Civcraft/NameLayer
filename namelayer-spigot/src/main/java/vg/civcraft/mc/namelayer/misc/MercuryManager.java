@@ -239,4 +239,21 @@ public class MercuryManager {
 		msg.append(newName);
 		MercuryAPI.sendGlobalMessage(msg.toString(), "namelayer");
 	}
+	
+	public static void notifyPromote(String group, UUID player, UUID executor, String oldRank, String newRank) {
+		if (isEnabled() == false)
+			return;
+		StringBuilder msg = new StringBuilder();
+		msg.append("promotePlayer|");
+		msg.append(group);
+		msg.append("|");
+		msg.append(player.toString());
+		msg.append("|");
+		msg.append(executor.toString());
+		msg.append("|");
+		msg.append(oldRank);
+		msg.append("|");
+		msg.append(newRank);
+		MercuryAPI.sendGlobalMessage(msg.toString(), "namelayer");
+	}
 }
