@@ -17,7 +17,7 @@ import vg.civcraft.mc.namelayer.events.GroupDeleteEvent;
 import vg.civcraft.mc.namelayer.events.GroupMergeEvent;
 import vg.civcraft.mc.namelayer.events.GroupTransferEvent;
 import vg.civcraft.mc.namelayer.group.Group;
-import vg.civcraft.mc.namelayer.misc.Mercury;
+import vg.civcraft.mc.namelayer.misc.MercuryManager;
 import vg.civcraft.mc.namelayer.permission.PermissionType;
 import vg.civcraft.mc.namelayer.permission.PlayerType;
 import vg.civcraft.mc.namelayer.permission.PlayerTypeHandler;
@@ -61,7 +61,7 @@ public class GroupManager{
 				event.getPassword());
 			group.setPlayerTypeHandler(PlayerTypeHandler.createStandardTypes(group));
 			groupManagerDao.batchSavePlayerTypeHandler(group.getPlayerTypeHandler());
-			Mercury.createGroup(group, id);
+			MercuryManager.createGroup(group, id);
 		} else {
 			id = group.getGroupId();
 			group.setPlayerTypeHandler(groupManagerDao.getPlayerTypes(group));
@@ -114,7 +114,7 @@ public class GroupManager{
 		group.setValid(false);
 		if (savetodb){
 			groupManagerDao.deleteGroup(groupName);
-			Mercury.deleteGroup(groupName);
+			MercuryManager.deleteGroup(groupName);
 		}
 		return true;
 	}
@@ -138,7 +138,7 @@ public class GroupManager{
 		if (savetodb){
 			g.addToTracking(uuid, g.getPlayerTypeHandler().getOwnerType());
 			g.setOwner(uuid);
-			Mercury.transferGroup(g, uuid);
+			MercuryManager.transferGroup(g, uuid);
 		} else {
 			g.addToTracking(uuid, g.getPlayerTypeHandler().getOwnerType(), false);
 			g.setOwner(uuid, false);
@@ -193,7 +193,7 @@ public class GroupManager{
 		toMerge.setDisciplined(true, false);
 		
 		if (savetodb){
-			Mercury.mergeGroup(group.getName(), toMerge.getName());
+			MercuryManager.mergeGroup(group.getName(), toMerge.getName());
 			// This basically just fires starting events and disciplines groups on target server.
 			// They then wait for merge to complete. Botched merges will lock groups, basically. :shrug:
 
@@ -210,7 +210,7 @@ public class GroupManager{
 
 					// Now we are done the merging process probably, so tell everyone to invalidate their caches for these
 					// two groups and perform any other cleanup (subgroup links,etc.)
-					Mercury.doneMergeGroup(group.getName(), toMerge.getName()); 
+					MercuryManager.doneMergeGroup(group.getName(), toMerge.getName()); 
 				}
 			});
 		}

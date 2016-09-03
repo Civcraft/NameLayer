@@ -6,7 +6,7 @@ import vg.civcraft.mc.mercury.MercuryAPI;
 import vg.civcraft.mc.namelayer.NameLayerPlugin;
 import vg.civcraft.mc.namelayer.group.Group;
 
-public class Mercury {
+public class MercuryManager {
 	private static boolean isEnabled(){
 		return NameLayerPlugin.isMercuryEnabled();
 	}

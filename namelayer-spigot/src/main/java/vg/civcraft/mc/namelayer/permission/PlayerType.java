@@ -6,7 +6,7 @@ import java.util.List;
 
 import vg.civcraft.mc.namelayer.NameLayerPlugin;
 import vg.civcraft.mc.namelayer.group.Group;
-import vg.civcraft.mc.namelayer.misc.Mercury;
+import vg.civcraft.mc.namelayer.misc.MercuryManager;
 
 public class PlayerType {
 
@@ -185,7 +185,7 @@ public class PlayerType {
 		}
 		perms.add(perm);
 		if (saveToDb) {
-			Mercury.addPerm(group.getName(), getId(), perm.getName());
+			MercuryManager.addPerm(group.getName(), getId(), perm.getName());
 			NameLayerPlugin.getGroupManagerDao().addPermissionAsync(group, this, perm);
 		}
 		return true;
@@ -212,7 +212,7 @@ public class PlayerType {
 		}
 		perms.remove(perm);
 		if (saveToDb) {
-			Mercury.remPerm(group.getName(), getId(), perm.getName());
+			MercuryManager.remPerm(group.getName(), getId(), perm.getName());
 			NameLayerPlugin.getGroupManagerDao().removePermissionAsync(group, this, perm);
 		}
 		return true;

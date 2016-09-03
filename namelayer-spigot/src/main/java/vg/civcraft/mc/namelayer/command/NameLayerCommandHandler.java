@@ -9,9 +9,7 @@ import vg.civcraft.mc.namelayer.command.commands.ChangePlayerName;
 import vg.civcraft.mc.namelayer.command.commands.CreateGroup;
 import vg.civcraft.mc.namelayer.command.commands.DeleteGroup;
 import vg.civcraft.mc.namelayer.command.commands.DisciplineGroup;
-import vg.civcraft.mc.namelayer.command.commands.GlobalStats;
 import vg.civcraft.mc.namelayer.command.commands.GroupStats;
-import vg.civcraft.mc.namelayer.command.commands.InfoDump;
 import vg.civcraft.mc.namelayer.command.commands.InvitePlayer;
 import vg.civcraft.mc.namelayer.command.commands.JoinGroup;
 import vg.civcraft.mc.namelayer.command.commands.LeaveGroup;
@@ -31,7 +29,6 @@ import vg.civcraft.mc.namelayer.command.commands.PromotePlayer;
 import vg.civcraft.mc.namelayer.command.commands.RevokeInvite;
 import vg.civcraft.mc.namelayer.command.commands.SetDefaultGroup;
 import vg.civcraft.mc.namelayer.command.commands.GetDefaultGroup;
-import vg.civcraft.mc.namelayer.command.commands.UpdateName;
 
 public class NameLayerCommandHandler extends vg.civcraft.mc.civmodcore.command.CommandHandler {
 	public Map<String, Command> commands = new HashMap<String, Command>();
@@ -41,9 +38,7 @@ public class NameLayerCommandHandler extends vg.civcraft.mc.civmodcore.command.C
 		addCommands(new CreateGroup("CreateGroup"));
 		addCommands(new DeleteGroup("DeleteGroup"));
 		addCommands(new DisciplineGroup("DisiplineGroup"));
-		addCommands(new GlobalStats("GlobalStats"));
 		addCommands(new GroupStats("GroupStats"));
-		addCommands(new InfoDump("InfoDump"));
 		addCommands(new InvitePlayer("InvitePlayer"));
 		addCommands(new JoinGroup("JoinGroup"));
 		addCommands(new ListGroups("ListGroups"));
@@ -63,7 +58,6 @@ public class NameLayerCommandHandler extends vg.civcraft.mc.civmodcore.command.C
 		addCommands(new ChangePlayerName("ChangePlayerName"));
 		addCommands(new SetDefaultGroup("SetDefaultGroup"));
 		addCommands(new GetDefaultGroup("GetDefaultGroup"));
-		addCommands(new UpdateName("UpdateName"));
 		addCommands(new NameLayerGroupGui("OpenGUI"));
 	}
 }

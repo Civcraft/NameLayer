@@ -14,7 +14,7 @@ import vg.civcraft.mc.namelayer.NameAPI;
 import vg.civcraft.mc.namelayer.NameLayerPlugin;
 import vg.civcraft.mc.namelayer.group.Group;
 import vg.civcraft.mc.namelayer.listeners.PlayerListener;
-import vg.civcraft.mc.namelayer.misc.Mercury;
+import vg.civcraft.mc.namelayer.misc.MercuryManager;
 import vg.civcraft.mc.namelayer.permission.PermissionType;
 
 public class RevokeInvite extends PlayerCommand {
@@ -94,7 +94,7 @@ public class RevokeInvite extends PlayerCommand {
 		
 		group.removeInvite(uuid, true);
 		PlayerListener.removeNotification(uuid, group);
-		Mercury.remInvite(group.getGroupId(), uuid);
+		MercuryManager.remInvite(group.getGroupId(), uuid);
 		
 		p.sendMessage(ChatColor.GREEN + NameAPI.getCurrentName(uuid) + "'s invitation has been revoked.");
 		return true;

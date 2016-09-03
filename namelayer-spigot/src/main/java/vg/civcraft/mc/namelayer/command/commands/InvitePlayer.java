@@ -20,7 +20,7 @@ import vg.civcraft.mc.namelayer.NameLayerPlugin;
 import vg.civcraft.mc.namelayer.command.NameLayerTabCompleter;
 import vg.civcraft.mc.namelayer.group.Group;
 import vg.civcraft.mc.namelayer.listeners.PlayerListener;
-import vg.civcraft.mc.namelayer.misc.Mercury;
+import vg.civcraft.mc.namelayer.misc.MercuryManager;
 import vg.civcraft.mc.namelayer.permission.PermissionType;
 import vg.civcraft.mc.namelayer.permission.PlayerType;
 import vg.civcraft.mc.namelayer.permission.PlayerTypeHandler;
@@ -80,11 +80,11 @@ public class InvitePlayer extends PlayerCommand {
 		}
 		if (!isAdmin) {
 			sendInvitation(group, pType, targetAccount, p.getUniqueId(), true);
-			Mercury.addInvite(group.getGroupId(), pType.toString(), targetAccount, p.getUniqueId().toString());
+			MercuryManager.addInvite(group.getGroupId(), pType.toString(), targetAccount, p.getUniqueId().toString());
 		}
 		else {
 			sendInvitation(group, pType, targetAccount, null, true);
-			Mercury.addInvite(group.getGroupId(), pType.toString(), targetAccount, null);
+			MercuryManager.addInvite(group.getGroupId(), pType.toString(), targetAccount, null);
 		}
 
 		s.sendMessage(ChatColor.GREEN + "The invitation has been sent." + "\n Use /nlri to Revoke an invite.");

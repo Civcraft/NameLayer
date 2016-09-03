@@ -24,7 +24,7 @@ import vg.civcraft.mc.namelayer.NameLayerPlugin;
 import vg.civcraft.mc.namelayer.GroupManager.PlayerType;
 import vg.civcraft.mc.namelayer.command.commands.InvitePlayer;
 import vg.civcraft.mc.namelayer.group.Group;
-import vg.civcraft.mc.namelayer.misc.Mercury;
+import vg.civcraft.mc.namelayer.misc.MercuryManager;
 import vg.civcraft.mc.namelayer.permission.PermissionType;
 
 public class InvitationGUI extends AbstractGroupGUI{
@@ -96,7 +96,7 @@ public class InvitationGUI extends AbstractGroupGUI{
 													+ "via gui");
 									InvitePlayer.sendInvitation(g, pType, inviteUUID, p.getUniqueId(), true);
 									
-									Mercury.addInvite(g.getGroupId(), pType.toString(), inviteUUID, p.getUniqueId().toString());
+									MercuryManager.addInvite(g.getGroupId(), pType.toString(), inviteUUID, p.getUniqueId().toString());
 
 									p.sendMessage(ChatColor.GREEN  + "Invited " + NameAPI.getCurrentName(inviteUUID) + " as " + PlayerType.getNiceRankName(pType));
 								}

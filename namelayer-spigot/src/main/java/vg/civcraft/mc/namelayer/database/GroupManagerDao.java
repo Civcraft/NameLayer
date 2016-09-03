@@ -1639,7 +1639,7 @@ public class GroupManagerDao {
 					String role = set.getString("role");
 					PlayerType type = null;
 					if(role != null){
-						type = PlayerType.getPlayerType(role);
+						type = group.getPlayerTypeHandler().getType(role);
 					}
 					group.addInvite(playerUUID, type, false);
 				}
@@ -1652,14 +1652,14 @@ public class GroupManagerDao {
 		}
 	}
 	
-	public Map<UUID, PlayerType> getInvitesForGroup(String groupName) {
+	public Map<UUID, PlayerType> getInvitesForGroup(Group group) {
 		Map <UUID, PlayerType> invs = new TreeMap<UUID, PlayerType>();
-		if (groupName == null) {
+		if (group == null) {
 			return invs;
 		}
 		try (Connection connection = db.getConnection();
 				PreparedStatement loadGroupInvitationsForGroup = connection.prepareStatement(this.loadGroupInvitationsForGroup);){
-			loadGroupInvitationsForGroup.setString(1, groupName);
+			loadGroupInvitationsForGroup.setString(1, group.getName());
 			try (ResultSet set = loadGroupInvitationsForGroup.executeQuery();) {
 				while(set.next()) {
 					String uuid = set.getString(1);
@@ -1670,17 +1670,17 @@ public class GroupManagerDao {
 					}
 					PlayerType pType = null;
 					if(role != null){
-						pType = PlayerType.getPlayerType(role);
+						pType = group.getPlayerTypeHandler().getType(role);
 					}
 					if (uuid != null && pType != null) {
 						invs.put(playerUUID, pType);
 					}
 				}
 			} catch (SQLException e) {
-				logger.log(Level.WARNING, "Problem loading group invitations for group " + groupName, e);
+				logger.log(Level.WARNING, "Problem loading group invitations for group " + group.getName(), e);
 			}
 		} catch (SQLException e) {
-			logger.log(Level.WARNING, "Problem preparing statement to load group invitations for group " + groupName, e);
+			logger.log(Level.WARNING, "Problem preparing statement to load group invitations for group " + group.getName(), e);
 		}
 		return invs;
 	}
@@ -1706,7 +1706,7 @@ public class GroupManagerDao {
 				}
 				PlayerType type = null;
 				if(role != null){
-					type = PlayerType.getPlayerType(role);
+					type = g.getPlayerTypeHandler().getType(role);
 				}
 				
 				if(g != null){

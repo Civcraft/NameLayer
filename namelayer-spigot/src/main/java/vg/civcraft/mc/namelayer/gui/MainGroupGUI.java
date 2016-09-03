@@ -32,7 +32,7 @@ import vg.civcraft.mc.namelayer.events.PromotePlayerEvent;
 import vg.civcraft.mc.namelayer.group.BlackList;
 import vg.civcraft.mc.namelayer.group.Group;
 import vg.civcraft.mc.namelayer.listeners.PlayerListener;
-import vg.civcraft.mc.namelayer.misc.Mercury;
+import vg.civcraft.mc.namelayer.misc.MercuryManager;
 import vg.civcraft.mc.namelayer.permission.PermissionType;
 
 public class MainGroupGUI extends AbstractGroupGUI {
@@ -318,7 +318,7 @@ public class MainGroupGUI extends AbstractGroupGUI {
 										+ " for group " + g.getName() + "via gui");
 								g.removeInvite(invitedUUID, true);
 								PlayerListener.removeNotification(invitedUUID, g);
-								Mercury.remInvite(g.getGroupId(), invitedUUID);
+								MercuryManager.remInvite(g.getGroupId(), invitedUUID);
 
 								p.sendMessage(ChatColor.GREEN + playerName
 										+ "'s invitation has been revoked.");

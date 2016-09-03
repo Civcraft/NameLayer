@@ -16,7 +16,7 @@ import vg.civcraft.mc.namelayer.GroupManager;
 import vg.civcraft.mc.namelayer.NameAPI;
 import vg.civcraft.mc.namelayer.NameLayerPlugin;
 import vg.civcraft.mc.namelayer.database.GroupManagerDao;
-import vg.civcraft.mc.namelayer.misc.Mercury;
+import vg.civcraft.mc.namelayer.misc.MercuryManager;
 import vg.civcraft.mc.namelayer.permission.PlayerType;
 import vg.civcraft.mc.namelayer.permission.PlayerTypeHandler;
 
@@ -291,7 +291,7 @@ public class Group {
 		}
 		if (savetodb) {
 			db.addMember(uuid, this, type);
-			Mercury.addMember(this.name, uuid.toString(), type.toString());
+			MercuryManager.addMember(this.name, uuid.toString(), type.toString());
 		}
 		players.put(uuid, type);
 	}
@@ -309,7 +309,7 @@ public class Group {
 	public void removeFromTracking(UUID uuid, boolean savetodb) {
 		if (savetodb) {
 			db.removeMember(uuid, this);
-			Mercury.remMember(this.name, uuid.toString());
+			MercuryManager.remMember(this.name, uuid.toString());
 		}
 		players.remove(uuid);
 	}
@@ -409,7 +409,7 @@ public class Group {
 		this.password = password;
 		if (savetodb) {
 			db.updatePassword(name, password);
-			Mercury.setPassword(this.name, password);
+			MercuryManager.setPassword(this.name, password);
 		}
 	}
 
@@ -427,7 +427,7 @@ public class Group {
 		this.owner = uuid;
 		if (savetodb) {
 			db.setFounder(uuid, this);
-			Mercury.setFounder(this.name, uuid.toString());
+			MercuryManager.setFounder(this.name, uuid.toString());
 		}
 	}
 
@@ -439,7 +439,7 @@ public class Group {
 		this.isDisciplined = value;
 		if (savetodb) {
 			db.setDisciplined(this, value);
-			Mercury.setDisciplined(this.name, this.isDisciplined);
+			MercuryManager.setDisciplined(this.name, this.isDisciplined);
 		}
 	}
 

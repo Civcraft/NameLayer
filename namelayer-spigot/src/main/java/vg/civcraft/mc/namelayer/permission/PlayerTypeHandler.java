@@ -9,7 +9,7 @@ import java.util.TreeMap;
 
 import vg.civcraft.mc.namelayer.NameLayerPlugin;
 import vg.civcraft.mc.namelayer.group.Group;
-import vg.civcraft.mc.namelayer.misc.Mercury;
+import vg.civcraft.mc.namelayer.misc.MercuryManager;
 
 /**
  * The different ranks players can have in a group. Ranks can dynamically be
@@ -205,7 +205,7 @@ public class PlayerTypeHandler {
 		typesByName.remove(type.getName());
 		typesById.remove(type.getId());
 		if (saveToD) {
-			Mercury.removePlayerType(group.getName(), type.getId());
+			MercuryManager.removePlayerType(group.getName(), type.getId());
 			NameLayerPlugin.getGroupManagerDao().removePlayerType(group, type);
 			NameLayerPlugin.getGroupManagerDao().removeAllPermissions(group, permsToRemove);
 		}
@@ -256,7 +256,7 @@ public class PlayerTypeHandler {
 		typesByName.put(type.getName(), type);
 		typesById.put(type.getId(), type);
 		if (saveToDb) {
-			Mercury.addPlayerType(group.getName(), type.getName(), type.getId(), type.getParent().getId());
+			MercuryManager.addPlayerType(group.getName(), type.getName(), type.getId(), type.getParent().getId());
 			NameLayerPlugin.getGroupManagerDao().addAllPermissions(group.getGroupId(), permissionsToSave);
 			NameLayerPlugin.getGroupManagerDao().registerPlayerType(group, type);
 		}
@@ -302,7 +302,7 @@ public class PlayerTypeHandler {
 		type.setName(name);
 		typesByName.put(name, type);
 		if (writeToDb) {
-			Mercury.renamePlayerType(group.getName(), type.getId(), name);
+			MercuryManager.renamePlayerType(group.getName(), type.getId(), name);
 			NameLayerPlugin.getGroupManagerDao().updatePlayerTypeName(group, type);
 		}
 	}
