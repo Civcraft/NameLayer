@@ -7,17 +7,14 @@ import org.bukkit.ChatColor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
+import vg.civcraft.mc.civmodcore.command.PlayerCommand;
 import vg.civcraft.mc.namelayer.GroupManager;
-import vg.civcraft.mc.namelayer.GroupManager.PlayerType;
 import vg.civcraft.mc.namelayer.NameAPI;
-import vg.civcraft.mc.namelayer.command.PlayerCommandMiddle;
-import vg.civcraft.mc.namelayer.command.TabCompleters.GroupMemberTabCompleter;
-import vg.civcraft.mc.namelayer.command.TabCompleters.GroupTabCompleter;
+import vg.civcraft.mc.namelayer.command.NameLayerTabCompleter;
 import vg.civcraft.mc.namelayer.group.Group;
-import vg.civcraft.mc.namelayer.permission.GroupPermission;
-import vg.civcraft.mc.namelayer.permission.PermissionType;
+import vg.civcraft.mc.namelayer.permission.PlayerType;
 
-public class RemoveMember extends PlayerCommandMiddle {
+public class RemoveMember extends PlayerCommand {
 
 	public RemoveMember(String name) {
 		super(name);
@@ -35,8 +32,9 @@ public class RemoveMember extends PlayerCommandMiddle {
 			return true;
 		}
 		Player p = (Player) sender;
-		Group group = gm.getGroup(args[0]);
-		if (groupIsNull(sender, args[0], group)) {
+		Group group = GroupManager.getGroup(args[0]);
+		if (group == null) {
+			p.sendMessage(ChatColor.RED + "This group doesn't exist");
 			return true;
 		}
 		if (group.isDisciplined()){
@@ -47,40 +45,15 @@ public class RemoveMember extends PlayerCommandMiddle {
 		UUID uuid = NameAPI.getUUID(args[1]);
 		
 		if (uuid == null){
-			p.sendMessage(ChatColor.RED + "The player has never played before.");
+			p.sendMessage(ChatColor.RED + "This player doesn't exist");
 			return true;
 		}
-		
-		String playerName = NameAPI.getCurrentName(uuid);
-		PlayerType t = group.getPlayerType(executor); // playertype for the player running the command.
-		PlayerType toBeRemoved = group.getPlayerType(uuid);
-		if (toBeRemoved == null){
-			p.sendMessage(ChatColor.RED + "That player is not on the group.");
-			return true;
-		}
-		boolean allowed = false;
-		switch (toBeRemoved){ // depending on the type the executor wants to add the player to
-		case MEMBERS:
-			allowed = gm.hasAccess(group, executor, PermissionType.getPermission("MEMBERS"));
-			break;
-		case MODS:
-			allowed = gm.hasAccess(group, executor, PermissionType.getPermission("MODS"));
-			break;
-		case ADMINS:
-			allowed = gm.hasAccess(group, executor, PermissionType.getPermission("ADMINS"));
-			break;
-		case OWNER:
-			allowed = gm.hasAccess(group, executor, PermissionType.getPermission("OWNER"));
-			break;
-		}
-		
-		if (!allowed && !(p.isOp() || p.hasPermission("namelayer.admin"))){
-			p.sendMessage(ChatColor.RED + "You do not have permissions to modify this group.");
-			return true;
-		}
-		
-		if (!group.isMember(uuid)){
-			p.sendMessage(ChatColor.RED + "That player is not on the group.");
+		//we need to ensure here that players cant extract who is on a group, based on the error message
+		//so a player not being on a group has to give the same error message as one being on the group,
+		//if you dont have the required permissions
+		PlayerType currentType = group.getPlayerType(uuid);
+		if (!group.isMember(uuid) || !NameAPI.getGroupManager().hasAccess(group, executor, currentType.getRemovalPermissionType())) {
+			p.sendMessage(ChatColor.RED + "Either " + NameAPI.getCurrentName(uuid) + " is not on the group or you don't have permission to remove him");
 			return true;
 		}
 		
@@ -90,7 +63,7 @@ public class RemoveMember extends PlayerCommandMiddle {
 			return true;
 		}
 		
-		p.sendMessage(ChatColor.GREEN + playerName + " has been removed from the group.");
+		p.sendMessage(ChatColor.GREEN + NameAPI.getCurrentName(uuid) + " has been removed from the group.");
 		group.removeFromTracking(uuid);
 		return true;
 	}
@@ -98,20 +71,21 @@ public class RemoveMember extends PlayerCommandMiddle {
 
 	@Override
 	public List<String> tabComplete(CommandSender sender, String[] args) {
-		if (!(sender instanceof Player))
+		if (!(sender instanceof Player)){
+			sender.sendMessage(ChatColor.RED + "I'm sorry baby, please run this as a player :)");
 			return null;
-
+		}
 		if (args.length < 2) {
-			if (args.length == 1)
-				return GroupTabCompleter.complete(args[0], null, (Player) sender);
-			else {
-				return GroupTabCompleter.complete(null, null, (Player)sender);
+			if (args.length == 0) {
+				return NameLayerTabCompleter.completeGroupWithPermission(null, null, (Player) sender);
 			}
-		}
-		if (args.length == 2) {
-			return GroupMemberTabCompleter.complete(args[0],args[1], (Player) sender);
-		}
+			else {
+				return NameLayerTabCompleter.completeGroupWithPermission(args[0], null, (Player)sender);
+			}
 
+		} else if (args.length == 2) {
+			return NameLayerTabCompleter.completeOnlinePlayer(args[1]);
+		}
 		return null;
 	}
 

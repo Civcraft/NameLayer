@@ -25,6 +25,8 @@ public class PlayerTypeHandler {
 	private Map<String, PlayerType> typesByName;
 	private Map<Integer, PlayerType> typesById;
 	private final static int MAXIMUM_TYPE_COUNT = 27;
+	private final static int OWNER_ID = 0;
+	private final static int DEFAULT_NON_MEMBER_ID = 4;
 
 	public PlayerTypeHandler(PlayerType root, Group group) {
 		this.root = root;
@@ -123,7 +125,7 @@ public class PlayerTypeHandler {
 	 * @return Owner player type
 	 */
 	public PlayerType getOwnerType() {
-		return typesById.get(0);
+		return typesById.get(OWNER_ID);
 	}
 
 	/**
@@ -136,7 +138,7 @@ public class PlayerTypeHandler {
 	 * @return Default-NonMember Player type
 	 */
 	public PlayerType getDefaultNonMemberType() {
-		return typesById.get(4);
+		return typesById.get(DEFAULT_NON_MEMBER_ID);
 	}
 
 	/**
@@ -251,14 +253,20 @@ public class PlayerTypeHandler {
 			type.addPermission(perm, false);
 		}
 		permissionsToSave.put(type, type.getParent().getAllPermissions());
-		// give all parents permissions to modify the new type
-		for (PlayerType parent : type.getAllParents()) {
-			parent.addPermission(invPerm, false);
-			parent.addPermission(removePerm, false);
-			List<PermissionType> perms = new LinkedList<PermissionType>();
-			perms.add(invPerm);
-			perms.add(removePerm);
-			permissionsToSave.put(parent, perms);
+		//dont give add/remove permission for default rank
+		if (type.getId() != DEFAULT_NON_MEMBER_ID) {
+			// give all parents permissions to modify the new type
+			for (PlayerType parent : type.getAllParents()) {
+				if (!isMemberType(parent)) {
+					continue;
+				}
+				parent.addPermission(invPerm, false);
+				parent.addPermission(removePerm, false);
+				List<PermissionType> perms = new LinkedList<PermissionType>();
+				perms.add(invPerm);
+				perms.add(removePerm);
+				permissionsToSave.put(parent, perms);
+			}
 		}
 		typesByName.put(type.getName().toLowerCase(), type);
 		typesById.put(type.getId(), type);
@@ -324,7 +332,7 @@ public class PlayerTypeHandler {
 	 * @return Completly initialized PlayerTypeHandler for new group
 	 */
 	public static PlayerTypeHandler createStandardTypes(Group g) {
-		PlayerType owner = new PlayerType("OWNER", 0, null, g);
+		PlayerType owner = new PlayerType("OWNER", OWNER_ID, null, g);
 		PlayerTypeHandler handler = new PlayerTypeHandler(owner, g);
 		for (PermissionType perm : PermissionType.getAllPermissions()) {
 			owner.addPermission(perm, true);
@@ -350,7 +358,7 @@ public class PlayerTypeHandler {
 				member.addPermission(perm, true);
 			}
 		}
-		PlayerType defaultNonMember = new PlayerType("DEFAULT", 4, owner, g);
+		PlayerType defaultNonMember = new PlayerType("DEFAULT", DEFAULT_NON_MEMBER_ID, owner, g);
 		handler.registerType(defaultNonMember, true);
 		for (PermissionType perm : PermissionType.getAllPermissions()) {
 			if (perm.getDefaultPermLevels().contains(4)) {
