@@ -190,6 +190,7 @@ public class PlayerTypeHandler {
 		}
 		PermissionType invPermission = PermissionType.getInvitePermission(type.getId());
 		PermissionType remPermission = PermissionType.getRemovePermission(type.getId());
+		PermissionType listPermission = PermissionType.getListPermission(type.getId());
 		Map<PlayerType, List<PermissionType>> permsToRemove = new HashMap<PlayerType, List<PermissionType>>();
 		for (PlayerType otherType : getAllTypes()) {
 			List<PermissionType> perms = new LinkedList<PermissionType>();
@@ -200,6 +201,10 @@ public class PlayerTypeHandler {
 			if (otherType.hasPermission(remPermission)) {
 				otherType.removePermission(remPermission, false);
 				perms.add(remPermission);
+			}
+			if (otherType.hasPermission(listPermission)) {
+				otherType.removePermission(listPermission, false);
+				perms.add(listPermission);
 			}
 			if (perms.size() != 0) {
 				permsToRemove.put(otherType, perms);
@@ -243,6 +248,7 @@ public class PlayerTypeHandler {
 		}
 		PermissionType invPerm = PermissionType.getInvitePermission(type.getId());
 		PermissionType removePerm = PermissionType.getRemovePermission(type.getId());
+		PermissionType listPermission = PermissionType.getListPermission(type.getId());
 		Map<PlayerType, List<PermissionType>> permissionsToSave = new HashMap<PlayerType, List<PermissionType>>();
 		// copy permissions from parent, we dont want to save the perm changes
 		// to the db directly, because we will batch them
@@ -262,6 +268,7 @@ public class PlayerTypeHandler {
 				}
 				parent.addPermission(invPerm, false);
 				parent.addPermission(removePerm, false);
+				parent.addPermission(listPermission, false);
 				List<PermissionType> perms = new LinkedList<PermissionType>();
 				perms.add(invPerm);
 				perms.add(removePerm);

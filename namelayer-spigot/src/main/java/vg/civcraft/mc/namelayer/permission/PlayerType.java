@@ -260,6 +260,13 @@ public class PlayerType {
 	public PermissionType getRemovalPermissionType() {
 		return PermissionType.getRemovePermission(getId());
 	}
+	
+	/**
+	 * @return The permission required to list players for this rank
+	 */
+	public PermissionType getListPermissionType() {
+		return PermissionType.getListPermission(getId());
+	}
 
 	@Override
 	public boolean equals(Object o) {

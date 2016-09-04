@@ -309,12 +309,12 @@ public class GroupManager{
 		return hasAccess(getGroup(groupname), player, perm);
 	}
 	
-	public boolean hasAccess(Group group, UUID player, PermissionType perm) {
+	public boolean hasAccess(Group group, UUID player, PermissionType ... perms) {
 		Player p = Bukkit.getPlayer(player);
 		if (p != null && (p.isOp() || p.hasPermission("namelayer.admin"))) {
 			return true;
 		}
-		if (group == null || player == null || perm == null) {
+		if (group == null || player == null || perms == null) {
 			NameLayerPlugin.getInstance().getLogger().log(Level.INFO, "hasAccess failed, caller passed in null", new Exception());
 			return false;
 		}
@@ -326,7 +326,12 @@ public class GroupManager{
 			}
 		}
 		PlayerType type = group.getPlayerType(player);
-		return type.hasPermission(perm);
+		for(PermissionType perm : perms) {
+			if (type.hasPermission(perm)) {
+				return true;
+			}
+		}
+		return false;
 	}
 	
 	public List<String> getAllGroupNames(UUID uuid){

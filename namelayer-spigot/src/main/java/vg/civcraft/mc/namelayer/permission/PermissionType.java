@@ -57,10 +57,9 @@ public class PermissionType {
 	}
 
 	/**
-	 * Don't use this, specify your permissions with a description instead
+	 * Only used internally, specify your permissions with a description instead
 	 */
-	@Deprecated
-	public static void registerPermission(String name, List<Integer> defaultPermLevels) {
+	private static void registerPermission(String name, List<Integer> defaultPermLevels) {
 		registerPermission(name, defaultPermLevels, null);
 	}
 
@@ -116,31 +115,163 @@ public class PermissionType {
 		permissionByName.put(name, p);
 		permissionById.put(id, p);
 	}
-	
+
+	/**
+	 * Gets the permission type required to invite or add players to the player
+	 * type with the given id. This permission is independent from the group it
+	 * is applied to, it will allow inviting to the player type with the given
+	 * id for any group
+	 * 
+	 * @param id
+	 *            ID of the player type to get the invite permission for
+	 * @return Invite permission for the given id
+	 */
 	public static PermissionType getInvitePermission(int id) {
 		String invitePermName = "invitePlayer#" + id;
 		PermissionType invPerm = PermissionType.getPermission(invitePermName);
 		if (invPerm == null) {
-			//register type, because it was never used before, we do this with the deprecated register without a description
-			//because any further description is handled by the UI and dependent on the current name of the rank
+			// register type, because it was never used before, we do this with
+			// the deprecated register without a description
+			// because any further description is handled by the UI and
+			// dependent on the current name of the rank
 			registerPermission(invitePermName, new LinkedList<Integer>());
 			invPerm = getPermission(invitePermName);
 		}
 		return invPerm;
 	}
-	
+
+	/**
+	 * Gets the permission type required to remove players from the player type
+	 * with the given id. This permission is independent from the group it is
+	 * applied to, it will allow removing from the player type with the given id
+	 * for any group
+	 * 
+	 * @param id
+	 *            ID of the player type to get the remove permission for
+	 * @return Remove permission for the given id
+	 */
 	public static PermissionType getRemovePermission(int id) {
 		String removePermName = "removePlayer#" + id;
 		PermissionType removePerm = PermissionType.getPermission(removePermName);
 		if (removePerm == null) {
-			//register type, because it was never used before, we do this with the deprecated register without a description
-			//because any further description is handled by the UI and dependent on the current name of the rank
+			// register type, because it was never used before, we do this with
+			// the deprecated register without a description
+			// because any further description is handled by the UI and
+			// dependent on the current name of the rank
 			registerPermission(removePermName, new LinkedList<Integer>());
 			removePerm = getPermission(removePermName);
 		}
 		return removePerm;
 	}
+	
+	/**
+	 * Gets the permission type required to list players for a player type
+	 * with the given id. This permission is independent from the group it is
+	 * applied to, it will allow listing members for the player type with the given id
+	 * for any group
+	 * 
+	 * @param id
+	 *            ID of the player type to get the list permission for
+	 * @return List permission for the given id
+	 */
+	public static PermissionType getListPermission(int id) {
+		String listPermName = "listPlayer#" + id;
+		PermissionType listPerm = PermissionType.getPermission(listPermName);
+		if (listPerm == null) {
+			// register type, because it was never used before, we do this with
+			// the deprecated register without a description
+			// because any further description is handled by the UI and
+			// dependent on the current name of the rank
+			registerPermission(listPermName, new LinkedList<Integer>());
+			listPerm = getPermission(listPermName);
+		}
+		return listPerm;
+	}
 
+	/**
+	 * Checks if the given PermissionType is a player type removal permission
+	 * and if it is, it returns the id for which this permission allows removing
+	 * members. If it is not a removal permission -1 will be returned
+	 * 
+	 * @param perm
+	 *            PermissionType to check
+	 * @return removal id of the given perm or -1 if it isn't a removal perm
+	 */
+	public static int getRemovePermissionId(PermissionType perm) {
+		if (perm.getDescription() != null) {
+			return -1;
+		}
+		String [] parts = perm.getName().split("#");
+		if (parts.length != 2) {
+			return -1;
+		}
+		if (!parts [0].equals("removePlayer")) {
+			return -1;
+		}
+		try {
+			return Integer.parseInt(parts[1]);
+		}
+		catch(NumberFormatException e) {
+			return -1;
+		}
+	}
+	
+	/**
+	 * Checks if the given PermissionType is a player type invite permission
+	 * and if it is, it returns the id for which this permission allows inviting
+	 * members. If it is not an invite permission -1 will be returned
+	 * 
+	 * @param perm
+	 *            PermissionType to check
+	 * @return invite id of the given perm or -1 if it isn't a invitation perm
+	 */
+	public static int getInvitePermissionId(PermissionType perm) {
+		if (perm.getDescription() != null) {
+			return -1;
+		}
+		String [] parts = perm.getName().split("#");
+		if (parts.length != 2) {
+			return -1;
+		}
+		if (!parts [0].equals("invitePlayer")) {
+			return -1;
+		}
+		try {
+			return Integer.parseInt(parts[1]);
+		}
+		catch(NumberFormatException e) {
+			return -1;
+		}
+	}
+
+	/**
+	 * Checks if the given PermissionType is a player type list permission
+	 * and if it is, it returns the id for which this permission allows listing
+	 * members. If it is not a list permission -1 will be returned
+	 * 
+	 * @param perm
+	 *            PermissionType to check
+	 * @return list id of the given perm or -1 if it isn't a listing perm
+	 */
+	public static int getListPermissionId(PermissionType perm) {
+		if (perm.getDescription() != null) {
+			return -1;
+		}
+		String [] parts = perm.getName().split("#");
+		if (parts.length != 2) {
+			return -1;
+		}
+		if (!parts [0].equals("listPlayer")) {
+			return -1;
+		}
+		try {
+			return Integer.parseInt(parts[1]);
+		}
+		catch(NumberFormatException e) {
+			return -1;
+		}
+	}
+	
 	/**
 	 * @return All existing permissions
 	 */

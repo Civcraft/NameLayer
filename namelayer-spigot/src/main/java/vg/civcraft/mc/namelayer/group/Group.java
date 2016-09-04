@@ -1,6 +1,7 @@
 package vg.civcraft.mc.namelayer.group;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -220,6 +221,13 @@ public class Group {
 		if (saveToDB) {
 			db.removeGroupInvitationAsync(uuid, this);
 		}
+	}
+	
+	/**
+	 * @return All invites pending
+	 */
+	public Map <UUID, PlayerType> dumpInvites() {
+		return new HashMap<UUID, PlayerType>(invites);
 	}
 
 	/**
