@@ -1,6 +1,7 @@
 package vg.civcraft.mc.namelayer.gui;
 
 import java.util.ArrayList;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.logging.Level;
 
@@ -16,10 +17,14 @@ import org.bukkit.inventory.meta.LeatherArmorMeta;
 import vg.civcraft.mc.civmodcore.inventorygui.Clickable;
 import vg.civcraft.mc.civmodcore.inventorygui.ClickableInventory;
 import vg.civcraft.mc.civmodcore.inventorygui.DecorationStack;
+import vg.civcraft.mc.civmodcore.inventorygui.IClickable;
+import vg.civcraft.mc.civmodcore.inventorygui.MultiPageView;
 import vg.civcraft.mc.civmodcore.itemHandling.ISUtils;
 import vg.civcraft.mc.namelayer.NameLayerPlugin;
 import vg.civcraft.mc.namelayer.group.Group;
 import vg.civcraft.mc.namelayer.permission.PermissionType;
+import vg.civcraft.mc.namelayer.permission.PlayerType;
+import vg.civcraft.mc.namelayer.permission.PlayerTypeHandler;
 
 public class PermissionManageGUI extends AbstractGroupGUI {
 
@@ -37,26 +42,17 @@ public class PermissionManageGUI extends AbstractGroupGUI {
 		if (!validGroup()) {
 			return;
 		}
-		//dye blacklisted clickable black
-		Clickable blackClick = produceSelectionClickable(Material.LEATHER_CHESTPLATE, PlayerType.NOT_BLACKLISTED);
-		ItemStack blackStack = blackClick.getItemStack();
-		LeatherArmorMeta meta = (LeatherArmorMeta)blackStack.getItemMeta();
-		meta.setColor(Color.BLACK);
-		blackStack.setItemMeta(meta);
-		ci.setSlot(blackClick, 9);
-		ci.setSlot(
-				produceSelectionClickable(Material.LEATHER_CHESTPLATE,
-						PlayerType.MEMBERS), 11);
-		ci.setSlot(
-				produceSelectionClickable(Material.GOLD_CHESTPLATE,
-						PlayerType.MODS), 13);
-		ci.setSlot(
-				produceSelectionClickable(Material.IRON_CHESTPLATE,
-						PlayerType.ADMINS), 15);
-		ci.setSlot(
-				produceSelectionClickable(Material.DIAMOND_CHESTPLATE,
-						PlayerType.OWNER), 17);
-		ItemStack backStack = new ItemStack(Material.ARROW);
+		List <IClickable> clicks = new LinkedList<IClickable>();
+		PlayerTypeHandler handler = g.getPlayerTypeHandler();
+		for(PlayerType type: handler.getAllTypes()) {
+			ItemStack is = MenuUtils.getPlayerTypeStack(type);
+			ISUtils.setName(is, ChatColor.GOLD + type.getName());
+			ISUtils.addLore(is, ChatColor.GREEN + "Click to edit this rank, add child ranks and view or edit permissions for it");
+		}
+		IClickable click;
+		
+		
+		
 		ISUtils.setName(backStack, ChatColor.GOLD
 				+ "Go back to member management");
 		ci.setSlot(new Clickable(backStack) {

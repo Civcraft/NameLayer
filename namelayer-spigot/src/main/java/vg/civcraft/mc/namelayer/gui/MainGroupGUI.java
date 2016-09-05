@@ -14,16 +14,12 @@ import java.util.logging.Level;
 
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
-import org.bukkit.Color;
 import org.bukkit.Material;
-import org.bukkit.OfflinePlayer;
 import org.bukkit.enchantments.Enchantment;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
-import org.bukkit.inventory.meta.LeatherArmorMeta;
-import org.bukkit.material.Torch;
 
 import vg.civcraft.mc.civmodcore.chatDialog.Dialog;
 import vg.civcraft.mc.civmodcore.inventorygui.Clickable;
@@ -31,7 +27,6 @@ import vg.civcraft.mc.civmodcore.inventorygui.ClickableInventory;
 import vg.civcraft.mc.civmodcore.inventorygui.DecorationStack;
 import vg.civcraft.mc.civmodcore.inventorygui.IClickable;
 import vg.civcraft.mc.civmodcore.itemHandling.ISUtils;
-import vg.civcraft.mc.mercury.MercuryAPI;
 import vg.civcraft.mc.namelayer.NameAPI;
 import vg.civcraft.mc.namelayer.NameLayerPlugin;
 import vg.civcraft.mc.namelayer.events.PromotePlayerEvent;
@@ -110,8 +105,6 @@ public class MainGroupGUI extends AbstractGroupGUI {
 		}
 
 		// options
-
-		ci.setSlot(createInheritedMemberToggle(), 46);
 		ci.setSlot(createInviteToggle(), 47);
 
 		// exit button
@@ -150,7 +143,7 @@ public class MainGroupGUI extends AbstractGroupGUI {
 			if (!shownTypes.contains(type)) {
 				continue;
 			}
-			ItemStack example = MenuUtils.getPlayerTypeStack(type.getId());
+			ItemStack example = MenuUtils.getPlayerTypeStack(type);
 			boolean blackListed = handler.isBlackListedType(type);
 			boolean hasPerm = gm.hasAccess(g, p.getUniqueId(), type.getRemovalPermissionType());
 			for (final UUID uuid : g.getAllTrackedByType(type)) {
@@ -191,7 +184,7 @@ public class MainGroupGUI extends AbstractGroupGUI {
 				if (!gm.hasAccess(g, p.getUniqueId(), type.getInvitePermissionType(), type.getListPermissionType())) {
 					continue;
 				}
-				ItemStack is = MenuUtils.getPlayerTypeStack(type.getId());
+				ItemStack is = MenuUtils.getPlayerTypeStack(type);
 				ItemMeta im = is.getItemMeta();
 				im.addItemFlags(ItemFlag.HIDE_ATTRIBUTES, ItemFlag.HIDE_ENCHANTS);
 				im.addEnchant(Enchantment.DURABILITY, 1, true);
@@ -269,7 +262,7 @@ public class MainGroupGUI extends AbstractGroupGUI {
 		final PlayerType currentType = g.getPlayerType(uuid);
 		boolean hasExitPermission = gm.hasAccess(g, p.getUniqueId(), currentType.getRemovalPermissionType());
 		List<Clickable> clicks = new LinkedList<Clickable>();
-		ItemStack removeStack = MenuUtils.getPlayerTypeStack(currentType.getId());
+		ItemStack removeStack = MenuUtils.getPlayerTypeStack(currentType);
 		Clickable removeClick;
 		if (hasExitPermission) {
 			ISUtils.setName(removeStack, ChatColor.GREEN + "Remove " + playerName);
@@ -290,7 +283,7 @@ public class MainGroupGUI extends AbstractGroupGUI {
 			if (type == currentType) {
 				continue;
 			}
-			ItemStack is = MenuUtils.getPlayerTypeStack(type.getId());
+			ItemStack is = MenuUtils.getPlayerTypeStack(type);
 			boolean canChange = hasExitPermission && gm.hasAccess(g, p.getUniqueId(), type.getInvitePermissionType());
 			Clickable c;
 			if (canChange) {
@@ -402,85 +395,47 @@ public class MainGroupGUI extends AbstractGroupGUI {
 		Clickable c;
 		ItemStack is = new ItemStack(Material.LEASH);
 		ISUtils.setName(is, ChatColor.GOLD + "Add player to blacklist");
-		if (gm.hasAccess(g, p.getUniqueId(), PermissionType.getPermission("BLACKLIST"))) {
-			c = new Clickable(is) {
-
-				@Override
-				public void clicked(final Player p) {
-					p.sendMessage(ChatColor.GOLD
-							+ "Enter the name of the player to blacklist or \"cancel\" to exit this prompt");
-					ClickableInventory.forceCloseInventory(p);
-					Dialog dia = new Dialog(p, NameLayerPlugin.getInstance()) {
-
-						@Override
-						public List<String> onTabComplete(String word, String[] msg) {
-							List<String> names;
-							if (NameLayerPlugin.isMercuryEnabled()) {
-								names = new LinkedList<String>(MercuryAPI.getAllPlayers());
-							} else {
-								names = new LinkedList<String>();
-								for (Player p : Bukkit.getOnlinePlayers()) {
-									names.add(p.getName());
-								}
-							}
-							if (word.equals("")) {
-								return names;
-							}
-							List<String> result = new LinkedList<String>();
-							String comp = word.toLowerCase();
-							for (String s : names) {
-								if (s.toLowerCase().startsWith(comp)) {
-									result.add(s);
-								}
-							}
-							return result;
-						}
-
-						@Override
-						public void onReply(String[] message) {
-							if (message[0].equalsIgnoreCase("cancel")) {
-								showScreen();
-								return;
-							}
-							if (gm.hasAccess(g, p.getUniqueId(), PermissionType.getPermission("BLACKLIST"))) {
-								boolean didSomething = false;
-								for (String playerName : message) {
-									UUID blackUUID = NameAPI.getUUID(playerName);
-									if (blackUUID == null) {
-										p.sendMessage(ChatColor.RED + playerName + " doesn't exist");
-										continue;
-									}
-									if (g.isMember(blackUUID)) {
-										p.sendMessage(ChatColor.RED + NameAPI.getCurrentName(blackUUID)
-												+ " is currently a member of this group and can't be blacklisted");
-										continue;
-									}
-									if (bl.isBlacklisted(g, blackUUID)) {
-										p.sendMessage(ChatColor.RED + NameAPI.getCurrentName(blackUUID)
-												+ " is already blacklisted");
-										continue;
-									}
-									didSomething = true;
-									NameLayerPlugin.log(Level.INFO,
-											p.getName() + " blacklisted " + NameAPI.getCurrentName(blackUUID)
-													+ " for group " + g.getName() + "via gui");
-									bl.addBlacklistMember(g, blackUUID, true);
-									p.sendMessage(ChatColor.GREEN + NameAPI.getCurrentName(blackUUID)
-											+ " was successfully blacklisted");
-								}
-							} else {
-								p.sendMessage(ChatColor.RED + "You lost permission to do this");
-							}
-							showScreen();
-						}
-					};
-
-				}
-			};
-		} else {
-			ISUtils.addLore(is, ChatColor.RED + "You don't have permission to do this");
-			c = new DecorationStack(is);
+		final List<PlayerType> blackListTypes = new LinkedList<PlayerType>();
+		PlayerTypeHandler handler = g.getPlayerTypeHandler();
+		for (PlayerType type : handler.getAllTypes()) {
+			if (handler.isBlackListedType(type)) {
+				blackListTypes.add(type);
+			}
 		}
+		if (blackListTypes.size() == 0) {
+			ISUtils.addLore(is, ChatColor.RED + "There are currently no blacklist types for this group!");
+			c = new DecorationStack(is);
+			return c;
+		}
+		if (blackListTypes.size() == 1) {
+			final PlayerType type = blackListTypes.get(0);
+			if (gm.hasAccess(g, p.getUniqueId(), type.getInvitePermissionType())) {
+				ISUtils.addLore(is, ChatColor.GREEN + "Click to add a player as " + type.getName());
+				c = new Clickable(is) {
+
+					@Override
+					public void clicked(Player arg0) {
+						BlackListGUI blgui = new BlackListGUI(g, p, MainGroupGUI.this);
+						blgui.selectName(type);
+
+					}
+				};
+			} else {
+				ISUtils.addLore(is, ChatColor.RED + "You don't have permission to do this");
+				c = new DecorationStack(is);
+			}
+			return c;
+		}
+
+		c = new Clickable(is) {
+
+			@Override
+			public void clicked(final Player p) {
+				BlackListGUI blgui = new BlackListGUI(g, p, MainGroupGUI.this);
+				blgui.showScreen();
+			}
+		};
+
 		return c;
 	}
 

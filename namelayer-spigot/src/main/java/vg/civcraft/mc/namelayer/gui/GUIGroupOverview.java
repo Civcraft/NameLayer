@@ -160,7 +160,7 @@ public class GUIGroupOverview {
 				ISUtils.addLore(is, ChatColor.AQUA + "Your rank: Primary owner");
 			}
 			else {
-				is = MenuUtils.getPlayerTypeStack(pType.getId());
+				is = MenuUtils.getPlayerTypeStack(pType);
 				ISUtils.addLore(is, ChatColor.AQUA + "Your rank: " + pType.getName());
 			}
 			ItemMeta im = is.getItemMeta();
@@ -188,7 +188,7 @@ public class GUIGroupOverview {
 
 					@Override
 					public void clicked(Player arg0) {
-						MainGroupGUI mgui = new MainGroupGUI(p, g);
+						new MainGroupGUI(p, g);
 					}
 				};
 			} else {
@@ -213,7 +213,7 @@ public class GUIGroupOverview {
 				p.sendMessage(ChatColor.YELLOW
 						+ "Enter the name of your new group or \"cancel\" to exit this prompt");
 				ClickableInventory.forceCloseInventory(p);
-				Dialog dia = new Dialog(p, NameLayerPlugin.getInstance()) {
+				new Dialog(p, NameLayerPlugin.getInstance()) {
 
 					@Override
 					public List<String> onTabComplete(String wordCompleted,
@@ -308,7 +308,7 @@ public class GUIGroupOverview {
 			public void clicked(final Player p) {
 				p.sendMessage(ChatColor.YELLOW + "Enter the name of the group or \"cancel\" to leave this prompt");
 				ClickableInventory.forceCloseInventory(p);
-				Dialog dia = new Dialog(p, NameLayerPlugin.getInstance()) {
+				new Dialog(p, NameLayerPlugin.getInstance()) {
 					
 					@Override
 					public List<String> onTabComplete(String wordCompleted, String[] fullMessage) {
@@ -339,7 +339,7 @@ public class GUIGroupOverview {
 							return;
 						}
 						p.sendMessage(ChatColor.YELLOW + "Enter the group password");
-						Dialog passDia = new Dialog(p, NameLayerPlugin.getInstance()) {
+						new Dialog(p, NameLayerPlugin.getInstance()) {
 							
 							@Override
 							public List<String> onTabComplete(String wordCompleted, String[] fullMessage) {

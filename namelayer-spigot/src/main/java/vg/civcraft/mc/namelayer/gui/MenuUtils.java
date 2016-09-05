@@ -7,6 +7,7 @@ import org.bukkit.Material;
 import org.bukkit.inventory.ItemStack;
 
 import vg.civcraft.mc.civmodcore.itemHandling.ISUtils;
+import vg.civcraft.mc.namelayer.permission.PlayerType;
 
 public class MenuUtils {
 	public static ItemStack toggleButton(boolean initState, String name, boolean canModify) {
@@ -34,7 +35,8 @@ public class MenuUtils {
 		return null; // TODO?
 	}
 	
-	public static ItemStack getPlayerTypeStack(int id) {
+	public static ItemStack getPlayerTypeStack(PlayerType type) {
+		int id = type.getName().hashCode() % 112;
 		if (id < 16) {
 			ItemStack is = new ItemStack(Material.STAINED_CLAY);
 			is.setDurability((short) id);
@@ -53,6 +55,21 @@ public class MenuUtils {
 		if (id < 64) {
 			ItemStack is = new ItemStack(Material.STAINED_GLASS_PANE);
 			is.setDurability((short) (id - 48));
+			return is;
+		}
+		if (id < 80) {
+			ItemStack is = new ItemStack(Material.CARPET);
+			is.setDurability((short) (id - 64));
+			return is;
+		}
+		if (id < 96) {
+			ItemStack is = new ItemStack(Material.BANNER);
+			is.setDurability((short) (id - 80));
+			return is;
+		}
+		if (id < 112) {
+			ItemStack is = new ItemStack(Material.INK_SACK);
+			is.setDurability((short) (id - 96));
 			return is;
 		}
 		return new ItemStack(Material.OBSIDIAN);
