@@ -59,6 +59,12 @@ commands:
    nlgdg:
     aliases: [nlgetdefaultgroup, nlgetdefault, getdefaultgroup]
    nl:
+   nlapt:
+    aliases: [nlcpt, nlcreateplayertype, createplayertype, addplayertype, nladdplayertype]
+   nlrpt:
+    aliases: [nlrenameplayertype, nlchangeplayertypename, changeplayertypename, renameplayertype, renamerank]
+   nldpt:
+    aliases: [nldeleteplayertype, deleteplayertype, nlremoveplayertype, removeplayertype]
 
 permissions:
    namelayer.admin:
