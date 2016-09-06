@@ -34,24 +34,6 @@ public class AdminFunctionsGUI extends AbstractGroupGUI {
 
 	public void showScreen() {
 		ClickableInventory ci = new ClickableInventory(27, g.getName());
-		// linking
-		ItemStack linkStack = new ItemStack(Material.GOLD_INGOT);
-		ISUtils.setName(linkStack, ChatColor.GOLD + "Link group");
-		Clickable linkClick;
-		if (gm.hasAccess(g, p.getUniqueId(),
-				PermissionType.getPermission("LINKING"))) {
-			linkClick = new Clickable(linkStack) {
-				@Override
-				public void clicked(Player p) {
-					showLinkingMenu();
-				}
-			};
-		} else {
-			ISUtils.addLore(linkStack, ChatColor.RED
-					+ "You don't have permission to do this");
-			linkClick = new DecorationStack(linkStack);
-		}
-		ci.setSlot(linkClick, 10);
 		// merging
 		ItemStack mergeStack = new ItemStack(Material.SPONGE);
 		ISUtils.setName(mergeStack, ChatColor.GOLD + "Merge group");
@@ -120,11 +102,6 @@ public class AdminFunctionsGUI extends AbstractGroupGUI {
 		ci.showInventory(p);
 	}
 
-	private void showLinkingMenu() {
-		LinkingGUI lgui = new LinkingGUI(g, p, this);
-		lgui.showScreen();
-	}
-
 	private void showMergingMenu() {
 		MergeGUI mGui = new MergeGUI(g, p, this);
 		mGui.showScreen();
@@ -134,7 +111,7 @@ public class AdminFunctionsGUI extends AbstractGroupGUI {
 		p.sendMessage(ChatColor.GOLD
 				+ "Enter the name of the new primary owner or \"cancel\" to exit this prompt");
 		ClickableInventory.forceCloseInventory(p);
-		Dialog dia = new Dialog(p, NameLayerPlugin.getInstance()) {
+		new Dialog(p, NameLayerPlugin.getInstance()) {
 
 			@Override
 			public List<String> onTabComplete(String word, String[] arg1) {

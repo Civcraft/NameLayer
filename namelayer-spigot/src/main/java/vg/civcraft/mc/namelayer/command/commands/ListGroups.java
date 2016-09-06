@@ -7,12 +7,12 @@ import org.bukkit.ChatColor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
+import vg.civcraft.mc.civmodcore.command.PlayerCommand;
 import vg.civcraft.mc.namelayer.GroupManager;
 import vg.civcraft.mc.namelayer.NameAPI;
-import vg.civcraft.mc.namelayer.command.PlayerCommandMiddle;
 import vg.civcraft.mc.namelayer.group.Group;
 
-public class ListGroups extends PlayerCommandMiddle {
+public class ListGroups extends PlayerCommand {
 
 	public ListGroups(String name) {
 		super(name);
@@ -45,7 +45,7 @@ public class ListGroups extends PlayerCommandMiddle {
 			uuid = NameAPI.getUUID(p.getName());
 		}
 		
-		List<String> groups = gm.getAllGroupNames(uuid);
+		List<String> groups = NameAPI.getGroupManager().getAllGroupNames(uuid);
 		
 		int pages = (groups.size() / 10);
 		if (groups.size() % 10 > 0) {
@@ -87,12 +87,13 @@ public class ListGroups extends PlayerCommandMiddle {
 			for (int x = first; x < first + 10 && x < groups.size(); x++){
 				Group g = GroupManager.getGroup(groups.get(x));
 				sb.append(String.format("%s : (%s)\n", 
-				        g.getName(), g.getPlayerType(uuid).toString()));
+				        g.getName(), g.getPlayerType(uuid).getName()));
 			}
 		}
 		sender.sendMessage(sb.toString());
 		return true;
 	}
+	
 	public List<String> tabComplete(CommandSender sender, String[] args) {
 		return null;
 	}

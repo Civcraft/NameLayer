@@ -3,6 +3,8 @@ package vg.civcraft.mc.namelayer.listeners;
 import java.util.UUID;
 
 import org.bukkit.Bukkit;
+import org.bukkit.ChatColor;
+import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
@@ -10,17 +12,16 @@ import org.bukkit.event.Listener;
 import vg.civcraft.mc.mercury.MercuryAPI;
 import vg.civcraft.mc.mercury.events.AsyncPluginBroadcastMessageEvent;
 import vg.civcraft.mc.namelayer.GroupManager;
-import vg.civcraft.mc.namelayer.GroupManager.PlayerType;
 import vg.civcraft.mc.namelayer.NameLayerPlugin;
 import vg.civcraft.mc.namelayer.command.commands.InvitePlayer;
 import vg.civcraft.mc.namelayer.NameAPI;
 import vg.civcraft.mc.namelayer.events.GroupAddInvitation;
 import vg.civcraft.mc.namelayer.events.GroupInvalidationEvent;
 import vg.civcraft.mc.namelayer.events.GroupRemoveInvitation;
-import vg.civcraft.mc.namelayer.group.BlackList;
 import vg.civcraft.mc.namelayer.group.Group;
-import vg.civcraft.mc.namelayer.permission.GroupPermission;
 import vg.civcraft.mc.namelayer.permission.PermissionType;
+import vg.civcraft.mc.namelayer.permission.PlayerType;
+import vg.civcraft.mc.namelayer.permission.PlayerTypeHandler;
 
 public class MercuryMessageListener implements Listener{
 	
@@ -95,7 +96,7 @@ public class MercuryMessageListener implements Listener{
 		}
 		else if (reason.equals("addInvitation")){
 			Group playerGroup = GroupManager.getGroup(Integer.parseInt(groupname));
-			PlayerType pType = PlayerType.getPlayerType(message[2]);
+			PlayerType pType = playerGroup.getPlayerTypeHandler().getType(message[2]);
 			UUID invitedPlayerUUID = UUID.fromString(message[3]);
 			UUID inviterUUID = null;
 			if(message.length >= 5){
@@ -127,16 +128,16 @@ public class MercuryMessageListener implements Listener{
 		else if (reason.equals("addMember")){
 			Group group = GroupManager.getGroup(groupname);
 			UUID uuid = UUID.fromString(message[2]);
-			PlayerType type = PlayerType.getPlayerType(message[3]);
+			PlayerType type = group.getPlayerTypeHandler().getType(message [3]);
 			if (group != null && uuid != null){
-				group.addMember(uuid, type, false);
+				group.addToTracking(uuid, type, false);
 			}
 		}
 		else if (reason.equals("removeMember")){
 			Group group = GroupManager.getGroup(groupname);
 			UUID uuid = UUID.fromString(message[2]);
 			if (group != null && uuid != null){
-				group.removeMember(uuid, false);
+				group.removeFromTracking(uuid, false);
 			}
 		}
 		else if (reason.equals("setOwner")){
@@ -153,50 +154,20 @@ public class MercuryMessageListener implements Listener{
 				group.setPassword(pass, false);
 			}
 		}
-		else if (reason.equals("link")){
-			Group supgroup = GroupManager.getGroup(groupname);
-			Group subgroup = GroupManager.getGroup(message[2]);
-			if (supgroup != null && subgroup != null){
-				Group.link(supgroup, subgroup, false);
-			}
-		}
-		else if (reason.equals("unlink")){
-			Group supgroup = GroupManager.getGroup(groupname);
-			Group subgroup = GroupManager.getGroup(message[2]);
-			if (supgroup != null && subgroup != null){
-				Group.unlink(supgroup, subgroup, false);
-			}
-		}
 		else if (reason.equals("permadd")){
 			Group group = GroupManager.getGroup(groupname);
-			PlayerType ptype = PlayerType.valueOf(message[2]);
+			PlayerType ptype = group.getPlayerTypeHandler().getType(Integer.parseInt(message [2]));
 			PermissionType permt = PermissionType.getPermission(message[3]);
 			if (group != null){
-				GroupPermission perms = gm.getPermissionforGroup(group);
-				perms.addPermission(ptype, permt, false);
+				ptype.addPermission(permt, false);
 			}
 		}
 		else if (reason.equals("permrem")){
 			Group group = GroupManager.getGroup(groupname);
-			PlayerType ptype = PlayerType.valueOf(message[2]);
+			PlayerType ptype = group.getPlayerTypeHandler().getType(Integer.parseInt(message [2]));
 			PermissionType permt = PermissionType.getPermission(message[3]);
 			if (group != null){
-				GroupPermission perms = gm.getPermissionforGroup(group);
-				perms.removePermission(ptype, permt, false);
-			}
-		}
-		else if (reason.equals("blAdd")){
-			BlackList bl = NameLayerPlugin.getBlackList();
-			UUID uuid = UUID.fromString(message[2]);
-			if (bl != null && uuid != null){
-				bl.addBlacklistMember(groupname, uuid, false);
-			}
-		}
-		else if (reason.equals("blRem")){
-			BlackList bl = NameLayerPlugin.getBlackList();
-			UUID uuid = UUID.fromString(message[2]);
-			if (bl != null && uuid != null){
-				bl.removeBlacklistMember(groupname, uuid, false);
+				ptype.removePermission(permt, false);
 			}
 		}
 		else if (reason.equals("disciplined")){
@@ -213,6 +184,34 @@ public class MercuryMessageListener implements Listener{
 		else if (reason.equals("addAutoAccept")) {
 			UUID uuid = UUID.fromString(message[1]);
 			NameLayerPlugin.getAutoAcceptHandler().setAutoAccept(uuid, true, false);
+		}
+		else if(reason.equals("addPlayerType")) {
+			Group group = GroupManager.getGroup(groupname);
+			PlayerTypeHandler handler = group.getPlayerTypeHandler();
+			String typeName = message[2];
+			int newId = Integer.parseInt(message [3]);
+			PlayerType parent = handler.getType(Integer.parseInt(message [4]));
+			handler.registerType(new PlayerType(typeName, newId, parent, group), false);
+		}
+		else if(reason.equals("remPlayerType")) {
+			Group group = GroupManager.getGroup(groupname);
+			PlayerType type = group.getPlayerTypeHandler().getType(Integer.parseInt(message [2]));
+			group.getPlayerTypeHandler().deleteType(type, false);
+		}
+		else if(reason.equals("renamePlayerType")) {
+			Group group = GroupManager.getGroup(groupname);
+			PlayerType type = group.getPlayerTypeHandler().getType(Integer.parseInt(message [2]));
+			String newName = message [3];
+			group.getPlayerTypeHandler().renameType(type, newName, false);
+		}
+		else if(reason.equals("promotePlayer")) {
+			Group group = GroupManager.getGroup(groupname);
+			Player p = Bukkit.getPlayer(UUID.fromString(message[2]));
+			UUID executor = UUID.fromString(message [3]);
+			if (p != null) {
+				p.sendMessage(ChatColor.GREEN + "Your rank in " + group.getName() + " was changed from "
+						+ message [4] + " to " + message [5] + " by " + NameAPI.getCurrentName(executor));
+			}
 		}
 	}
 }

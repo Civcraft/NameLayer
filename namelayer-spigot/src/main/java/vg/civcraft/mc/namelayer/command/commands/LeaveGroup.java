@@ -7,12 +7,13 @@ import org.bukkit.ChatColor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
+import vg.civcraft.mc.civmodcore.command.PlayerCommand;
+import vg.civcraft.mc.namelayer.GroupManager;
 import vg.civcraft.mc.namelayer.NameAPI;
-import vg.civcraft.mc.namelayer.command.PlayerCommandMiddle;
-import vg.civcraft.mc.namelayer.command.TabCompleters.GroupTabCompleter;
+import vg.civcraft.mc.namelayer.command.NameLayerTabCompleter;
 import vg.civcraft.mc.namelayer.group.Group;
 
-public class LeaveGroup extends PlayerCommandMiddle{
+public class LeaveGroup extends PlayerCommand {
 
 	public LeaveGroup(String name) {
 		super(name);
@@ -29,33 +30,39 @@ public class LeaveGroup extends PlayerCommandMiddle{
 			return true;
 		}
 		Player p = (Player) sender;
-		Group g = gm.getGroup(args[0]);
-		if (groupIsNull(sender, args[0], g)) {
-			return true;
-		}
-		UUID uuid = NameAPI.getUUID(p.getName());
-		if (!g.isCurrentMember(uuid)){
-			p.sendMessage(ChatColor.RED + "You are not a member of this group.");
+		Group g = GroupManager.getGroup(args[0]);
+		if (g == null) {
+			p.sendMessage(ChatColor.RED + "This group doesn't exist");
 			return true;
 		}
 		if (g.isDisciplined()){
 			p.sendMessage(ChatColor.RED + "This group is disciplined.");
 			return true;
 		}
-		g.removeMember(uuid);
-		p.sendMessage(ChatColor.GREEN + "You have been removed from the group.");
+		UUID uuid = NameAPI.getUUID(p.getName());
+		if (!g.isMember(uuid)){
+			if (g.isTracked(uuid)) {
+				p.sendMessage(ChatColor.RED  + "You can't leave from being blacklisted");
+			}
+			else {
+				p.sendMessage(ChatColor.RED + "You are not a member of this group.");
+			}
+			return true;
+		}
+		g.removeFromTracking(uuid);
+		p.sendMessage(ChatColor.GREEN + "You have left " + g.getName());
 		return true;
 	}
 
 	@Override
 	public List<String> tabComplete(CommandSender sender, String[] args) {
-		if (!(sender instanceof Player))
+		if (!(sender instanceof Player)) {
 			return null;
-
-		if (args.length > 0)
-			return GroupTabCompleter.complete(args[0], null, (Player) sender);
+		}
+		if (args.length == 0)
+			return NameLayerTabCompleter.completeGroupWithPermission(null, null, (Player) sender);
 		else{
-			return GroupTabCompleter.complete(null, null, (Player)sender);
+			return NameLayerTabCompleter.completeGroupWithPermission(args [0], null, (Player)sender);
 		}
 	}
 }

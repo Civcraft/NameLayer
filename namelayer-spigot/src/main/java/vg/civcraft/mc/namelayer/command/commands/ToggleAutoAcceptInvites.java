@@ -7,12 +7,12 @@ import org.bukkit.ChatColor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
+import vg.civcraft.mc.civmodcore.command.PlayerCommand;
 import vg.civcraft.mc.namelayer.NameAPI;
 import vg.civcraft.mc.namelayer.NameLayerPlugin;
-import vg.civcraft.mc.namelayer.command.PlayerCommandMiddle;
 import vg.civcraft.mc.namelayer.group.AutoAcceptHandler;
 
-public class ToggleAutoAcceptInvites extends PlayerCommandMiddle{
+public class ToggleAutoAcceptInvites extends PlayerCommand {
 
 	private AutoAcceptHandler handler = NameLayerPlugin.getAutoAcceptHandler();
 	public ToggleAutoAcceptInvites(String name) {
