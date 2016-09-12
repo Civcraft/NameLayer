@@ -301,44 +301,8 @@ public class GroupManagerDao {
 					"sub_group_id varchar(255) not null," +
 					"unique key (group_id, sub_group_id));");
 			
-<<<<<<< HEAD
-
 		db.registerMigration(3, false, 
 				"create table if not exists toggleAutoAccept("
-=======
-			// Procedures may not be initialized yet.
-			Bukkit.getScheduler().scheduleSyncDelayedTask(NameLayerPlugin.getInstance(), new Runnable(){
-				@Override
-				public void run() {
-					Group g = getGroup(NameLayerPlugin.getSpecialAdminGroup());
-					if (g == null) {
-						createGroup(NameLayerPlugin.getSpecialAdminGroup(), null, null);
-					} else {
-						try (Connection connection = db.getConnection();PreparedStatement removeAllMembers = connection.prepareStatement("delete fm.* from faction_member fm "
-								+ "inner join faction_id fi on fi.group_id = fm.group_id where fi.group_name =?;"))  {
-							removeAllMembers.setString(1, g.getName());
-							removeAllMembers.execute();
-						} catch (SQLException e) {
-							e.printStackTrace();
-						}
-						
-						
-						cleanExecute("delete fm.* from faction_member fm inner join groupPlayerTypes gpt on gpt.type_id = fm.type_id "
-								+ "where gpt.group_id = ;");
-					}
-				}
-			}, 1);
-			
-			ver = updateVersion(ver, plugin.getName());
-			logger.log(Level.INFO, "Database update to Version two took {0} seconds", (System.currentTimeMillis() - first_time) / 1000);
-		}
-		
-		if (ver == 2){
-			long first_time = System.currentTimeMillis();
-			logger.log(Level.INFO, "Database updating to Version three.");
-			
-			cleanExecute("create table if not exists toggleAutoAccept("
->>>>>>> 4cfe7f8... First step for table rework
 					+ "uuid varchar(36) not null,"
 					+ "primary key key_uuid(uuid));");
 
@@ -527,12 +491,6 @@ public class GroupManagerDao {
 					"  select f.group_id from faction_id f where f.group_name = group_name; " +
 					" end if; " +
 					"end;");
-<<<<<<< HEAD
-=======
-
-			ver = updateVersion(ver, plugin.getName());
-			logger.log(Level.INFO, "Database update to Version thirteen took {0} seconds", (System.currentTimeMillis() - first_time) / 1000);
-		}
 		
 		/*if (ver == 13){
 			long first_time = System.currentTimeMillis();
@@ -640,79 +598,6 @@ public class GroupManagerDao {
 			ver = updateVersion(ver, plugin.getName());
 			logger.log(Level.INFO, "Database update to Version fourteen took {0} seconds", (System.currentTimeMillis() - first_time) / 1000);
 		} */
-		
-		logger.log(Level.INFO, "Database update took {0} seconds", (System.currentTimeMillis() - begin_time) / 1000);
-	}
-	
-	private final String version, updateVersion;
-	
-	private final String createGroup, getGroup, getGroupById, getAllGroupsNames, deleteGroup, getAllGroupIds;
-	
-	private final String addMember, getMembers, removeMember, removeAllMembers, updatePassword, updateOwner, updateDisciplined;
-	
-	private final String addSubGroup, getSubGroups, getSuperGroup, removeSubGroup;
-	
-	private final String mergeGroup;
-	
-	private final String countGroups, countGroupsFromUUID;
-	
-	private final String addAutoAcceptGroup, getAutoAcceptGroup, removeAutoAcceptGroup, loadAllAutoAcceptGroup;
-	
-	private final String setDefaultGroup, changeDefaultGroup, getDefaultGroup, getAllDefaultGroups;
-	
-	private final String loadGroupsInvitations, addGroupInvitation, removeGroupInvitation, loadGroupInvitation, loadGroupInvitationsForGroup;
-	
-	private final String getGroupNameFromRole, updateLastTimestamp, getPlayerType, getTimestamp;
-	
-	private final String getGroupIDs;
-	
-	private final String logNameChange, checkForNameChange;
-	
-	private final String addPermission, getPermission, removePermission, registerPermission, getPermissionMapping, addPermissionById;
-	
-	private final String addBlacklistMember, removeBlackListMember, getBlackListMembers;
-	
-	/**
-	 * Checks the version of a specific plugin's db.
-	 * @param name- The name of the plugin.
-	 * @return Returns the version of the plugin or 0 if none was found.
-	 */
-	public int checkVersion(String name){
-		int ret = 0;
-		try (Connection connection = db.getConnection();
-				PreparedStatement version = connection.prepareStatement(this.version)){
-			version.setString(1, name);
-			try (ResultSet set = version.executeQuery();) {
-				if (set.next()) {
-					ret = set.getInt("db_version");
-				}
-			} catch (SQLException e) {
-				logger.log(Level.WARNING, "Problem accessing db_version table", e);
-			}
-		} catch (SQLException e) {
-			logger.log(Level.WARNING, "Problem preparing query to access db_version table", e);
-			// table doesnt exist
-		}
-		return ret;
-	}
-	/**
-	 * Updates the version number for a plugin. You must specify what 
-	 * the current version number is.
-	 * @param version- The current version of the plugin.
-	 * @param pluginname- The plugin name.
-	 * @return Returns the new version of the db.
-	 */
-	public int updateVersion(int version, String pluginname){
-		try (Connection connection = db.getConnection();
-				PreparedStatement updateVersion = connection.prepareStatement(this.updateVersion)){
-			updateVersion.setInt(1, version+ 1);
-			updateVersion.setString(2, pluginname);
-			updateVersion.execute();
-		} catch (SQLException e) {
-			logger.log(Level.WARNING, "Problem updating version", e);
-		}
-		return ++version;
->>>>>>> 4cfe7f8... First step for table rework
 	}
 	
 	public int createGroup(String group, UUID owner, String password){
@@ -853,28 +738,6 @@ public class GroupManagerDao {
 		return timestamp;
 	}
 	
-<<<<<<< HEAD
-	public PlayerType getPlayerType(int groupid, UUID uuid){
-		PlayerType ptype = null;
-		try (Connection connection = db.getConnection();
-				PreparedStatement getPlayerType = connection.prepareStatement(GroupManagerDao.getPlayerType)){
-			getPlayerType.setInt(1, groupid);
-			getPlayerType.setString(2, uuid.toString());
-			try (ResultSet set = getPlayerType.executeQuery();) {
-				if(set.next()){
-					ptype = PlayerType.getPlayerType(set.getString(1));
-				}
-			} catch (SQLException e) {
-				logger.log(Level.WARNING, "Problem getting player " + uuid + " type within group " + groupid, e);
-			}
-		} catch (SQLException e) {
-			logger.log(Level.WARNING, "Problem preparing to get player " + uuid + " type within group " + groupid, e);
-		}
-		return ptype;
-	}
-	
-=======
->>>>>>> 4cfe7f8... First step for table rework
 	public void updateTimestampAsync(final String group){
 		plugin.getServer().getScheduler().runTaskAsynchronously(plugin, new Runnable(){
 
@@ -930,25 +793,22 @@ public class GroupManagerDao {
 	}
 	
 	public void addMember(UUID member, Group group, PlayerType role){
-		//TODO Redo this
+		//TODO Redo addMember
 		try (Connection connection = db.getConnection();
-<<<<<<< HEAD
 				PreparedStatement addMember = connection.prepareStatement(GroupManagerDao.addMember)){
-			addMember.setString(1, member.toString());
-			addMember.setString(2, role.name());
-			addMember.setString(3, faction);
-			addMember.executeUpdate();
-=======
-				PreparedStatement addMember = connection.prepareStatement(this.addMember)){
+			//addMember.setString(1, member.toString());
+			//addMember.setString(2, role.name());
+			//addMember.setString(3, faction);
+			//addMember.executeUpdate();
 		
->>>>>>> 4cfe7f8... First step for table rework
 		} catch (SQLException e) {
 			logger.log(Level.WARNING, "Problem adding " + member + " as " + role.toString() 
 					+ " to group " + group.getName(), e);
 		}			
 	}
 	
-<<<<<<< HEAD
+	/*
+		TODO: Refactor based on Group as param and appropriate integration with new type system.
 	public List<UUID> getAllMembers(String groupName, PlayerType role){
 		List<UUID> members = new ArrayList<UUID>();
 		try (Connection connection = db.getConnection();
@@ -970,12 +830,9 @@ public class GroupManagerDao {
 			logger.log(Level.WARNING, "Problem preparing to get all " + role.toString() + " for group " + groupName, e);
 		}
 		return members;
-	}
+	}*/
 	
-	public void removeMemberAsync(final UUID member, final String group){
-=======
 	public void removeMemberAsync(final UUID member, final Group group){
->>>>>>> 4cfe7f8... First step for table rework
 		plugin.getServer().getScheduler().runTaskAsynchronously(plugin, new Runnable(){
 
 			@Override
@@ -987,7 +844,7 @@ public class GroupManagerDao {
 	}
 	
 	public void removeMember(UUID member, Group group){
-		//TODO Redo this
+		//TODO Redo remove member
 		try (Connection connection = db.getConnection();
 				PreparedStatement removeMember = connection.prepareStatement(GroupManagerDao.removeMember)){
 			removeMember.setString(1, member.toString());
@@ -997,9 +854,8 @@ public class GroupManagerDao {
 			logger.log(Level.WARNING, "Problem removing " + member + " from group " + group, e);
 		}
 	}
-<<<<<<< HEAD
 
-	public void removeAllMembersAsync(final String group){
+	public void removeAllMembersAsync(final Group group){
 		plugin.getServer().getScheduler().runTaskAsynchronously(plugin, new Runnable(){
 
 			@Override
@@ -1010,116 +866,16 @@ public class GroupManagerDao {
 		});
 	}
 	
-	public void removeAllMembers(String group){
+	public void removeAllMembers(Group group){
+		//TODO review this
 		try (Connection connection = db.getConnection();
 				PreparedStatement removeAllMembers = connection.prepareStatement(GroupManagerDao.removeAllMembers)){
-			removeAllMembers.setString(1, group);
+			removeAllMembers.setString(1, group.getName());
 			removeAllMembers.executeUpdate();
 		} catch (SQLException e) {
 			logger.log(Level.WARNING, "Problem removing all members from group " + group, e);
 		}
 	}
-	
-	public void addSubGroupAsync(final String group, final String subGroup){
-		plugin.getServer().getScheduler().runTaskAsynchronously(plugin, new Runnable(){
-
-			@Override
-			public void run() {
-				addSubGroup(group,subGroup);
-			}
-			
-		});
-	}
-	
-	public void addSubGroup(String group, String subGroup){
-		try (Connection connection = db.getConnection();
-				PreparedStatement addSubGroup = connection.prepareStatement(GroupManagerDao.addSubGroup)){
-			addSubGroup.setString(1, subGroup);
-			addSubGroup.setString(2, group);
-			addSubGroup.executeUpdate();
-		} catch (SQLException e) {
-			logger.log(Level.WARNING, "Problem adding subgroup " + subGroup
-					+ " to group " + group, e);
-		}
-	}
-	
-	public List<Group> getSubGroups(String group){
-		List<Group> groups = new ArrayList<Group>();
-		try (Connection connection = db.getConnection();
-				PreparedStatement getSubGroups = connection.prepareStatement(GroupManagerDao.getSubGroups)){
-			getSubGroups.setString(1, group);
-			
-			List<String> subgroups = Lists.newArrayList();
-			try (ResultSet set = getSubGroups.executeQuery();){
-				while (set.next()) {
-					subgroups.add(set.getString(1));
-				}
-			}			
-			for (String groupname : subgroups) {				
-				Group g = null;
-				if (GroupManager.hasGroup(groupname)) {
-					g = GroupManager.getGroup(groupname);
-				} else {
-					g = getGroup(groupname);
-				}
-				
-				if (g != null) {
-					groups.add(g);
-				}
-			}
-		} catch (SQLException e) {
-			logger.log(Level.WARNING, "Problem getting subgroups for group " + group, e);
-		}
-		return groups;
-	}
-	
-	public Group getSuperGroup(String group){
-		try (Connection connection = db.getConnection();
-				PreparedStatement getSuperGroup = connection.prepareStatement(GroupManagerDao.getSuperGroup)){
-			getSuperGroup.setString(1, group);
-			try (ResultSet set = getSuperGroup.executeQuery();) {
-				if (!set.next()) {
-					return null;
-				}
-				String supergroup = set.getString(1);
-				if (GroupManager.hasGroup(supergroup)) {
-					return GroupManager.getGroup(supergroup);
-				} else {
-					return getGroup(supergroup);
-				}
-			} catch (Exception e){
-				logger.log(Level.WARNING, "Problem finding or getting superGroup for group " + group, e);
-			}
-		} catch (SQLException e) {
-			logger.log(Level.WARNING, "Problem getting superGroup for group " + group, e);
-		}
-		return null;
-	}
-	
-	public void removeSubGroupAsync(final String group, final String subgroup){
-		plugin.getServer().getScheduler().runTaskAsynchronously(plugin, new Runnable(){
-
-			@Override
-			public void run() {
-				removeSubGroup(group,subgroup);
-			}
-			
-		});
-	}
-	
-	public void removeSubGroup(String group, String subGroup){
-		try (Connection connection = db.getConnection();
-				PreparedStatement removeSubGroup = connection.prepareStatement(GroupManagerDao.removeSubGroup)){
-			removeSubGroup.setString(1, group);
-			removeSubGroup.setString(2, subGroup);
-			removeSubGroup.executeUpdate();
-		} catch (SQLException e) {
-			logger.log(Level.WARNING, "Removing subgroup " + subGroup
-					+ " from group " + group, e);
-		}
-	}
-=======
->>>>>>> 4cfe7f8... First step for table rework
 	
 	public void addAllPermissions(int groupId, Map <PlayerType, List <PermissionType>> perms) {
 		//TODO Redo this
@@ -1167,14 +923,9 @@ public class GroupManagerDao {
 	public void addPermission(Group group, PlayerType type, PermissionType perm) {
 		//TODO Redo this
 		try (Connection connection = db.getConnection();
-<<<<<<< HEAD
 				PreparedStatement addPermission = connection.prepareStatement(GroupManagerDao.addPermission)){
 			for(PermissionType perm : perms) {
-				addPermission.setString(1, role);
-=======
-				PreparedStatement addPermission = connection.prepareStatement(this.addPermission)){
 				addPermission.setString(1, perm.getName());
->>>>>>> 4cfe7f8... First step for table rework
 				addPermission.setInt(2, perm.getId());
 				addPermission.setString(3, group.getName());
 				addPermission.addBatch();
@@ -1197,13 +948,8 @@ public class GroupManagerDao {
 	public Map<PlayerType, List<PermissionType>> getPermissions(Group group){
 		//TODO Redo this, assume playertypehandler is initialized here
 		Map<PlayerType, List<PermissionType>> perms = new HashMap<PlayerType, List<PermissionType>>();
-<<<<<<< HEAD
-		try (Connection connection = db.getConnection();
-				PreparedStatement getPermission = connection.prepareStatement(GroupManagerDao.getPermission)){
-=======
 		/*try (Connection connection = db.getConnection();
-				PreparedStatement getPermission = connection.prepareStatement(this.getPermission)){
->>>>>>> 4cfe7f8... First step for table rework
+				PreparedStatement getPermission = connection.prepareStatement(GroupManagerDao.getPermission)){
 			getPermission.setString(1, group);
 			try (ResultSet set = getPermission.executeQuery();) {
 				while(set.next()){
@@ -1242,15 +988,9 @@ public class GroupManagerDao {
 	public void removePermission(Group group, PlayerType pType, PermissionType perm){
 		//TODO Redo this
 		try (Connection connection = db.getConnection();
-<<<<<<< HEAD
 				PreparedStatement removePermission = connection.prepareStatement(GroupManagerDao.removePermission)){
-			removePermission.setString(1, group);
-			removePermission.setString(2, pType.name());
-=======
-				PreparedStatement removePermission = connection.prepareStatement(this.removePermission)){
 			removePermission.setString(1, group.getName());
 			removePermission.setString(2, pType.getName());
->>>>>>> 4cfe7f8... First step for table rework
 			removePermission.setInt(3, perm.getId());
 			removePermission.executeUpdate();
 		} catch (SQLException e) {
@@ -1781,13 +1521,8 @@ public class GroupManagerDao {
 			return invs;
 		}
 		try (Connection connection = db.getConnection();
-<<<<<<< HEAD
 				PreparedStatement loadGroupInvitationsForGroup = connection.prepareStatement(GroupManagerDao.loadGroupInvitationsForGroup);){
-			loadGroupInvitationsForGroup.setString(1, groupName);
-=======
-				PreparedStatement loadGroupInvitationsForGroup = connection.prepareStatement(this.loadGroupInvitationsForGroup);){
 			loadGroupInvitationsForGroup.setString(1, group.getName());
->>>>>>> 4cfe7f8... First step for table rework
 			try (ResultSet set = loadGroupInvitationsForGroup.executeQuery();) {
 				while(set.next()) {
 					String uuid = set.getString(1);
@@ -1887,71 +1622,6 @@ public class GroupManagerDao {
 		}
 		return ret;
 	}
-<<<<<<< HEAD
-	
-	public void addBlackListMemberAsync(final String groupName, final UUID uuid){
-		plugin.getServer().getScheduler().runTaskAsynchronously(plugin, new Runnable(){
-
-			@Override
-			public void run() {
-				addBlackListMember(groupName,uuid);
-			}
-			
-		});
-	}
-	
-	public void addBlackListMember(String groupName, UUID player) {
-		try (Connection connection = db.getConnection();
-				PreparedStatement addBlacklistMember = connection.prepareStatement(GroupManagerDao.addBlacklistMember);){
-			addBlacklistMember.setString(1, player.toString());
-			addBlacklistMember.setString(2, groupName);
-			addBlacklistMember.executeUpdate();
-		} catch(SQLException e) {
-			logger.log(Level.WARNING, "Unable to add black list member " + player + " to group " + groupName, e);
-		}
-	}
-	
-	public void removeBlackListMemberAsync(final String gname, final UUID uuid){
-		plugin.getServer().getScheduler().runTaskAsynchronously(plugin, new Runnable(){
-
-			@Override
-			public void run() {
-				removeBlackListMember(gname,uuid);
-			}
-			
-		});
-	}
-	
-	public void removeBlackListMember(String groupName, UUID player) {
-		try (Connection connection = db.getConnection();
-				PreparedStatement removeBlackListMember = connection.prepareStatement(GroupManagerDao.removeBlackListMember);){
-			removeBlackListMember.setString(1, groupName);
-			removeBlackListMember.setString(2, player.toString());
-			removeBlackListMember.executeUpdate();
-		} catch(SQLException e) {
-			logger.log(Level.WARNING, "Unable to remove black list member " + player + " to group " + groupName, e);
-		}
-	}
-	
-	public Set<UUID> getBlackListMembers(String groupName) {
-		Set<UUID> uuids = new HashSet<UUID>();
-		try (Connection connection = db.getConnection();
-				PreparedStatement getBlackListMembers = connection.prepareStatement(GroupManagerDao.getBlackListMembers);){
-			getBlackListMembers.setString(1, groupName);
-			try (ResultSet set = getBlackListMembers.executeQuery();) {
-				while (set.next()) {
-					uuids.add(UUID.fromString(set.getString(1)));
-				}
-			} catch (SQLException e) {
-				logger.log(Level.WARNING, "Unable to retrieve black list members for group " + groupName, e);
-			}
-		} catch (SQLException e) {
-			logger.log(Level.WARNING, "Unable to prepare query to retrieve black list members for group " + groupName, e);
-		}
-		return uuids;
-	}
-=======
->>>>>>> 4cfe7f8... First step for table rework
 
 	/**
 	 * Gets all the IDs for this group name, sorted by "size" in membercount.

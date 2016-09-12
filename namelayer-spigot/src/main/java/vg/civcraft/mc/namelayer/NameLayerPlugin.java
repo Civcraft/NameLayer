@@ -32,7 +32,6 @@ public class NameLayerPlugin extends ACivMod{
 	private static DefaultGroupHandler defaultGroupHandler;
 	private static NameLayerPlugin instance;
 	private static AutoAcceptHandler autoAcceptHandler;
-	private CommandHandler handle;
 	private static ManagedDatasource db;
 	private static boolean loadGroups = true;
 	private static int groupLimit = 10;
