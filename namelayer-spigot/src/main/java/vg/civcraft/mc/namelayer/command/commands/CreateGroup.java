@@ -22,7 +22,7 @@ public class CreateGroup extends PlayerCommand {
 		setIdentifier("nlcg");
 		setDescription("Create a group (Public or Private). Password is optional.");
 		setUsage("/nlcg <name> [password]");
-		setArguments(1,3);
+		setArguments(1,2);
 	}
 
 	@Override
