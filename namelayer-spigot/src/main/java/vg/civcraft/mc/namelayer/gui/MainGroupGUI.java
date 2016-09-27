@@ -10,7 +10,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.Map.Entry;
-import java.util.logging.Level;
 
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
@@ -212,8 +211,7 @@ public class MainGroupGUI extends AbstractGroupGUI {
 							if (!gm.hasAccess(g, p.getUniqueId(), type.getInvitePermissionType())) {
 								p.sendMessage(ChatColor.RED + "You don't have permission to revoke this invite");
 							} else {
-								NameLayerPlugin.log(
-										Level.INFO,
+								NameLayerPlugin.getInstance().info(
 										arg0.getName() + " revoked an invite for "
 												+ NameAPI.getCurrentName(invitedUUID) + " for group " + g.getName()
 												+ "via gui");
@@ -336,7 +334,7 @@ public class MainGroupGUI extends AbstractGroupGUI {
 				p.sendMessage(ChatColor.RED + "This player owns the group and can't be removed");
 				return;
 			}
-			NameLayerPlugin.log(Level.INFO,
+			NameLayerPlugin.getInstance().info(
 					p.getName() + " kicked " + NameAPI.getCurrentName(toRemove) + " from " + g.getName() + " via gui");
 			g.removeFromTracking(toRemove);
 			p.sendMessage(ChatColor.GREEN + NameAPI.getCurrentName(toRemove) + " has been removed from " + g.getName()
@@ -485,10 +483,10 @@ public class MainGroupGUI extends AbstractGroupGUI {
 								if (newPassword.equals("delete")) {
 									g.setPassword(null);
 									p.sendMessage(ChatColor.GREEN + "Removed the password from the group");
-									NameLayerPlugin.log(Level.INFO, p.getName() + " removed password " + " for group "
+									NameLayerPlugin.getInstance().info(p.getName() + " removed password " + " for group "
 											+ g.getName() + "via gui");
 								} else {
-									NameLayerPlugin.log(Level.INFO, p.getName() + " set password to " + newPassword
+									NameLayerPlugin.getInstance().info(p.getName() + " set password to " + newPassword
 											+ " for group " + g.getName() + "via gui");
 									g.setPassword(newPassword);
 									p.sendMessage(ChatColor.GREEN + "Set new password: " + ChatColor.YELLOW
@@ -559,7 +557,7 @@ public class MainGroupGUI extends AbstractGroupGUI {
 
 				@Override
 				public void clicked(Player p) {
-					NameLayerPlugin.log(Level.INFO, p.getName() + " set default group to " + g.getName() + "via gui");
+					NameLayerPlugin.getInstance().info(p.getName() + " set default group to " + g.getName() + "via gui");
 					if (defGroup == null) {
 						handler.setDefaultGroup(p, g);
 						p.sendMessage(ChatColor.GREEN + "You have set your default group to " + g.getName());
@@ -629,7 +627,7 @@ public class MainGroupGUI extends AbstractGroupGUI {
 								showScreen();
 								return;
 							}
-							NameLayerPlugin.log(Level.INFO, p.getName() + " left " + g.getName() + "via gui");
+							NameLayerPlugin.getInstance().info(p.getName() + " left " + g.getName() + "via gui");
 							g.removeFromTracking(p.getUniqueId());
 							p.sendMessage(ChatColor.GREEN + "You have left " + g.getName());
 						}

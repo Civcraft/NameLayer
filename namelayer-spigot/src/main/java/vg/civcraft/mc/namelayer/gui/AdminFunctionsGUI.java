@@ -3,7 +3,6 @@ package vg.civcraft.mc.namelayer.gui;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.UUID;
-import java.util.logging.Level;
 
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
@@ -178,9 +177,7 @@ public class AdminFunctionsGUI extends AbstractGroupGUI {
 					@Override
 					public void clicked(Player p) {
 						if (TransferGroup.attemptTransfer(g, p, transferUUID)) {
-							NameLayerPlugin.log(
-									Level.INFO,
-									p.getName()
+							NameLayerPlugin.getInstance().info(p.getName()
 											+ " transferred group to "
 											+ NameAPI
 													.getCurrentName(transferUUID)
@@ -234,8 +231,7 @@ public class AdminFunctionsGUI extends AbstractGroupGUI {
 					showScreen();
 					return;
 				}
-				NameLayerPlugin.log(Level.INFO,
-						p.getName() + " deleted " + g.getName() + "via gui");
+				NameLayerPlugin.getInstance().info(p.getName() + " deleted " + g.getName() + "via gui");
 				if (gm.deleteGroup(g.getName())) {
 					p.sendMessage(ChatColor.GREEN + g.getName()
 							+ " was successfully deleted.");

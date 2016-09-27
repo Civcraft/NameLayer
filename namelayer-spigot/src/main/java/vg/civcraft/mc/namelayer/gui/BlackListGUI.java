@@ -3,7 +3,6 @@ package vg.civcraft.mc.namelayer.gui;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.UUID;
-import java.util.logging.Level;
 
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
@@ -119,8 +118,7 @@ public class BlackListGUI extends AbstractGroupGUI {
 									+ " is already either a member or blacklisted for this group and can't be blacklisted");
 							continue;
 						}
-						NameLayerPlugin.log(
-								Level.INFO,
+						NameLayerPlugin.getInstance().info(
 								p.getName() + " blacklisted " + NameAPI.getCurrentName(blackUUID) + " for group "
 										+ g.getName() + " via gui");
 						g.addToTracking(blackUUID, type);

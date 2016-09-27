@@ -119,8 +119,7 @@ public class InvitationGUI extends AbstractGroupGUI {
 									+ " is already either a member or blacklisted for this group and can't be invited");
 							continue;
 						}
-						NameLayerPlugin.log(
-								Level.INFO,
+						NameLayerPlugin.getInstance().info(
 								p.getName() + " invited " + NameAPI.getCurrentName(blackUUID) + " for group "
 										+ g.getName() + " via gui");
 						g.addToTracking(blackUUID, type);

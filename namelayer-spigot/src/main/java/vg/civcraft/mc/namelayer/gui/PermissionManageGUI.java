@@ -346,7 +346,7 @@ public class PermissionManageGUI extends AbstractGroupGUI {
 					public void clicked(Player arg0) {
 						if (hasPerm == pType.hasPermission(perm)) { // recheck
 							if (gm.hasAccess(g, p.getUniqueId(), PermissionType.getPermission("PERMS"))) {
-								NameLayerPlugin.log(Level.INFO, p.getName() + (hasPerm ? " removed " : " added ")
+								NameLayerPlugin.getInstance().info(p.getName() + (hasPerm ? " removed " : " added ")
 										+ "the permission " + perm.toString() + "for player type" + pType.toString()
 										+ " for " + g.getName() + " via gui");
 								if (hasPerm) {
