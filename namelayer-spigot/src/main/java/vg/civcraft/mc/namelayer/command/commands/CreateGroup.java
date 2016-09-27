@@ -11,14 +11,14 @@ import org.bukkit.ChatColor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
+import vg.civcraft.mc.civmodcore.command.PlayerCommand;
 import vg.civcraft.mc.namelayer.GroupManager;
 import vg.civcraft.mc.namelayer.NameAPI;
 import vg.civcraft.mc.namelayer.NameLayerPlugin;
 import vg.civcraft.mc.namelayer.RunnableOnGroup;
-import vg.civcraft.mc.namelayer.command.PlayerCommandMiddle;
 import vg.civcraft.mc.namelayer.group.Group;
 
-public class CreateGroup extends PlayerCommandMiddle{
+public class CreateGroup extends PlayerCommand {
 
 	public CreateGroup(String name) {
 		super(name);
@@ -37,35 +37,19 @@ public class CreateGroup extends PlayerCommandMiddle{
 		}
 		Player p = (Player) sender;
 		String name = args[0];
-		int currentGroupCount = gm.countGroups(p.getUniqueId());
+		int currentGroupCount = NameAPI.getGroupManager().countGroups(p.getUniqueId());
 		
 		if (NameLayerPlugin.getInstance().getGroupLimit() < currentGroupCount + 1 && !(p.isOp() || p.hasPermission("namelayer.admin"))){
 			p.sendMessage(ChatColor.RED + "You cannot create any more groups! Please delete an un-needed group before making more.");
 			return true;
 		}
 		
-		//enforce regulations on the name
+		//enforce regulations on the name	
 		if (name.length() > 32) {
 			p.sendMessage(ChatColor.RED + "The group name is not allowed to contain more than 32 characters");
 			return true;
 		}
-		Charset latin1 = StandardCharsets.ISO_8859_1;
-		boolean invalidChars = false;
-		if (!latin1.newEncoder().canEncode(name)) {
-			invalidChars = true;
-		}
-		//cant allow them to hurt mercury :(
-		if (name.contains("|")) {
-			invalidChars = true;
-		}
-		
-		for(char c:name.toCharArray()) {
-			if (Character.isISOControl(c)) {
-				invalidChars = true;
-			}
-		}
-		
-		if(invalidChars) {
+		if(!isConformName(name)) {
 			p.sendMessage(ChatColor.RED + "You used characters, which are not allowed");
 			return true;
 		}
@@ -83,7 +67,7 @@ public class CreateGroup extends PlayerCommandMiddle{
 		}
 		final UUID uuid = NameAPI.getUUID(p.getName());
 		Group g = new Group(name, uuid, false, password, -1);
-		gm.createGroupAsync(g, new RunnableOnGroup() {
+		NameAPI.getGroupManager().createGroupAsync(g, new RunnableOnGroup() {
 			@Override
 			public void run() {
 				Player p = null;
@@ -109,5 +93,24 @@ public class CreateGroup extends PlayerCommandMiddle{
 
 	public List<String> tabComplete(CommandSender sender, String[] args) {
 		return null;
+	}
+	
+	public static boolean isConformName(String name) {
+		Charset latin1 = StandardCharsets.ISO_8859_1;
+		boolean invalidChars = false;
+		if (!latin1.newEncoder().canEncode(name)) {
+			invalidChars = true;
+		}
+		//cant allow them to hurt mercury :(
+		if (name.contains("|")) {
+			invalidChars = true;
+		}
+		
+		for(char c:name.toCharArray()) {
+			if (Character.isISOControl(c)) {
+				invalidChars = true;
+			}
+		}
+		return invalidChars;
 	}
 }

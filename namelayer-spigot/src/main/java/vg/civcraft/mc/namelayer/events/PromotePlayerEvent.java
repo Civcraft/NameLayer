@@ -1,35 +1,34 @@
 package vg.civcraft.mc.namelayer.events;
 
-import java.util.logging.Level;
+import java.util.UUID;
 
 import org.bukkit.event.Cancellable;
 import org.bukkit.event.Event;
 import org.bukkit.event.HandlerList;
-import org.bukkit.entity.Player;
 
 import vg.civcraft.mc.namelayer.NameLayerPlugin;
 import vg.civcraft.mc.namelayer.group.Group;
-import vg.civcraft.mc.namelayer.GroupManager.PlayerType;
+import vg.civcraft.mc.namelayer.permission.PlayerType;
 
 public class PromotePlayerEvent extends Event implements Cancellable{
 	private static final HandlerList handlers = new HandlerList();
 	
 	private boolean finished;
 	private boolean cancelled;
-	private Player p;
+	private UUID p;
 	private Group g;
 	private PlayerType c;
 	private PlayerType f;
 
-	public PromotePlayerEvent(Player p, Group g, PlayerType currentType, PlayerType futureType){
+	public PromotePlayerEvent(UUID p, Group g, PlayerType currentType, PlayerType futureType){
 		this.p = p;
 		this.g = g;
 		this.c = currentType;
 		this.f = futureType;
-		NameLayerPlugin.log(Level.WARNING, "Promote Player Event Occured");
+		NameLayerPlugin.getInstance().debug("Promote Player Event Occured");
 	}
 	
-	public Player getPlayer(){
+	public UUID getPlayer(){
 		return p;
 	}
 	

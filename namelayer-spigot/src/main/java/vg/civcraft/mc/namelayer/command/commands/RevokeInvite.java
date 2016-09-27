@@ -7,19 +7,16 @@ import org.bukkit.ChatColor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
-import vg.civcraft.mc.namelayer.GroupManager.PlayerType;
-import vg.civcraft.mc.mercury.MercuryAPI;
+import vg.civcraft.mc.civmodcore.command.PlayerCommand;
 import vg.civcraft.mc.namelayer.GroupManager;
 import vg.civcraft.mc.namelayer.NameAPI;
-import vg.civcraft.mc.namelayer.NameLayerPlugin;
-import vg.civcraft.mc.namelayer.command.PlayerCommandMiddle;
-import vg.civcraft.mc.namelayer.command.TabCompleters.GroupTabCompleter;
+import vg.civcraft.mc.namelayer.command.NameLayerTabCompleter;
 import vg.civcraft.mc.namelayer.group.Group;
 import vg.civcraft.mc.namelayer.listeners.PlayerListener;
-import vg.civcraft.mc.namelayer.misc.Mercury;
-import vg.civcraft.mc.namelayer.permission.PermissionType;
+import vg.civcraft.mc.namelayer.misc.MercuryManager;
+import vg.civcraft.mc.namelayer.permission.PlayerType;
 
-public class RevokeInvite extends PlayerCommandMiddle{
+public class RevokeInvite extends PlayerCommand {
 
 	public RevokeInvite(String name) {
 		super(name);
@@ -37,7 +34,8 @@ public class RevokeInvite extends PlayerCommandMiddle{
 		}
 		Player p = (Player) sender;
 		Group group = GroupManager.getGroup(args[0]);
-		if (groupIsNull(sender, args[0], group)) {
+		if (group == null) {
+			p.sendMessage(ChatColor.RED + "This group doesn't exist");
 			return true;
 		}
 		if (group.isDisciplined()){
@@ -54,49 +52,18 @@ public class RevokeInvite extends PlayerCommandMiddle{
 		
 		//check invitee has invite
 		if(group.getInvite(uuid) == null){
-			if(group.isMember(uuid)){
-				p.sendMessage(ChatColor.RED + NameAPI.getCurrentName(uuid) + " is already part of that group, "
-						+ "use /remove to remove them.");
-				return true;
-			}
-			p.sendMessage(ChatColor.RED + NameAPI.getCurrentName(uuid) + " does not have an invite to that group.");
+			p.sendMessage(ChatColor.RED + NameAPI.getCurrentName(uuid) + " does not have an invite to that group or is already a member of it");
 			return true;
 		}
-		
-		//get invitee PlayerType
-		PlayerType pType = group.getInvite(uuid);
-		
-		PlayerType t = group.getPlayerType(executor); // playertype for the player running the command.
-		if (t == null){
-			p.sendMessage(ChatColor.RED + "You are not on that group.");
-			return true;
-		}
-		boolean allowed = false;
-		switch (pType){ // depending on the type the executor wants to add the player to
-		case MEMBERS:
-			allowed = gm.hasAccess(group, executor, PermissionType.getPermission("MEMBERS"));
-			break;
-		case MODS:
-			allowed = gm.hasAccess(group, executor, PermissionType.getPermission("MODS"));
-			break;
-		case ADMINS:
-			allowed = gm.hasAccess(group, executor, PermissionType.getPermission("ADMINS"));
-			break;
-		case OWNER:
-			allowed = gm.hasAccess(group, executor, PermissionType.getPermission("OWNER"));
-			break;
-		default:
-			allowed = false;
-			break;
-		}
-		if (!allowed){
-			p.sendMessage(ChatColor.RED + "You do not have permissions to modify this group.");
+		PlayerType type = group.getPlayerType(uuid);
+		if (!NameAPI.getGroupManager().hasAccess(group, executor, type.getInvitePermissionType())) {
+			p.sendMessage(ChatColor.RED + "You dont have permissions to revoke this invite");
 			return true;
 		}
 		
 		group.removeInvite(uuid, true);
 		PlayerListener.removeNotification(uuid, group);
-		Mercury.remInvite(group.getGroupId(), uuid);
+		MercuryManager.remInvite(group.getGroupId(), uuid);
 		
 		p.sendMessage(ChatColor.GREEN + NameAPI.getCurrentName(uuid) + "'s invitation has been revoked.");
 		return true;
@@ -109,14 +76,17 @@ public class RevokeInvite extends PlayerCommandMiddle{
 			return null;
 		}
 		if (args.length < 2) {
-			if (args.length == 0)
-				return GroupTabCompleter.complete(null, null, (Player) sender);
-			else
-				return GroupTabCompleter.complete(args[0], null, (Player)sender);
+			if (args.length == 0) {
+				return NameLayerTabCompleter.completeGroupWithPermission(null, null, (Player) sender);
+			}
+			else {
+				return NameLayerTabCompleter.completeGroupWithPermission(args[0], null, (Player)sender);
+			}
 
-		} else if (args.length == 2)
-			return null;
+		} else if (args.length == 2) {
+			return NameLayerTabCompleter.completeOnlinePlayer(args[1]);
+		}
+		return null;
 
-		else return null;
 	}
 }

@@ -1,13 +1,12 @@
 package vg.civcraft.mc.namelayer.listeners;
 
 import java.util.ArrayList;
+
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-import java.util.logging.Level;
 
-import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -20,6 +19,7 @@ import vg.civcraft.mc.namelayer.NameAPI;
 import vg.civcraft.mc.namelayer.NameLayerPlugin;
 import vg.civcraft.mc.namelayer.RunnableOnGroup;
 import vg.civcraft.mc.namelayer.group.Group;
+
 public class PlayerListener implements Listener{
 
 	private static Map<UUID, List<Group>> notifications = new HashMap<UUID, List<Group>>();
@@ -90,11 +90,8 @@ public class PlayerListener implements Listener{
 		if (NameLayerPlugin.getDefaultGroupHandler().getDefaultGroup(p) != null) {
 			//assume something went wrong, feel free to chose a random civcraft dev to blame
 			return;
-		}
-		final UUID uuid = p.getUniqueId();
-		final String name = p.getName();
-		
-		new NewfriendCreate(name, uuid).bootstrap();
+		}		
+		new NewfriendCreate(p.getName(), p.getUniqueId()).bootstrap();
 	}
 	
 	/**
@@ -128,7 +125,7 @@ public class PlayerListener implements Listener{
 		public void run() {
 			Group g = getGroup();
 			if (g.getGroupId() == -1) { // now try + num
-				NameLayerPlugin.log(Level.WARNING, "Newfriend automatic group creation failed for " + g.getName() + " " + uuid);
+				NameLayerPlugin.getInstance().warning("Newfriend automatic group creation failed for " + g.getName() + " " + uuid);
 				GroupManager gm = NameAPI.getGroupManager();
 				if (inc == null) {
 					inc = 0;
@@ -140,10 +137,9 @@ public class PlayerListener implements Listener{
 					gm.createGroupAsync(new Group(newName, uuid, false, null, -1), this, true);
 				}
 			} else {
-				NameLayerPlugin.log(Level.WARNING, "Newfriend automatic group creation succeeded for " + g.getName() + " " + uuid);
-				g.setDefaultGroup(uuid);
+				NameLayerPlugin.getInstance().warning("Newfriend automatic group creation succeeded for " + g.getName() + " " + uuid);
+				NameLayerPlugin.getDefaultGroupHandler().setDefaultGroup(uuid, g, true);
 			}
 		}
-
 	}
 }

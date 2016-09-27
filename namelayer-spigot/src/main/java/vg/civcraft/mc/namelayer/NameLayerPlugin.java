@@ -1,7 +1,6 @@
 package vg.civcraft.mc.namelayer;
 
 import java.util.List;
-import java.util.concurrent.Callable;
 import java.util.logging.Level;
 
 import org.bukkit.Bukkit;
@@ -14,11 +13,10 @@ import vg.civcraft.mc.civmodcore.annotations.CivConfig;
 import vg.civcraft.mc.civmodcore.annotations.CivConfigType;
 import vg.civcraft.mc.civmodcore.annotations.CivConfigs;
 import vg.civcraft.mc.civmodcore.dao.ManagedDatasource;
-import vg.civcraft.mc.namelayer.command.CommandHandler;
+import vg.civcraft.mc.namelayer.command.NameLayerCommandHandler;
 import vg.civcraft.mc.namelayer.database.AssociationList;
 import vg.civcraft.mc.namelayer.database.GroupManagerDao;
 import vg.civcraft.mc.namelayer.group.AutoAcceptHandler;
-import vg.civcraft.mc.namelayer.group.BlackList;
 import vg.civcraft.mc.namelayer.group.DefaultGroupHandler;
 import vg.civcraft.mc.namelayer.listeners.AssociationListener;
 import vg.civcraft.mc.namelayer.listeners.MercuryMessageListener;
@@ -34,12 +32,10 @@ import java.sql.SQLException;
 
 public class NameLayerPlugin extends ACivMod{
 	private static AssociationList associations;
-	private static BlackList blackList;
 	private static GroupManagerDao groupManagerDao;
 	private static DefaultGroupHandler defaultGroupHandler;
 	private static NameLayerPlugin instance;
 	private static AutoAcceptHandler autoAcceptHandler;
-	private CommandHandler handle;
 	private static ManagedDatasource db;
 	private static boolean loadGroups = true;
 	private static int groupLimit = 10;
@@ -67,11 +63,10 @@ public class NameLayerPlugin extends ACivMod{
 		registerListeners();
 		if (loadGroups){
 			PermissionType.initialize();
-			blackList = new BlackList();
 			groupManagerDao.loadGroupsInvitations();
 			defaultGroupHandler = new DefaultGroupHandler();
 			autoAcceptHandler = new AutoAcceptHandler(groupManagerDao.loadAllAutoAccept());
-			handle = new CommandHandler();
+			handle = new NameLayerCommandHandler();
 			handle.registerCommands();
 		}
 	}
@@ -142,7 +137,7 @@ public class NameLayerPlugin extends ACivMod{
 					poolsize, connectionTimeout, idleTimeout, maxLifetime);
 			db.getConnection().close();
 		} catch (Exception se) {
-			NameLayerPlugin.log(Level.WARNING, "Could not connect to DataBase, shutting down!");
+			warning("Could not connect to DataBase, shutting down!");
 			Bukkit.shutdown();
 			return;
 		}
@@ -157,7 +152,7 @@ public class NameLayerPlugin extends ACivMod{
 					ResultSet rs = checkNewInstall.executeQuery();) {
 				isNew = !rs.next();
 			} catch (SQLException se) {
-				NameLayerPlugin.log(Level.INFO, "New installation: Welcome to Namelayer!");
+				info("New installation: Welcome to Namelayer!");
 			}
 
 			if (!isNew) {
@@ -168,21 +163,21 @@ public class NameLayerPlugin extends ACivMod{
 									+ this.getName() + "' LIMIT 1;");) {
 					int rows = migrateInstall.executeUpdate();
 					if (rows == 1) {
-						NameLayerPlugin.log(Level.INFO, "Migration successful!");
+						info("Migration successful!");
 					} else {
 						Bukkit.shutdown();
-						NameLayerPlugin.log(Level.SEVERE, "Migration failed; db_version exists but uncaptured. Could be version problem.");
+						severe("Migration failed; db_version exists but uncaptured. Could be version problem.");
 						return;
 					}
 				} catch (SQLException se) {
 					Bukkit.shutdown();
 					// Migration failed...
-					NameLayerPlugin.log(Level.SEVERE, "Migration failure!");
+					severe("Migration failure!");
 					return;
 				}
 			}
 		} else {
-			NameLayerPlugin.log(Level.INFO, "Welcome back, oldtimer.");
+			info("Welcome back, oldtimer.");
 		}
 
 
@@ -192,7 +187,7 @@ public class NameLayerPlugin extends ACivMod{
 		if (loadGroups) {
 			groupManagerDao = new GroupManagerDao(getLogger(), db);
 			groupManagerDao.registerMigrations();
-			NameLayerPlugin.log(Level.INFO, "Removing any cycles...");
+			info("Removing any cycles...");
 			groupManagerDao.removeCycles();
 		}
 		
@@ -226,18 +221,6 @@ public class NameLayerPlugin extends ACivMod{
 		return groupManagerDao;
 	}
 	
-	public static void log(Level level, String message){
-		if (level == Level.INFO)
-			Bukkit.getLogger().log(level, "[NameLayer:] Info follows\n" +
-			message);
-		else if (level == Level.WARNING)
-			Bukkit.getLogger().log(level, "[NameLayer:] Warning follows\n" +
-					message);
-		else if (level == Level.SEVERE)
-			Bukkit.getLogger().log(level, "[NameLayer:] Stack Trace follows\n --------------------------------------\n" +
-					message +
-					"\n --------------------------------------");
-	}
 	/**
 	 * Updates the version number for a plugin. You must specify what 
 	 * the current version number is.
@@ -278,10 +261,6 @@ public class NameLayerPlugin extends ACivMod{
 	
 	public int getGroupLimit(){
 		return groupLimit;
-	}
-	
-	public static BlackList getBlackList() {
-		return blackList;
 	}
 	
 	public static AutoAcceptHandler getAutoAcceptHandler() {

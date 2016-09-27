@@ -1,7 +1,5 @@
 package vg.civcraft.mc.namelayer.gui;
 
-import java.nio.charset.Charset;
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.LinkedList;
@@ -28,10 +26,10 @@ import vg.civcraft.mc.namelayer.GroupManager;
 import vg.civcraft.mc.namelayer.NameAPI;
 import vg.civcraft.mc.namelayer.NameLayerPlugin;
 import vg.civcraft.mc.namelayer.RunnableOnGroup;
-import vg.civcraft.mc.namelayer.GroupManager.PlayerType;
+import vg.civcraft.mc.namelayer.command.commands.CreateGroup;
 import vg.civcraft.mc.namelayer.group.Group;
-import vg.civcraft.mc.namelayer.permission.GroupPermission;
 import vg.civcraft.mc.namelayer.permission.PermissionType;
+import vg.civcraft.mc.namelayer.permission.PlayerType;
 
 public class GUIGroupOverview {
 
@@ -77,15 +75,11 @@ public class GUIGroupOverview {
 			@Override
 			public void clicked(Player p) {
 				if (autoAccept){
-					NameLayerPlugin.log(Level.INFO,
-							p.getName() + " turned autoaccept for invites off "
-									+ "via gui");
+					NameLayerPlugin.getInstance().info(p.getName() + " turned autoaccept for invites off via gui");
 					p.sendMessage(ChatColor.GREEN + "You will no longer automatically accept group invites");
 				}
 				else {
-					NameLayerPlugin.log(Level.INFO,
-							p.getName() + " turned autoaccept for invites on "
-									+ "via gui");
+					NameLayerPlugin.getInstance().info(p.getName() + " turned autoaccept for invites on via gui");
 					p.sendMessage(ChatColor.GREEN + "You will automatically accept group invites");
 				}
 				autoAccept = !autoAccept;
@@ -142,7 +136,7 @@ public class GUIGroupOverview {
 	}
 
 	private List<Clickable> getGroupClickables() {
-		String defaultGroupName = gm.getDefaultGroup(p.getUniqueId());
+		String defaultGroupName = NameLayerPlugin.getDefaultGroupHandler().getDefaultGroup(p.getUniqueId());
 		List<String> groupNames = gm.getAllGroupNames(p.getUniqueId());
 		List<Clickable> result = new ArrayList<Clickable>();
 		Set<String> alreadyProcessed = new HashSet<String>();
@@ -160,31 +154,13 @@ public class GUIGroupOverview {
 				continue;
 			}
 			ItemStack is = null;
-			switch (pType) {
-			case MEMBERS:
-				is = new ItemStack(Material.LEATHER_CHESTPLATE);
-				ISUtils.addLore(is, ChatColor.AQUA + "Your rank: Member");
-				break;
-			case MODS:
-				is = new ItemStack(Material.GOLD_CHESTPLATE);
-				ISUtils.addLore(is, ChatColor.AQUA + "Your rank: Mod");
-				break;
-			case ADMINS:
-				is = new ItemStack(Material.IRON_CHESTPLATE);
-				ISUtils.addLore(is, ChatColor.AQUA + "Your rank: Admin");
-				break;
-			case OWNER:
-				is = new ItemStack(Material.DIAMOND_CHESTPLATE);
-				if (g.isOwner(p.getUniqueId())) {
-					ISUtils.addLore(is, ChatColor.AQUA
-							+ "Your rank: Primary owner");
-				} else {
-					ISUtils.addLore(is, ChatColor.AQUA + "Your rank: Owner");
-				}
-				break;
+			if (g.isOwner(p.getUniqueId())) {
+				is = new ItemStack(Material.OBSIDIAN);
+				ISUtils.addLore(is, ChatColor.AQUA + "Your rank: Primary owner");
 			}
-			if (is == null) {
-				continue;
+			else {
+				is = MenuUtils.getPlayerTypeStack(pType);
+				ISUtils.addLore(is, ChatColor.AQUA + "Your rank: " + pType.getName());
 			}
 			ItemMeta im = is.getItemMeta();
 			im.addItemFlags(ItemFlag.HIDE_ATTRIBUTES, ItemFlag.HIDE_ENCHANTS);
@@ -200,9 +176,9 @@ public class GUIGroupOverview {
 				ISUtils.addLore(
 						is,
 						ChatColor.AQUA
-								+ String.valueOf(g.getAllMembers().size())
-								+ " member"
-								+ (g.getAllMembers().size() > 1 ? "s" : ""));
+								+ String.valueOf(g.getAllTracked().size())
+								+ " player"
+								+ (g.getAllTracked().size() > 1 ? "s" : "" + " tracked"));
 			}
 			ISUtils.setName(is, ChatColor.GOLD + g.getName());
 			if (gm.hasAccess(g, p.getUniqueId(),
@@ -211,7 +187,7 @@ public class GUIGroupOverview {
 
 					@Override
 					public void clicked(Player arg0) {
-						MainGroupGUI mgui = new MainGroupGUI(p, g);
+						new MainGroupGUI(p, g);
 					}
 				};
 			} else {
@@ -236,7 +212,7 @@ public class GUIGroupOverview {
 				p.sendMessage(ChatColor.YELLOW
 						+ "Enter the name of your new group or \"cancel\" to exit this prompt");
 				ClickableInventory.forceCloseInventory(p);
-				Dialog dia = new Dialog(p, NameLayerPlugin.getInstance()) {
+				new Dialog(p, NameLayerPlugin.getInstance()) {
 
 					@Override
 					public List<String> onTabComplete(String wordCompleted,
@@ -279,19 +255,7 @@ public class GUIGroupOverview {
 							showScreen();
 							return;
 						}
-						Charset latin1 = StandardCharsets.ISO_8859_1;
-						boolean invalidChars = false;
-						if (!latin1.newEncoder().canEncode(groupName)) {
-							invalidChars = true;
-						}
-
-						for (char c : groupName.toCharArray()) {
-							if (Character.isISOControl(c)) {
-								invalidChars = true;
-							}
-						}
-
-						if (invalidChars) {
+						if (CreateGroup.isConformName(groupName)) {
 							p.sendMessage(ChatColor.RED
 									+ "You used characters, which are not allowed");
 							showScreen();
@@ -304,7 +268,6 @@ public class GUIGroupOverview {
 							showScreen();
 							return;
 						}
-
 						final UUID uuid = p.getUniqueId();
 						Group g = new Group(groupName, uuid, false, null, -1);
 						gm.createGroupAsync(g, new RunnableOnGroup() {
@@ -349,7 +312,7 @@ public class GUIGroupOverview {
 			public void clicked(final Player p) {
 				p.sendMessage(ChatColor.YELLOW + "Enter the name of the group or \"cancel\" to leave this prompt");
 				ClickableInventory.forceCloseInventory(p);
-				Dialog dia = new Dialog(p, NameLayerPlugin.getInstance()) {
+				new Dialog(p, NameLayerPlugin.getInstance()) {
 					
 					@Override
 					public List<String> onTabComplete(String wordCompleted, String[] fullMessage) {
@@ -368,7 +331,7 @@ public class GUIGroupOverview {
 							showScreen();
 							return;
 						}
-						final Group g = gm.getGroup(groupName);
+						final Group g = GroupManager.getGroup(groupName);
 						if (g == null) {
 							p.sendMessage(ChatColor.RED + "This group doesn't exist");
 							showScreen();
@@ -380,7 +343,7 @@ public class GUIGroupOverview {
 							return;
 						}
 						p.sendMessage(ChatColor.YELLOW + "Enter the group password");
-						Dialog passDia = new Dialog(p, NameLayerPlugin.getInstance()) {
+						new Dialog(p, NameLayerPlugin.getInstance()) {
 							
 							@Override
 							public List<String> onTabComplete(String wordCompleted, String[] fullMessage) {
@@ -395,22 +358,17 @@ public class GUIGroupOverview {
 								}
 								else {
 									Group gro = ensureFreshGroup(g);
-									GroupPermission groupPerm = gm.getPermissionforGroup(gro);
-									PlayerType pType = groupPerm.getFirstWithPerm(PermissionType.getPermission("JOIN_PASSWORD"));
+									PlayerType pType = gro.getPlayerTypeHandler().getDefaultPasswordJoinType();
 									if (pType == null){
 										p.sendMessage(ChatColor.RED + "Someone derped. This group does not have the specified permission to let you join, sorry.");
 										showScreen();
 										return;
 									}
-									NameLayerPlugin.log(Level.INFO,
-											p.getName() + " joined with password "
-													+ " to group " + g.getName()
-													+ "via gui");
-									gro.addMember(p.getUniqueId(), pType);
-									p.sendMessage(ChatColor.GREEN + "You have successfully been added to "  + gro.getName());
+									NameLayerPlugin.getInstance().info(p.getName() + " joined with password to group " + g.getName() + " via gui");
+									gro.addToTracking(p.getUniqueId(), pType);
+									p.sendMessage(ChatColor.GREEN + "You have successfully joined "  + gro.getName() + " as " + pType.getName());
 									showScreen();
 								}
-								
 							}
 						};
 					}

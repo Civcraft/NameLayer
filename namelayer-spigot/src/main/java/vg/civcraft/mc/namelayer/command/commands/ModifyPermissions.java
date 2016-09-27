@@ -5,20 +5,19 @@ import java.util.UUID;
 
 import org.bukkit.ChatColor;
 import org.bukkit.command.CommandSender;
+import org.bukkit.command.ConsoleCommandSender;
 import org.bukkit.entity.Player;
 
+import vg.civcraft.mc.civmodcore.command.PlayerCommand;
 import vg.civcraft.mc.namelayer.GroupManager;
-import vg.civcraft.mc.namelayer.GroupManager.PlayerType;
 import vg.civcraft.mc.namelayer.NameAPI;
-import vg.civcraft.mc.namelayer.command.PlayerCommandMiddle;
-import vg.civcraft.mc.namelayer.command.TabCompleters.GroupTabCompleter;
-import vg.civcraft.mc.namelayer.command.TabCompleters.MemberTypeCompleter;
-import vg.civcraft.mc.namelayer.command.TabCompleters.PermissionCompleter;
+import vg.civcraft.mc.namelayer.command.NameLayerTabCompleter;
 import vg.civcraft.mc.namelayer.group.Group;
-import vg.civcraft.mc.namelayer.permission.GroupPermission;
 import vg.civcraft.mc.namelayer.permission.PermissionType;
+import vg.civcraft.mc.namelayer.permission.PlayerType;
+import vg.civcraft.mc.namelayer.permission.PlayerTypeHandler;
 
-public class ModifyPermissions extends PlayerCommandMiddle{
+public class ModifyPermissions extends PlayerCommand {
 
 	public ModifyPermissions(String name) {
 		super(name);
@@ -30,86 +29,72 @@ public class ModifyPermissions extends PlayerCommandMiddle{
 
 	@Override
 	public boolean execute(CommandSender sender, String[] args) {
-		if (!(sender instanceof Player)){
-			sender.sendMessage(ChatColor.RED + "You must be a player. Nuf said.");
-			return true;
-		}
-		Player p = (Player) sender;
 		Group g = GroupManager.getGroup(args[0]);
-		if (groupIsNull(sender, args[0], g)) {
+		if (g == null) {
+			sender.sendMessage(ChatColor.RED + "This group doesn't exist");
 			return true;
 		}
-		UUID uuid = NameAPI.getUUID(p.getName());
-		PlayerType type = g.getPlayerType(uuid);
-		if (type == null){
-			p.sendMessage(ChatColor.RED + "You are not on this group.");
+		if (g.isDisciplined() || !(sender instanceof ConsoleCommandSender || sender.hasPermission("namelayer.admin"))){
+			sender.sendMessage(ChatColor.RED + "This group is currently disiplined.");
 			return true;
 		}
-		if (g.isDisciplined()){
-			p.sendMessage(ChatColor.RED + "This group is currently disiplined.");
-			return true;
-		}
-		if (!gm.hasAccess(g, uuid, PermissionType.getPermission("PERMS")) && !g.isOwner(uuid) && !(p.isOp() || p.hasPermission("namelayer.admin"))){
-			p.sendMessage(ChatColor.RED + "You do not have permission for this command.");
-			return true;
+		if (sender instanceof Player) {
+			//owner can always change perms
+			UUID uuid = ((Player) sender).getUniqueId();
+			if (!NameAPI.getGroupManager().hasAccess(g, uuid, PermissionType.getPermission("PERMS")) && !g.isOwner(uuid)){
+				sender.sendMessage(ChatColor.RED + "You do not have permission to modify permissions for " + g.getName());
+				return true;
+			}
 		}
 		String info = args[1];
-		PlayerType playerType = PlayerType.getPlayerType(args[2].toUpperCase());
+		PlayerTypeHandler handler = g.getPlayerTypeHandler();
+		PlayerType playerType = handler.getType(args[2]);
 		if (playerType == null){
-			PlayerType.displayPlayerTypes(p);
+			sender.sendMessage(ChatColor.RED + "The player type " + args [2] + " does not exist for " + g.getName());
 			return true;
 		}
-		PermissionType pType = PermissionType.getPermission(args[3]);
-		if (pType == null){
+		PermissionType perm = PermissionType.getPermission(args[3]);
+		if (perm == null){
 			StringBuilder sb = new StringBuilder();
-			for(PermissionType perm : PermissionType.getAllPermissions()) {
-				sb.append(perm.getName());
+			for(PermissionType pem : PermissionType.getAllPermissions()) {
+				sb.append(pem.getName());
 				sb.append(" ");
 			}
-			p.sendMessage(ChatColor.RED 
+			sender.sendMessage(ChatColor.RED 
 						+ "That PermissionType does not exists.\n"
 						+ "The current types are: " + sb.toString());
 			return true;
 		}
-		GroupPermission gPerm = gm.getPermissionforGroup(g);
 		if (info.equalsIgnoreCase("add")){
-			if (gPerm.hasPermission(playerType, pType))
-				sender.sendMessage(ChatColor.RED + "This PlayerType already has the PermissionType: " + pType.getName());
+			if (playerType.hasPermission(perm)) {
+				sender.sendMessage(ChatColor.RED + playerType.getName() + " already has the permission " + perm.getName());
+			}
 			else {
-				if (playerType == PlayerType.NOT_BLACKLISTED && pType == PermissionType.getPermission("JOIN_PASSWORD")) {
-					//we need to prevent players from explicitly adding people to this permission group
-					sender.sendMessage(ChatColor.RED + "You can't explicitly add players to this group. Per default any non blacklisted person will"
-							+ "be included in this permission group");
-				}
-				gPerm.addPermission(playerType, pType);
-				sender.sendMessage(ChatColor.GREEN + "The PermissionType: " + pType.getName() + " was successfully added to the PlayerType: " +
-						playerType.name());
+				playerType.addPermission(perm, true);
+				sender.sendMessage(ChatColor.GREEN + perm.getName() + " was successfully given to " + playerType.getName());
 			}
 		}
 		else if (info.equalsIgnoreCase("remove")){
-			if (gPerm.hasPermission(playerType, pType)){
-				gPerm.removePermission(playerType, pType);
-				sender.sendMessage(ChatColor.GREEN + "The PermissionType: " + pType.getName() + " was successfully removed from" +
-						" the PlayerType: " + playerType.name());
+			if (playerType.hasPermission(perm)){
+				playerType.removePermission(perm, true);
+				sender.sendMessage(ChatColor.GREEN + perm.getName() + " was successfully remove from " + playerType.getName());
 			}
-			else
-				sender.sendMessage(ChatColor.RED + "This PlayerType does not have the PermissionType: " + pType.getName());
+			else {
+				sender.sendMessage(ChatColor.RED + playerType.getName() + " does not have the permission " + perm.getName());
+			}
 		}
 		else{
-			p.sendMessage(ChatColor.RED + "Specify if you want to add or remove.");
+			sender.sendMessage(ChatColor.RED + "Specify if you want to add or remove, " + info + " is not a valid action");
 		}
 		return true;
 	}
 
 	@Override
 	public List<String> tabComplete(CommandSender sender, String[] args) {
-		if (!(sender instanceof Player))
-			return null;
-
-		if (args.length == 0)
-			return GroupTabCompleter.complete(null, PermissionType.getPermission("PERMS"), (Player) sender);
-		else if (args.length == 1)
-			return GroupTabCompleter.complete(args[0], PermissionType.getPermission("PERMS"), (Player)sender);
+		if (args.length == 0 && (sender instanceof Player))
+			return NameLayerTabCompleter.completeGroupWithPermission(null, PermissionType.getPermission("PERMS"), (Player) sender);
+		else if (args.length == 1 && (sender instanceof Player))
+			return NameLayerTabCompleter.completeGroupWithPermission(args [0], PermissionType.getPermission("PERMS"), (Player) sender);
 		else if (args.length == 2) {
 
 			if (args[1].length() > 0) {
@@ -120,11 +105,10 @@ public class ModifyPermissions extends PlayerCommandMiddle{
 			}
 
 		} else if (args.length == 3) {
-			return MemberTypeCompleter.complete(args[2]);
+			return NameLayerTabCompleter.completePlayerType(args [2], GroupManager.getGroup(args [0]));
 		} else if (args.length == 4) {
-			return PermissionCompleter.complete(args[3]);
+			return NameLayerTabCompleter.completePermission(args [3]);
 		}
-
 		return  null;
 	}
 }

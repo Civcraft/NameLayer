@@ -7,14 +7,17 @@ import org.bukkit.ChatColor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
-import vg.civcraft.mc.namelayer.GroupManager.PlayerType;
+import vg.civcraft.mc.civmodcore.command.PlayerCommand;
+import vg.civcraft.mc.namelayer.GroupManager;
 import vg.civcraft.mc.namelayer.NameAPI;
-import vg.civcraft.mc.namelayer.command.PlayerCommandMiddle;
-import vg.civcraft.mc.namelayer.command.TabCompleters.GroupTabCompleter;
+import vg.civcraft.mc.namelayer.NameLayerPlugin;
+import vg.civcraft.mc.namelayer.command.NameLayerTabCompleter;
+import vg.civcraft.mc.namelayer.group.DefaultGroupHandler;
 import vg.civcraft.mc.namelayer.group.Group;
-import vg.civcraft.mc.namelayer.permission.PermissionType;
 
-public class SetDefaultGroup extends PlayerCommandMiddle{
+public class SetDefaultGroup extends PlayerCommand {
+	
+	private DefaultGroupHandler handler;
 
 	public SetDefaultGroup(String name) {
 		super(name);
@@ -22,6 +25,7 @@ public class SetDefaultGroup extends PlayerCommandMiddle{
 		setDescription("Set or change a default group");
 		setUsage("/nlsdg <group>");
 		setArguments(1,1);
+		handler = NameLayerPlugin.getDefaultGroupHandler();
 	}
 
 	@Override
@@ -32,25 +36,15 @@ public class SetDefaultGroup extends PlayerCommandMiddle{
 		}
 		Player p = (Player) sender;
 		UUID uuid = NameAPI.getUUID(p.getName());
-		Group g = gm.getGroup(args[0]);
-		if (groupIsNull(sender, args[0], g)) {
+		Group g = GroupManager.getGroup(args[0]);
+		if (g == null) {
+			p.sendMessage(ChatColor.RED + "This group doesn't exist");
 			return true;
 		}
-		
-		PlayerType pType = g.getPlayerType(uuid);
-		if (pType == null){
-			p.sendMessage(ChatColor.RED + "You do not have access to that group.");
-			return true;
-		}
-
-		String x = gm.getDefaultGroup(uuid);
+		String x = handler.getDefaultGroup(uuid);
 		if(x == null){
-			g.setDefaultGroup(uuid);
+			handler.setDefaultGroup(uuid, g);
 			p.sendMessage(ChatColor.GREEN + "You have set your default group to " + g.getName());
-		}
-		else{
-			g.changeDefaultGroup(uuid);
-			p.sendMessage(ChatColor.GREEN + "You changed your default group from " + x + " to " + gm.getDefaultGroup(uuid));
 		}
 		return true;
 	}
@@ -59,11 +53,10 @@ public class SetDefaultGroup extends PlayerCommandMiddle{
 	public List<String> tabComplete(CommandSender sender, String[] args) {
 		if (!(sender instanceof Player))
 			return null;
-
-		if (args.length == 1)
-			return GroupTabCompleter.complete(args[0], PermissionType.getPermission("BLOCKS"), (Player) sender);
-		else{
-			return GroupTabCompleter.complete(null, PermissionType.getPermission("BLOCKS"), (Player)sender);
+		if (args.length > 0)
+			return NameLayerTabCompleter.completeGroupWithPermission(args[0], null, (Player) sender);
+		else {
+			return NameLayerTabCompleter.completeGroupWithPermission(null, null, (Player) sender);
 		}
 	}
 }

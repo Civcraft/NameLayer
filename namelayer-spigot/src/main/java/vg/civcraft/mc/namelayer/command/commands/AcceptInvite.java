@@ -7,15 +7,16 @@ import org.bukkit.ChatColor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
-import vg.civcraft.mc.namelayer.GroupManager.PlayerType;
+import vg.civcraft.mc.civmodcore.command.PlayerCommand;
+import vg.civcraft.mc.namelayer.GroupManager;
 import vg.civcraft.mc.namelayer.NameAPI;
-import vg.civcraft.mc.namelayer.command.PlayerCommandMiddle;
-import vg.civcraft.mc.namelayer.command.TabCompleters.InviteTabCompleter;
+import vg.civcraft.mc.namelayer.command.NameLayerTabCompleter;
 import vg.civcraft.mc.namelayer.group.Group;
 import vg.civcraft.mc.namelayer.listeners.PlayerListener;
-import vg.civcraft.mc.namelayer.misc.Mercury;
+import vg.civcraft.mc.namelayer.misc.MercuryManager;
+import vg.civcraft.mc.namelayer.permission.PlayerType;
 
-public class AcceptInvite extends PlayerCommandMiddle{
+public class AcceptInvite extends PlayerCommand {
 
 	public AcceptInvite(String name) {
 		super(name);
@@ -32,8 +33,9 @@ public class AcceptInvite extends PlayerCommandMiddle{
 			return true;
 		}
 		Player p = (Player) sender;
-		Group group = gm.getGroup(args[0]);
-		if (groupIsNull(sender, args[0], group)) {
+		Group group = GroupManager.getGroup(args[0]);
+		if (group == null) {
+			p.sendMessage(ChatColor.RED + "This group doesn't exist");
 			return true;
 		}
 		UUID uuid = NameAPI.getUUID(p.getName());
@@ -51,13 +53,13 @@ public class AcceptInvite extends PlayerCommandMiddle{
 			group.removeInvite(uuid, true);
 			return true;
 		}
-		group.addMember(uuid, type);
+		group.addToTracking(uuid, type);
 		group.removeInvite(uuid, true);
 		PlayerListener.removeNotification(uuid, group);
 		
-		Mercury.remInvite(group.getGroupId(), uuid);
+		MercuryManager.remInvite(group.getGroupId(), uuid);
 				
-		p.sendMessage(ChatColor.GREEN + "You have successfully been added to the group as a " + type.name() +".");
+		p.sendMessage(ChatColor.GREEN + "You have successfully been added to " + group.getName() + " as " + type.getName());
 		return true;
 	}
 	@Override
@@ -67,8 +69,8 @@ public class AcceptInvite extends PlayerCommandMiddle{
 		}
 
 		if (args.length > 0)
-			return InviteTabCompleter.complete(args[0], (Player) sender);
+			return NameLayerTabCompleter.completeOpenGroupInvite(args[0], (Player) sender);
 		else
-			return InviteTabCompleter.complete(null, (Player)sender);
+			return NameLayerTabCompleter.completeOpenGroupInvite(null, (Player)sender);
 	}
 }
