@@ -22,8 +22,6 @@ import java.util.logging.Logger;
 
 import org.bukkit.Bukkit;
 
-import com.google.common.collect.Lists;
-
 import vg.civcraft.mc.civmodcore.dao.ManagedDatasource;
 import vg.civcraft.mc.namelayer.GroupManager;
 import vg.civcraft.mc.namelayer.NameLayerPlugin;
@@ -49,7 +47,7 @@ public class GroupManagerDao {
 				"from faction f "
 				+ "inner join faction_id fi on fi.group_id = ? "
 				+ "where f.group_name = fi.group_name";
-	private static final String getAllGroupsNames = "select f.group_name from faction_id f "
+	private static final String getAllGroupsForPlayer = "select f.group_name from faction_id f "
 				+ "inner join faction_member fm on f.group_id = fm.group_id "
 				+ "where fm.member_name = ?";
 	private static final String deleteGroup = "call deletegroupfromtable(?, ?)";
@@ -120,12 +118,20 @@ public class GroupManagerDao {
 	private static final String removePermission = "delete from permissionByGroup where group_id = ? and rank_id = ? and perm_id = ?;";
 	private static final String registerPermission = "insert into permissionIdMapping(perm_id, name) values(?, ?);"; 
 	private static final String getPermissionMapping = "select * from permissionIdMapping;";
+	
+	private static final String addPermissionLegacy = "insert into permissionByGroup(group_id,role,perm_id) select g.group_id, ?, ? from faction_id g where g.group_name = ?;";
 		
 	private static final String getAllGroupIds = "select group_id from faction_id";
+	private static final String getAllGroupNames = "select distinct(group_name) from faction_id;";
 	
 	private static final String addPlayerType = "insert into groupPlayerTypes (group_id, rank_id, type_name, parent_rank_id) values(?,?,?,?);";
 	private static final String deletePlayerType = "delete from groupPlayerTypes where group_id = ? and rank_id = ?;";
 	private static final String getAllPlayerTypesForGroup = "select rank_id, type_name, parent_rank_id from groupPlayerTypes where group_id = ?;";
+	
+	private static final String deleteAllIdsForNameExcept = "delete from faction_id where group_name=? and not group_id = =;";
+	
+	private static final String addMergeMapping = "insert into mergedGroups (oldGroup,newGroup) values(?,?);";
+	private static final String updateMergeMapping = "update mergedGroups set newGroup = ? where newGroup = ?;";
 			 
 
 	public GroupManagerDao(Logger logger, ManagedDatasource db){
@@ -289,7 +295,7 @@ public class GroupManagerDao {
 					@Override
 					public Boolean call() {
 						try (Connection connection = db.getConnection();
-								PreparedStatement permInit = connection.prepareStatement(addPermission);
+								PreparedStatement permInit = connection.prepareStatement(addPermissionLegacy);
 								PreparedStatement permReg = connection.prepareStatement(registerPermission); ) {
 							Map <String, Integer> permIds = new HashMap<String, Integer>();
 
@@ -439,14 +445,63 @@ public class GroupManagerDao {
 					" end if; " +
 					"end;");
 			db.registerMigration(14, false, 
+					new Callable<Boolean>() {
+
+						@Override
+						public Boolean call() {
+							List <String> groupNames = new LinkedList<String>();
+							try (Connection connection = db.getConnection();
+									PreparedStatement getGroupNames = connection.prepareStatement(GroupManagerDao.getAllGroupNames);
+									
+									PreparedStatement addMerge = connection.prepareStatement(GroupManagerDao)
+											ResultSet allNameSet = getGroupNames.executeQuery()) {
+								while (allNameSet.next()) {
+									String groupName = allNameSet.getString(1);
+									groupNames.add(groupName);
+								}
+								
+							} catch (SQLException e) {
+								// TODO Auto-generated catch block
+								e.printStackTrace();
+							}
+							for(String groupName : groupNames) {
+								List <Integer> retrievedIds = new LinkedList<Integer>();
+								try (Connection connection = db.getConnection();
+										PreparedStatement getIdsForName = connection.prepareStatement(GroupManagerDao.getGroup);) {
+									getIdsForName.setString(1, groupName);
+									try(ResultSet specificIdSet = getIdsForName.executeQuery()) {
+										while (specificIdSet.next()) {
+											retrievedIds = specificIdSet.getInt(5);						
+										}
+									}
+								}
+								if (retrievedIds.size() <= 1) {
+									//nothing to do
+									continue;
+								}
+								int realId = retrievedIds.get(0);
+							}
+						}
+				
+			});
+					
+					
+					
+		/*			//invitation table uses names as identifier, so we fix faction_id before getting to invitations
+					"create table mergedGroups (oldGroup int not null, newGroup int not null references faction_id (group_id) on delete cascade, primary key(oldGroup));",
+					"insert into mergedGroups (oldGroup, newGroup) values(select fi.group_id,fa.group_id from faction_id fi left join "
+							+ "(select distinct(group_id) as newId from faction_member;) ma "
+							+ "on ma.newId = fi.group_id inner join (select max(group_id) as max, group_name as newId from faction_id group by group_name;) fa on fa.group_name=fi.group_name;)",
+					"delete from faction_id where group_id in (select oldGroup from mergedGroups;);", */
+			db.registerMigration(15, false, 
 					//leftover cleanup from previous migration
-					"drop table permissions;",
+					"drop table if exists permissions;",
 					//we no longer use this table, so might as well get rid of it
-					"drop table nameLayerNameChanges;",
+					"drop table if exists nameLayerNameChanges;",
 					//make new table to hold player types
-					"create table if not exists groupPlayerTypes(group_id int not null foreign key references faction_id (group_id) on delete cascade,"
+					"create table if not exists groupPlayerTypes(group_id int not null,"
 							+ "rank_id int not null, type_name varchar(40) not null, parent_rank_id int, constraint unique (group_id, rank_id), constraint unique (group_id, type_name), "
-							+ "primary key(group_id,type_id));",
+							+ "primary key(group_id,rank_id), foreign key(group_id) references faction_id (group_id) on delete cascade);",
 					//convert old player types over to new format
 					"insert into groupPlayerTypes (group_id,rank_id,type_name) select group_id, 0, 'OWNER' from faction_id;",
 					"insert into groupPlayerTypes (group_id,rank_id,type_name,parent_rank_id) select group_id, 1, 'ADMINS',0 from faction_id;",
@@ -487,13 +542,6 @@ public class GroupManagerDao {
 					"delete from faction_member where rank_id is null;",
 					"alter table faction_member drop column role;",
 					"alter table faction_member add constraint foreign key (group_id, rank_id) references groupPlayerTypes(group_id, rank_id) on delete cascade;",
-					
-					//invitation table uses names as identifier, so we fix faction_id before getting to invitations
-					"create table mergedGroups (oldGroup int not null, newGroup int not null references faction_id (group_id) on delete cascade, primary key(oldGroup));",
-					"insert into mergedGroups (oldGroup, newGroup) select fi.group_id,fa.group_id from faction_id fi left join "
-							+ "(select max(group_id) as newId from faction_id group by group_name;) ma"
-							+ "on ma.newId = fi.group_id inner join (select max(group_id) as max, group_name as newId from faction_id group by group_name;) fa on fa.group_name=fi.group_name;",
-					"delete from faction_id where group_id in (select oldGroup from mergedGroups;);",
 					
 					//remove old restrictions
 					"alter table group_invitation drop primary key;",
@@ -665,7 +713,7 @@ public class GroupManagerDao {
 	public List<String> getGroupNames(UUID uuid){
 		List<String> groups = new ArrayList<String>();
 		try (Connection connection = db.getConnection();
-				PreparedStatement getAllGroupsNames = connection.prepareStatement(GroupManagerDao.getAllGroupsNames)){
+				PreparedStatement getAllGroupsNames = connection.prepareStatement(GroupManagerDao.getAllGroupsForPlayer)){
 			getAllGroupsNames.setString(1, uuid.toString());
 			try (ResultSet set = getAllGroupsNames.executeQuery();) {
 				while(set.next()) {
