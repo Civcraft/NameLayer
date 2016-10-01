@@ -25,7 +25,7 @@ public class PlayerTypeHandler {
 	private Map<String, PlayerType> typesByName;
 	private Map<Integer, PlayerType> typesById;
 	private final static int MAXIMUM_TYPE_COUNT = 27;
-	private final static int OWNER_ID = 0;
+	public final static int OWNER_ID = 0;
 	private final static int DEFAULT_NON_MEMBER_ID = 4;
 
 	public PlayerTypeHandler(PlayerType root, Group group) {
@@ -283,6 +283,17 @@ public class PlayerTypeHandler {
 			NameLayerPlugin.getGroupManagerDao().registerPlayerType(group, type);
 		}
 		return true;
+	}
+	
+	/**
+	 * This is used when loading a type directly from the database and bypasses the usual sanity checks and permission modifications. 
+	 * Never use this to create types that didnt already exist before
+	 * 
+	 * @param type Type to add
+	 */
+	public void loadPlayerType(PlayerType type) {
+		typesByName.put(type.getName().toLowerCase(), type);
+		typesById.put(type.getId(), type);
 	}
 
 	/**

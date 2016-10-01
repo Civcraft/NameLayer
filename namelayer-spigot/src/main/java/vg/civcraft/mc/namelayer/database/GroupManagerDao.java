@@ -7,12 +7,14 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Timestamp;
+import java.sql.Types;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Queue;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.UUID;
@@ -126,9 +128,8 @@ public class GroupManagerDao {
 	
 	private static final String addPlayerType = "insert into groupPlayerTypes (group_id, rank_id, type_name, parent_rank_id) values(?,?,?,?);";
 	private static final String deletePlayerType = "delete from groupPlayerTypes where group_id = ? and rank_id = ?;";
+	private static final String renamePlayerType = "update groupPlayerTypes set type_name = ? where group_id = ? and rank_id = ?;";
 	private static final String getAllPlayerTypesForGroup = "select rank_id, type_name, parent_rank_id from groupPlayerTypes where group_id = ?;";
-	
-	private static final String deleteAllIdsForNameExcept = "delete from faction_id where group_name=? and not group_id = =;";
 	
 	private static final String addMergeMapping = "insert into mergedGroups (oldGroup,newGroup) values(?,?);";
 	private static final String updateMergeMapping = "update mergedGroups set newGroup = ? where newGroup = ?;";
@@ -449,11 +450,21 @@ public class GroupManagerDao {
 
 						@Override
 						public Boolean call() {
+							//Previously if a group was merged, it had multiple ids assigned to it and the "real id" was simply the first
+							//one returned by the database. We fix this here, but one last time have to extract the first one returned by
+							//ResultSet to turn it into the real id, which is not doable completly in sql, so we have to do this slow 
+							//work around
+							//create the mapping table
+							try (Connection connection = db.getConnection()) {
+								connection.prepareStatement("create table if not exists mergedGroups (oldGroup int not null, newGroup int not null, primary key(oldGroup));");
+							} catch (SQLException e1) {
+								logger.log(Level.SEVERE, "Error while creating merge mapping table", e1);
+								return false;
+							}
 							List <String> groupNames = new LinkedList<String>();
+							//first we get a list of all group names
 							try (Connection connection = db.getConnection();
 									PreparedStatement getGroupNames = connection.prepareStatement(GroupManagerDao.getAllGroupNames);
-									
-									PreparedStatement addMerge = connection.prepareStatement(GroupManagerDao)
 											ResultSet allNameSet = getGroupNames.executeQuery()) {
 								while (allNameSet.next()) {
 									String groupName = allNameSet.getString(1);
@@ -461,9 +472,10 @@ public class GroupManagerDao {
 								}
 								
 							} catch (SQLException e) {
-								// TODO Auto-generated catch block
-								e.printStackTrace();
+								logger.log(Level.SEVERE, "Error while collection group names to update merge mapping", e);
+								return false;
 							}
+							//now we iterate over each group name and first get all ids, which map to this group name
 							for(String groupName : groupNames) {
 								List <Integer> retrievedIds = new LinkedList<Integer>();
 								try (Connection connection = db.getConnection();
@@ -471,30 +483,47 @@ public class GroupManagerDao {
 									getIdsForName.setString(1, groupName);
 									try(ResultSet specificIdSet = getIdsForName.executeQuery()) {
 										while (specificIdSet.next()) {
-											retrievedIds = specificIdSet.getInt(5);						
+											retrievedIds.add(specificIdSet.getInt(5));			
 										}
 									}
+								} catch (SQLException e) {
+									logger.log(Level.SEVERE, "Error collecting merged id collections", e);
+									return false;
 								}
 								if (retrievedIds.size() <= 1) {
-									//nothing to do
+									//nothing to do, group was never merged
 									continue;
 								}
+								//this is the first id returned and the main id of the group. All other ones are pointing to the same group, but should
+								//not have their own entry in any table other than the merge mapping, which we create here
 								int realId = retrievedIds.get(0);
+								for(int i = 1 ; i < retrievedIds.size(); i++) {
+									try (Connection connection = db.getConnection();
+											PreparedStatement addMerge = connection.prepareStatement(GroupManagerDao.addMergeMapping)) {
+										addMerge.setInt(1, retrievedIds.get(i));
+										addMerge.setInt(2, realId);
+										addMerge.execute();
+									} catch (SQLException e) {
+										logger.log(Level.SEVERE, "Error while inserting updated merge mapping", e);
+										return false;
+									}
+								}
 							}
+							return true;
 						}
 				
-			});
-					
-					
-					
-		/*			//invitation table uses names as identifier, so we fix faction_id before getting to invitations
-					"create table mergedGroups (oldGroup int not null, newGroup int not null references faction_id (group_id) on delete cascade, primary key(oldGroup));",
-					"insert into mergedGroups (oldGroup, newGroup) values(select fi.group_id,fa.group_id from faction_id fi left join "
-							+ "(select distinct(group_id) as newId from faction_member;) ma "
-							+ "on ma.newId = fi.group_id inner join (select max(group_id) as max, group_name as newId from faction_id group by group_name;) fa on fa.group_name=fi.group_name;)",
-					"delete from faction_id where group_id in (select oldGroup from mergedGroups;);", */
-			db.registerMigration(15, false, 
-					//leftover cleanup from previous migration
+				}, 
+				//now we just clean up all duplicates entries for which we have replacements in mergeGroups
+				"delete from faction_id where group_id in (select oldGroup from mergedGroups;);",
+				//now we can also add a foreign key relation ship between faction and faction_id, because we can guarantee that there is only one entry per group
+				//in faction_id
+				"delete from faction where group_name not in (select group_name from faction_id;);",
+				"alter table faction add constraint foreign key (group_name) references faction_id(group_name) on delete cascade;"
+			);
+			
+			
+			db.registerMigration(16, false, 
+					//leftover cleanup from migration 13
 					"drop table if exists permissions;",
 					//we no longer use this table, so might as well get rid of it
 					"drop table if exists nameLayerNameChanges;",
@@ -522,6 +551,8 @@ public class GroupManagerDao {
 					"update permissionByGroup set rank_id=4 where role='NOT_BLACKLISTED';",
 					//maybe some broken entries exist, we make sure to clean those out
 					"delete from permissionByGroup where rank_id IS NULL;",
+					//also delete entries which dont refer to an existing group
+					"delete from permissionByGroup where group_id not in (select group_id from faction_id;);",
 					//now we no longer need the varchar role column
 					"alter table permissionByGroup drop column role;",
 					//this should have been done in the previous upgrade, it ensures a proper cleanup if someone messes with the master perm table
@@ -541,6 +572,7 @@ public class GroupManagerDao {
 					"update faction_member set rank_id=4 where role='NOT_BLACKLISTED';",
 					"delete from faction_member where rank_id is null;",
 					"alter table faction_member drop column role;",
+					"delete from faction_member where group_id not in (select group_id from faction_id;);",
 					"alter table faction_member add constraint foreign key (group_id, rank_id) references groupPlayerTypes(group_id, rank_id) on delete cascade;",
 					
 					//remove old restrictions
@@ -565,8 +597,38 @@ public class GroupManagerDao {
 					"alter table group_invitation add constraint unique (group_id, uuid);",
 					
 					//finally easy lookup by group id is nice
-					"create index inviteTypeIdIndex on group_invitation(group_id);"
-					);		
+					"create index inviteTypeIdIndex on group_invitation(group_id);",
+					
+					//we no longer need to delete groups in a procedure due to the new foreign keys
+					"drop procedure if exists deletegroupfromtable;",
+					
+					//need to update the merging procedure
+					"drop procedure if exists mergeintogroup;",
+					"create definer=current_user procedure mergeintogroup(" +
+						"in remainingId int, in tomergeId int) " +
+						"sql security invoker begin " +
+						"DECLARE destID, tmp int;" +
+						//update preexisting merge mapping to the group which we now remove
+						"update mergedGroups set newGroup = remainingId where newGroup = tomergeId;" + 
+						"insert into mergedGroups (oldGroup,newGroup) values(tomergeId, remainingId);" + 
+						"delete from faction_id where group_id = tomergeId;",
+						//foreign keys will do everything else
+					//need to update group creation as well
+					"drop procedure if exists createGroup;",
+					"create definer=current_user procedure createGroup(" + 
+						"in group_name varchar(255), " +
+						"in founder varchar(36), " +
+						"in password varchar(255), " +
+						"in discipline_flags int(11)) " +
+						"sql security invoker " +
+						"begin" +
+						" if (select (count(*) = 0) from faction_id q where q.group_name = group_name) is true then" + 
+						"  insert into faction_id(group_name) values (group_name); " +
+						"  insert into faction(group_name, founder, password, discipline_flags) values (group_name, founder, password, discipline_flags);" + 
+						"  insert into faction_member (member_name, rank_id, group_id) select founder, 0, f.group_id from faction_id f where f.group_name = group_name; " +
+						"  select f.group_id from faction_id f where f.group_name = group_name; " +
+						" end if; " +
+						"end;");
 		}
 
 	
@@ -632,7 +694,9 @@ public class GroupManagerDao {
 			logger.log(Level.WARNING, "Problem retrieving group " + groupName, e);
 			g = null;
 		}
-		loadGroupMetaData(g);
+		if (!loadGroupMetaData(g)) {
+			return null;
+		}
 		return g;
 	}
 	
@@ -674,24 +738,28 @@ public class GroupManagerDao {
 			logger.log(Level.WARNING, "Problem retrieving group " + groupId, e);
 			g = null;
 		}
-		loadGroupMetaData(g);
+		if (!loadGroupMetaData(g)) {
+			return null;
+		}
 		return g;
 	}
 	
 	/**
 	 * Loads player types, members and invitations
 	 */
-	private void loadGroupMetaData(Group g) {
+	private boolean loadGroupMetaData(Group g) {
 		if (g == null) {
-			return;
+			return false;
 		}
 		PlayerTypeHandler typeHandler = getPlayerTypes(g);
+		if (typeHandler == null) {
+			return false;
+		}
 		g.setPlayerTypeHandler(typeHandler);
-		//private static final String getAllMembers = "select member_name, rank_id from faction_member where faction_id = ?;";
 		try (Connection connection = db.getConnection();
-				PreparedStatement getAllRanks = connection.prepareStatement(GroupManagerDao.getAllMembers)) {
-			getAllRanks.setInt(1, g.getGroupId());
-			try (ResultSet rs = getAllRanks.executeQuery()) {
+				PreparedStatement getAllMembers = connection.prepareStatement(GroupManagerDao.getAllMembers)) {
+			getAllMembers.setInt(1, g.getGroupId());
+			try (ResultSet rs = getAllMembers.executeQuery()) {
 				while (rs.next()) {
 					g.addToTracking(UUID.fromString(rs.getString(1)), typeHandler.getType(rs.getInt(2)), false);
 				}
@@ -708,6 +776,7 @@ public class GroupManagerDao {
 				type.addPermission(perm, false);
 			}
 		}
+		return true;
 	}
 	
 	public List<String> getGroupNames(UUID uuid){
@@ -1029,24 +1098,105 @@ public class GroupManagerDao {
 	}
 	
 	public void registerPlayerType(Group g, PlayerType type) {
-		//insert new player type together with its parent, id, group id and name
+		try (Connection connection = db.getConnection();
+				PreparedStatement addType = connection.prepareStatement(GroupManagerDao.addPlayerType);) {
+			addType.setInt(1, g.getGroupId());
+			addType.setInt(2, type.getId());
+			addType.setString(3, type.getName());
+			if (type.getParent() == null) {
+				addType.setNull(4, Types.INTEGER);
+			}
+			else {
+				addType.setInt(4, type.getParent().getId());
+			}
+			addType.execute();
+		} catch (SQLException e) {
+			logger.log(Level.WARNING, "Problem adding player type " + type.getName() + " for " + g.getName(), e);
+		}
 	}
 	
 	public void removePlayerType(Group g, PlayerType type) {
-		//just completly remove from the db
-		//this should also remove all permissions associated with this type
+		try (Connection connection = db.getConnection();
+				PreparedStatement removeType = connection.prepareStatement(GroupManagerDao.deletePlayerType);) {
+			removeType.setInt(1, g.getGroupId());
+			removeType.setInt(2, type.getId());
+			removeType.execute();
+		} catch (SQLException e) {
+			logger.log(Level.WARNING, "Problem removing player type " + type.getName() + " from " + g.getName(), e);
+		}
 	}
 	
 	public void updatePlayerTypeName(Group g, PlayerType type) {
-		//this will be called after the name of the type is already updated
-		//simply write new name to db, based on group and type id
+		try (Connection connection = db.getConnection();
+				PreparedStatement renameType = connection.prepareStatement(GroupManagerDao.renamePlayerType);) {
+			renameType.setString(1, type.getName());
+			renameType.setInt(2, g.getGroupId());
+			renameType.setInt(3, type.getId());
+			renameType.execute();
+		} catch (SQLException e) {
+			logger.log(Level.WARNING, "Problem updating player type name " + type.getName() + " from " + g.getName(), e);
+		}
 	}
 	
+	/**
+	 * Loads all player types for the given group from the database and initializes them with empty permissions
+	 * @param g Group to load types for
+	 * @return Complete playertypehandler with all playertypes, but no permissions if everything worked or null if something went wrong
+	 */
 	public PlayerTypeHandler getPlayerTypes(Group g) {
-		//constructs a new player type handler based on information retrieved from db
-		//this includes loading all permissions
-		//possibly loading all groups with all perms on startup might be better, needs to be investigated
-		return null;
+		Map <Integer, PlayerType> retrievedTypes = new TreeMap<Integer, PlayerType>();
+		Map <Integer, List <PlayerType>> pendingParents = new TreeMap<Integer, List <PlayerType>>();
+		try (Connection connection = db.getConnection();
+				PreparedStatement renameType = connection.prepareStatement(GroupManagerDao.getAllPlayerTypesForGroup);) {
+			renameType.setInt(1, g.getGroupId());
+			try (ResultSet rs = renameType.executeQuery()) {
+				while (rs.next()) {
+					int id = rs.getInt(1);
+					String name = rs.getString(2);
+					int parent = rs.getInt(3);
+					PlayerType type = new PlayerType(name, id, null, new LinkedList<PermissionType>(), g);
+					retrievedTypes.put(id, type);
+					List <PlayerType> brothers = pendingParents.get(parent);
+					if (brothers == null) {
+						brothers = new LinkedList<PlayerType>();
+						pendingParents.put(parent, brothers);
+					}
+					brothers.add(type);
+				}
+			}
+		} catch (SQLException e) {
+			logger.log(Level.WARNING, "Problem loading player types for " + g.getName(), e);
+			return null;
+		}
+		PlayerType root = retrievedTypes.get(retrievedTypes.get(PlayerTypeHandler.OWNER_ID));
+		if (root == null) {
+			logger.log(Level.WARNING, "Could not load root node for group " + g.getName() + "; Failed to load group");
+			return null;
+		}
+		PlayerTypeHandler handler = new PlayerTypeHandler(retrievedTypes.get(PlayerTypeHandler.OWNER_ID), g);
+		Queue <PlayerType> toHandle = new LinkedList<PlayerType>();
+		toHandle.add(root);
+		while (!toHandle.isEmpty()) {
+			PlayerType parent = toHandle.poll();
+			List <PlayerType> children = pendingParents.get(parent.getId());
+			if (children == null) {
+				continue;
+			}
+			for(PlayerType child : children) {
+				//parent is intentionally non modifiable, so we create a new instance
+				PlayerType type = new PlayerType(child.getName(), child.getId(), parent, g);
+				parent.addChild(type);
+				handler.loadPlayerType(type);
+				toHandle.add(type);
+				retrievedTypes.remove(type.getId());
+			}
+		}
+		if (!retrievedTypes.isEmpty()) {
+			//a type exists for this group, which is not part of the tree rooted at perm 0
+			logger.log(Level.WARNING, "A total of " + retrievedTypes.values().size() + " player types could not be loaded for group " + g.getName() 
+					+ ", because they arent part of the normal tree structure");
+		}		
+		return handler;
 	}
 	
 	public void batchSavePlayerTypeHandler(PlayerTypeHandler handler) {
