@@ -3,7 +3,6 @@ package vg.civcraft.mc.namelayer.gui;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.UUID;
-import java.util.logging.Level;
 
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
@@ -40,7 +39,7 @@ public class InvitationGUI extends AbstractGroupGUI {
 			if (!handler.isMemberType(type)) {
 				continue;
 			}
-			ItemStack is = MenuUtils.getPlayerTypeStack(type);
+			ItemStack is = MenuUtils.getHashedItem(type.getName().hashCode());
 			ISUtils.setName(is, ChatColor.GOLD + type.getName());
 			Clickable c;
 			if (gm.hasAccess(g, p.getUniqueId(), type.getInvitePermissionType())) {

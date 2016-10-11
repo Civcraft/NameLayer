@@ -40,7 +40,7 @@ public class PermissionManageGUI extends AbstractGroupGUI {
 		List<IClickable> clicks = new LinkedList<IClickable>();
 		PlayerTypeHandler handler = g.getPlayerTypeHandler();
 		for (final PlayerType type : handler.getAllTypes()) {
-			ItemStack is = MenuUtils.getPlayerTypeStack(type);
+			ItemStack is = MenuUtils.getHashedItem(type.getName().hashCode());
 			ISUtils.setName(is, ChatColor.GOLD + type.getName());
 			ISUtils.addLore(is, ChatColor.GREEN
 					+ "Click to edit this rank, add child ranks and view or edit permissions for it");

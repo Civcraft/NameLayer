@@ -142,7 +142,7 @@ public class MainGroupGUI extends AbstractGroupGUI {
 			if (!shownTypes.contains(type)) {
 				continue;
 			}
-			ItemStack example = MenuUtils.getPlayerTypeStack(type);
+			ItemStack example = MenuUtils.getHashedItem(type.getName().hashCode());
 			boolean blackListed = handler.isBlackListedType(type);
 			boolean hasPerm = gm.hasAccess(g, p.getUniqueId(), type.getRemovalPermissionType());
 			for (final UUID uuid : g.getAllTrackedByType(type)) {
@@ -183,7 +183,7 @@ public class MainGroupGUI extends AbstractGroupGUI {
 				if (!gm.hasAccess(g, p.getUniqueId(), type.getInvitePermissionType(), type.getListPermissionType())) {
 					continue;
 				}
-				ItemStack is = MenuUtils.getPlayerTypeStack(type);
+				ItemStack is = MenuUtils.getHashedItem(type.getName().hashCode());
 				ItemMeta im = is.getItemMeta();
 				im.addItemFlags(ItemFlag.HIDE_ATTRIBUTES, ItemFlag.HIDE_ENCHANTS);
 				im.addEnchant(Enchantment.DURABILITY, 1, true);
@@ -260,7 +260,7 @@ public class MainGroupGUI extends AbstractGroupGUI {
 		final PlayerType currentType = g.getPlayerType(uuid);
 		boolean hasExitPermission = gm.hasAccess(g, p.getUniqueId(), currentType.getRemovalPermissionType());
 		List<Clickable> clicks = new LinkedList<Clickable>();
-		ItemStack removeStack = MenuUtils.getPlayerTypeStack(currentType);
+		ItemStack removeStack = MenuUtils.getHashedItem(currentType.getName().hashCode());
 		Clickable removeClick;
 		if (hasExitPermission) {
 			ISUtils.setName(removeStack, ChatColor.GREEN + "Remove " + playerName);
@@ -281,7 +281,7 @@ public class MainGroupGUI extends AbstractGroupGUI {
 			if (type == currentType) {
 				continue;
 			}
-			ItemStack is = MenuUtils.getPlayerTypeStack(type);
+			ItemStack is = MenuUtils.getHashedItem(type.getName().hashCode());
 			boolean canChange = hasExitPermission && gm.hasAccess(g, p.getUniqueId(), type.getInvitePermissionType());
 			Clickable c;
 			if (canChange) {

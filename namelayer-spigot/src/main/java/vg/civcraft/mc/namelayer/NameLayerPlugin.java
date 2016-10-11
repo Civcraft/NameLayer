@@ -58,11 +58,12 @@ public class NameLayerPlugin extends ACivMod{
 		instance = this;
 		mercuryEnabled = Bukkit.getPluginManager().isPluginEnabled("Mercury");
 		loadDatabases();
+		PermissionType.initialize();
+		GroupManager gm = groupManagerDao.loadAllGroups();
 	    ClassHandler.Initialize(Bukkit.getServer());
-		new NameAPI(new GroupManager(), associations);
+		new NameAPI(gm, associations);
 		registerListeners();
 		if (loadGroups){
-			PermissionType.initialize();
 			groupManagerDao.loadGroupsInvitations();
 			defaultGroupHandler = new DefaultGroupHandler();
 			autoAcceptHandler = new AutoAcceptHandler(groupManagerDao.loadAllAutoAccept());

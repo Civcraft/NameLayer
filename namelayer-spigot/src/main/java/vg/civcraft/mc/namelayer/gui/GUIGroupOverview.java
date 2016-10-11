@@ -159,7 +159,7 @@ public class GUIGroupOverview {
 				ISUtils.addLore(is, ChatColor.AQUA + "Your rank: Primary owner");
 			}
 			else {
-				is = MenuUtils.getPlayerTypeStack(pType);
+				is = MenuUtils.getHashedItem(pType.getName().hashCode());
 				ISUtils.addLore(is, ChatColor.AQUA + "Your rank: " + pType.getName());
 			}
 			ItemMeta im = is.getItemMeta();

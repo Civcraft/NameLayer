@@ -2,10 +2,11 @@ package vg.civcraft.mc.namelayer;
 
 import java.sql.Timestamp;
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Level;
 
 import org.bukkit.Bukkit;
@@ -26,10 +27,12 @@ public class GroupManager{
 	
 	private static GroupManagerDao groupManagerDao;
 	
-	private static Map<String, Group> groupsByName = new ConcurrentHashMap<String, Group>();
-	private static Map<Integer, Group> groupsById = new ConcurrentHashMap<Integer, Group>();
+	private static Map<String, Group> groupsByName;
+	private static Map<Integer, Group> groupsById;
 	
-	public GroupManager(){
+	public GroupManager(Map <Integer, Group> groupsById, Map <String,Group> groupsByName){
+		GroupManager.groupsById = groupsById;
+		GroupManager.groupsByName = groupsByName;
 		groupManagerDao = NameLayerPlugin.getGroupManagerDao();
 	}
 	
@@ -137,7 +140,6 @@ public class GroupManager{
 		if (savetodb){
 			id = groupManagerDao.createGroup(group.getName(), owner,password);
 			group.setPlayerTypeHandler(PlayerTypeHandler.createStandardTypes(group));
-			groupManagerDao.batchSavePlayerTypeHandler(group.getPlayerTypeHandler());
 			MercuryManager.createGroup(group, id);
 		} else {
 			id = group.getGroupId();
@@ -173,7 +175,7 @@ public class GroupManager{
 			return false;
 		}
 		groupsByName.remove(group.getName());
-		for (int id : group.getGroupIds()) {
+		for (int id : group.getSecondaryIds()) {
 			groupsById.remove(id);
 		}
 		
@@ -184,7 +186,7 @@ public class GroupManager{
 		group.setDisciplined(true);
 		group.setValid(false);
 		if (savetodb){
-			groupManagerDao.deleteGroup(groupName);
+			groupManagerDao.deleteGroup(group);
 			MercuryManager.deleteGroup(groupName);
 		}
 		return true;
@@ -273,7 +275,7 @@ public class GroupManager{
 
 				@Override
 				public void run() {
-					groupManagerDao.mergeGroup(group.getName(), toMerge.getName());
+					groupManagerDao.mergeGroup(group, toMerge);
 					// At this point, at the DB level all non-overlap members are in target group, name is reset to target,
 					// unique group header record is removed, and faction_id all point to new name.
 
@@ -287,9 +289,13 @@ public class GroupManager{
 		}
 	}
 	
-	/*
-	 * Making this static so I can use it in other places without needing the GroupManager Object.
-	 * Saves me code so I can always grab a group if it is already loaded while not needing to check db.
+	/**
+	 * Attempts to load the group with the given name from the cache. If no group with such a name exists
+	 *  or the existing group is invalid, the group will be attempted to be loaded from the database. 
+	 *  
+	 * @param name Name of the group to load
+	 * @return The group with the given name if a valid version was found in the cache or a new instance could be 
+	 * loaded from the database or null if neither of those cases was fulfilled
 	 */
 	public static Group getGroup(String name){
 		if (name == null) {
@@ -298,15 +304,17 @@ public class GroupManager{
 		}
 		
 		String lower = name.toLowerCase();
-		if (groupsByName.containsKey(lower)) {
-			return groupsByName.get(lower);
+		Group retrieved = groupsByName.get(lower);
+		if (retrieved != null && retrieved.isValid()) {
+			return retrieved;
 		} else { 
 			Group group = groupManagerDao.getGroup(name);
 			if (group != null) {
 				groupsByName.put(lower, group);
-				for (int j : group.getGroupIds()){
+				for (int j : group.getSecondaryIds()){
 					groupsById.put(j, group);
 				}
+				groupsById.put(group.getGroupId(), group);
 			} else {
 				NameLayerPlugin.getInstance().getLogger().log(Level.INFO, "getGroup by Name failed, unable to find the group " + name);
 			}
@@ -314,16 +322,33 @@ public class GroupManager{
 		}
 	}
 		
+	/**
+	 * Attempts to load the group with the given id from the cache. If no group with such an id exists
+	 * or the existing group is invalid, the group will be attempted to be loaded from the database. Be aware 
+	 * that while each group has one "main" id, many other ids might point to the same group as the result of group
+	 * merging. Those ids are the "secondary ids" each group has.
+	 *  
+	 * @param groupId Id of the group to load
+	 * 
+	 * @return The group with the given id if a valid version was found in the cache or a new instance could be 
+	 * loaded from the database or null if neither of those cases was fulfilled
+	 */
 	public static Group getGroup(int groupId){
-		if (groupsById.containsKey(groupId)) {
-			return groupsById.get(groupId);
+		Group retrieved = groupsById.get(groupId);
+		if (retrieved != null && retrieved.isValid()) {
+			return retrieved;
 		} else { 
+			if (retrieved != null) {
+				//set id to retrieve with to main id of that group, the one looked up in faction_id
+				groupId = retrieved.getGroupId();
+			}
 			Group group = groupManagerDao.getGroup(groupId);
 			if (group != null) {
 				groupsByName.put(group.getName().toLowerCase(), group);
-				for (int j : group.getGroupIds()){
+				for (int j : group.getSecondaryIds()){
 					groupsById.put(j, group);
 				}
+				groupsById.put(group.getGroupId(), group);
 			} else {
 				NameLayerPlugin.getInstance().getLogger().log(Level.INFO, "getGroup by ID failed, unable to find the group " + groupId);
 			}
@@ -341,34 +366,6 @@ public class GroupManager{
 			return (getGroup(groupName.toLowerCase()) != null);
 		} else {
 			return true;
-		}
-	}
-	
-	/**
-	 * Returns the admin group for groups if the group was found to be null.
-	 * Good for when you have to have a group that can't be null.
-	 * @param name - The group name for the group
-	 * @return Either the group or the special admin group.
-	 */
-	public static Group getSpecialCircumstanceGroup(String name){
-		if (name == null) {
-			NameLayerPlugin.getInstance().getLogger().log(Level.INFO, "getSpecialCircumstance failed, caller passed in null", new Exception());
-			return null;
-		}
-		String lower = name.toLowerCase();
-		if (groupsByName.containsKey(lower)) {
-			return groupsByName.get(lower);
-		} else { 
-			Group group = groupManagerDao.getGroup(name);
-			if (group != null) {
-				groupsByName.put(lower, group);
-				for (int j : group.getGroupIds()){
-					groupsById.put(j, group);
-				}
-			} else {
-				group = groupManagerDao.getGroup(NameLayerPlugin.getSpecialAdminGroup());
-			}
-			return group;
 		}
 	}
 		
@@ -426,7 +423,8 @@ public class GroupManager{
 		Group g = groupsByName.get(group.toLowerCase());
 		if (g != null) {
 			g.setValid(false);
-			List<Integer>k = g.getGroupIds();
+			Collection<Integer>k = new LinkedList<Integer> (g.getSecondaryIds());
+			k.add(g.getGroupId());
 			groupsByName.remove(group.toLowerCase());
 			
 			boolean fail = true;
@@ -436,6 +434,7 @@ public class GroupManager{
 					fail = false;
 				}
 			}
+			//this is a weird leftover. It might be unneeded, but I'd rather not remove it for now
 			
 			// FALLBACK is hardloop
 			if (fail) { // can't find ID or cache is wrong.

@@ -1,15 +1,13 @@
 package vg.civcraft.mc.namelayer.group;
 
-import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.UUID;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
-import com.google.common.collect.Sets;
 
 import vg.civcraft.mc.namelayer.NameAPI;
 import vg.civcraft.mc.namelayer.NameLayerPlugin;
@@ -30,35 +28,23 @@ public class Group {
 	private boolean isValid = true; // if false, then group has recently been
 									// deleted and is invalid
 	private int id;
-	private Set<Integer> ids = Sets.<Integer> newConcurrentHashSet();
 
 	private Map<UUID, PlayerType> players = Maps.<UUID, PlayerType> newHashMap();
 	private Map<UUID, PlayerType> invites = Maps.<UUID, PlayerType> newHashMap();
 
 	private PlayerTypeHandler playerTypeHandler;
+	
+	private Collection <Integer> secondaryIds;
 
 	public Group(String name, UUID owner, boolean disciplined, String password, int id) {
 		if (db == null) {
 			db = NameLayerPlugin.getGroupManagerDao();
 		}
-
 		this.name = name;
 		this.password = password;
 		this.owner = owner;
 		this.isDisciplined = disciplined;
-		// TODO Gut this and have one id
-		
-		
-		// This returns list of ids w/ id holding largest # of players at top.
-		List<Integer> allIds = db.getAllIDs(name);
-		if (allIds != null && allIds.size() > 0) {
-			this.ids.addAll(allIds);
-			this.id = allIds.get(0); // default "root" id is the one with the
-										// players.
-		} else {
-			this.ids.add(id);
-			this.id = id; // otherwise just use what we're given
-		}
+		this.id = id;
 	}
 
 	/**
@@ -386,16 +372,6 @@ public class Group {
 		return id;
 	}
 
-	/**
-	 * Addresses issue above somewhat. Allows implementations that need the
-	 * whole list of Ids associated with this groupname to get them.
-	 * 
-	 * @return list of ids paired with this group name.
-	 */
-	public List<Integer> getGroupIds() {
-		return new ArrayList<Integer>(this.ids);
-	}
-
 	// == SETTERS
 	// =========================================================================
 	// //
@@ -453,27 +429,16 @@ public class Group {
 		this.isValid = valid;
 	}
 
-	// acts as replace
 	public void setGroupId(int id) {
-		this.ids.remove(this.id);
 		this.id = id;
-		if (!ids.contains(this.id)) {
-			this.ids.add(this.id);
-		}
 	}
-
-	/**
-	 * Updates/replaces the group id list with a new one. Clears the old one,
-	 * adds these, and ensures that the "main" id is added to the list as well.
-	 */
-	public void setGroupIds(List<Integer> ids) {
-		this.ids.clear();
-		if (ids != null) {
-			this.ids.addAll(ids);
-		}
-		if (!ids.contains(this.id)) {
-			this.ids.add(this.id);
-		}
+	
+	public Collection <Integer> getSecondaryIds() {
+		return secondaryIds;
+	}
+	
+	public void addSecondaryId(int id) {
+		secondaryIds.add(id);
 	}
 
 	public PlayerTypeHandler getPlayerTypeHandler() {
@@ -489,7 +454,6 @@ public class Group {
 		if (!(obj instanceof Group))
 			return false;
 		Group g = (Group) obj;
-		return g.getName().equals(this.getName()); // If they have the same name
-													// they are equal.
+		return g.getName().equals(this.getName()); // If they have the same name											// they are equal.
 	}
 }

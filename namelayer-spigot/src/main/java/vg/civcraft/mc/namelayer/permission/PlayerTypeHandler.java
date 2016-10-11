@@ -343,55 +343,51 @@ public class PlayerTypeHandler {
 	/**
 	 * Creates a set of standard permissions, which are assigned to any group
 	 * when it is initially created. This roughly follows the permission schema
-	 * NameLayer used to have when it's player types were completly static
+	 * NameLayer used to have when it's player types were completly static. The 
+	 * player types created here are not saved to the database, because creating 
+	 * a default set of player types on a database level is already done in the 
+	 * stored procedure for group creation. Make sure to also update this
+	 * stored procedure when changing this method.
+	 * Permissions set by this method aren't saved right away, but instead collected
+	 * and batch saved at the end
 	 * 
 	 * @param g
 	 *            Group for which permissions should be created
 	 * @return Completly initialized PlayerTypeHandler for new group
 	 */
 	public static PlayerTypeHandler createStandardTypes(Group g) {
+		Map <PlayerType, List <PermissionType>> permsToSave = new HashMap<PlayerType, List <PermissionType>>();
 		PlayerType owner = new PlayerType("OWNER", OWNER_ID, null, g);
 		PlayerTypeHandler handler = new PlayerTypeHandler(owner, g);
-		for (PermissionType perm : PermissionType.getAllPermissions()) {
-			owner.addPermission(perm, true);
-		}
+		List <PermissionType> ownerPerms = new ArrayList<PermissionType>();
+		ownerPerms.addAll(PermissionType.getAllPermissions());
+		permsToSave.put(owner, ownerPerms);
 		PlayerType admin = new PlayerType("ADMINS", 1, owner, g);
-		handler.registerType(admin, true);
-		for (PermissionType perm : PermissionType.getAllPermissions()) {
-			if (perm.getDefaultPermLevels().contains(1)) {
-				admin.addPermission(perm, true);
-			}
-		}
+		handler.registerType(admin, false);
 		PlayerType mod = new PlayerType("MODS", 2, admin, g);
-		handler.registerType(mod, true);
-		for (PermissionType perm : PermissionType.getAllPermissions()) {
-			if (perm.getDefaultPermLevels().contains(2)) {
-				mod.addPermission(perm, true);
-			}
-		}
+		handler.registerType(mod, false);
 		PlayerType member = new PlayerType("MEMBERS", 3, mod, g);
-		handler.registerType(member, true);
-		for (PermissionType perm : PermissionType.getAllPermissions()) {
-			if (perm.getDefaultPermLevels().contains(3)) {
-				member.addPermission(perm, true);
-			}
-		}
+		handler.registerType(member, false);
 		PlayerType defaultNonMember = new PlayerType("DEFAULT", DEFAULT_NON_MEMBER_ID, owner, g);
-		handler.registerType(defaultNonMember, true);
-		for (PermissionType perm : PermissionType.getAllPermissions()) {
-			if (perm.getDefaultPermLevels().contains(4)) {
-				defaultNonMember.addPermission(perm, true);
-			}
-		}
+		handler.registerType(defaultNonMember, false);
 		PlayerType blacklisted = new PlayerType("BLACKLISTED", 5, defaultNonMember, g);
-		handler.registerType(blacklisted, true);
-		for (PermissionType perm : PermissionType.getAllPermissions()) {
-			if (perm.getDefaultPermLevels().contains(5)) {
-				blacklisted.addPermission(perm, true);
+		handler.registerType(blacklisted, false);
+		for(PlayerType type : handler.getAllTypes()) {
+			if (type == owner) {
+				continue;
 			}
+			List <PermissionType> permList = new ArrayList<PermissionType>();
+			for(PermissionType perm : PermissionType.getAllPermissions()) {
+				if (perm.getDefaultPermLevels().contains(type.getId())) {
+					type.addPermission(perm, false);
+					permList.add(perm);
+				}
+			}
+			permsToSave.put(type, permList);
 		}
 		handler.defaultInvitationType = member;
 		handler.defaultPasswordJoinType = member;
+		NameLayerPlugin.getGroupManagerDao().addAllPermissionsAsync(g.getGroupId(), permsToSave);
 		return handler;
 	}
 }

@@ -1,6 +1,7 @@
 package vg.civcraft.mc.namelayer.database;
 
 import java.util.concurrent.Callable;
+import java.util.concurrent.ConcurrentHashMap;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -52,7 +53,7 @@ public class GroupManagerDao {
 	private static final String getAllGroupsForPlayer = "select f.group_name from faction_id f "
 				+ "inner join faction_member fm on f.group_id = fm.group_id "
 				+ "where fm.member_name = ?";
-	private static final String deleteGroup = "call deletegroupfromtable(?, ?)";
+	private static final String deleteGroup = "delete from faction_id where group_id = ?;";
 
 	private static final String getAllMembers = "select member_name, rank_id from faction_member where faction_id = ?;";
 	private static final String addMember = "insert into faction_member(group_id, rank_id, member_name) values(?,?,?)";
@@ -445,7 +446,9 @@ public class GroupManagerDao {
 					"  select f.group_id from faction_id f where f.group_name = group_name; " +
 					" end if; " +
 					"end;");
-			db.registerMigration(14, false, 
+			db.registerMigration(14, false,
+					"create table if not exists mergedGroups (oldGroup int not null, newGroup int not null, primary key(oldGroup));");
+			db.registerMigration(15, false, 
 					new Callable<Boolean>() {
 
 						@Override
@@ -454,13 +457,6 @@ public class GroupManagerDao {
 							//one returned by the database. We fix this here, but one last time have to extract the first one returned by
 							//ResultSet to turn it into the real id, which is not doable completly in sql, so we have to do this slow 
 							//work around
-							//create the mapping table
-							try (Connection connection = db.getConnection()) {
-								connection.prepareStatement("create table if not exists mergedGroups (oldGroup int not null, newGroup int not null, primary key(oldGroup));");
-							} catch (SQLException e1) {
-								logger.log(Level.SEVERE, "Error while creating merge mapping table", e1);
-								return false;
-							}
 							List <String> groupNames = new LinkedList<String>();
 							//first we get a list of all group names
 							try (Connection connection = db.getConnection();
@@ -472,7 +468,7 @@ public class GroupManagerDao {
 								}
 								
 							} catch (SQLException e) {
-								logger.log(Level.SEVERE, "Error while collection group names to update merge mapping", e);
+								logger.log(Level.SEVERE, "Error while collecting group names to update merge mapping", e);
 								return false;
 							}
 							//now we iterate over each group name and first get all ids, which map to this group name
@@ -512,17 +508,18 @@ public class GroupManagerDao {
 							return true;
 						}
 				
-				}, 
-				//now we just clean up all duplicates entries for which we have replacements in mergeGroups
-				"delete from faction_id where group_id in (select oldGroup from mergedGroups;);",
-				//now we can also add a foreign key relation ship between faction and faction_id, because we can guarantee that there is only one entry per group
-				//in faction_id
-				"delete from faction where group_name not in (select group_name from faction_id;);",
-				"alter table faction add constraint foreign key (group_name) references faction_id(group_name) on delete cascade;"
+				}
 			);
 			
-			
 			db.registerMigration(16, false, 
+				//now we just clean up all duplicates entries for which we have replacements in mergeGroups
+				"delete from faction_id where group_id in (select oldGroup from mergedGroups);",
+				//now we can also add a foreign key relation ship between faction and faction_id, because we can guarantee that there is only one entry per group
+				//in faction_id
+				"delete from faction where group_name not in (select group_name from faction_id);",
+				"alter table faction add constraint foreign key (group_name) references faction_id(group_name) on delete cascade;");
+			
+			db.registerMigration(17, false, 
 					//leftover cleanup from migration 13
 					"drop table if exists permissions;",
 					//we no longer use this table, so might as well get rid of it
@@ -552,7 +549,7 @@ public class GroupManagerDao {
 					//maybe some broken entries exist, we make sure to clean those out
 					"delete from permissionByGroup where rank_id IS NULL;",
 					//also delete entries which dont refer to an existing group
-					"delete from permissionByGroup where group_id not in (select group_id from faction_id;);",
+					"delete from permissionByGroup where group_id not in (select group_id from faction_id);",
 					//now we no longer need the varchar role column
 					"alter table permissionByGroup drop column role;",
 					//this should have been done in the previous upgrade, it ensures a proper cleanup if someone messes with the master perm table
@@ -572,18 +569,18 @@ public class GroupManagerDao {
 					"update faction_member set rank_id=4 where role='NOT_BLACKLISTED';",
 					"delete from faction_member where rank_id is null;",
 					"alter table faction_member drop column role;",
-					"delete from faction_member where group_id not in (select group_id from faction_id;);",
+					"delete from faction_member where group_id not in (select group_id from faction_id);",
 					"alter table faction_member add constraint foreign key (group_id, rank_id) references groupPlayerTypes(group_id, rank_id) on delete cascade;",
+					"delete from faction_member where member_name is null",
 					
 					//remove old restrictions
-					"alter table group_invitation drop primary key;",
-					"alter table group_invitation drop index 'UQ_uuid_groupName';",
+					"alter table group_invitation drop index `UQ_uuid_groupName`;",
 					
 					//first of all use group id instead of name
 					"alter table group_invitation add group_id int;",
-					"update gi set gi.group_id = fi.group_id from group_invitation as gi inner join faction_id as fi on fi.group_name=gi.group_name;",
+					"update group_invitation as gi inner join faction_id as fi on fi.group_name=gi.groupName set gi.group_id = fi.group_id;",
 					"delete from group_invitation where group_id is null;",
-					"alter table group_invitation drop column group_name;",
+					"alter table group_invitation drop column groupName;",
 					
 					//now apply our player type changes
 					"alter table group_invitation add rank_id int;",
@@ -598,20 +595,26 @@ public class GroupManagerDao {
 					
 					//finally easy lookup by group id is nice
 					"create index inviteTypeIdIndex on group_invitation(group_id);",
-					
-					//we no longer need to delete groups in a procedure due to the new foreign keys
+					//redo group deletion
 					"drop procedure if exists deletegroupfromtable;",
-					
+					"create definer=current_user procedure deletegroupfromtable(" +
+						"in groupId int,"
+						+ "in specialAdminGroup varchar(36)" +
+						") sql security invoker begin " +
+							"declare specialId INT;" +
+							"select group_id into specialId from faction_id where group_name = specialAdminGroup;" +
+							"call mergeintogroup(specialId, groupId);" + 
+						"end;",
 					//need to update the merging procedure
 					"drop procedure if exists mergeintogroup;",
 					"create definer=current_user procedure mergeintogroup(" +
 						"in remainingId int, in tomergeId int) " +
 						"sql security invoker begin " +
-						"DECLARE destID, tmp int;" +
-						//update preexisting merge mapping to the group which we now remove
-						"update mergedGroups set newGroup = remainingId where newGroup = tomergeId;" + 
-						"insert into mergedGroups (oldGroup,newGroup) values(tomergeId, remainingId);" + 
-						"delete from faction_id where group_id = tomergeId;",
+							//update preexisting merge mapping to the group which we now remove
+							"update mergedGroups set newGroup = remainingId where newGroup = tomergeId;" + 
+							"insert into mergedGroups (oldGroup,newGroup) values(tomergeId, remainingId);" + 
+							"delete from faction_id where group_id = tomergeId;" +
+						"end;",
 						//foreign keys will do everything else
 					//need to update group creation as well
 					"drop procedure if exists createGroup;",
@@ -623,10 +626,15 @@ public class GroupManagerDao {
 						"sql security invoker " +
 						"begin" +
 						" if (select (count(*) = 0) from faction_id q where q.group_name = group_name) is true then" + 
-						"  insert into faction_id(group_name) values (group_name); " +
-						"  insert into faction(group_name, founder, password, discipline_flags) values (group_name, founder, password, discipline_flags);" + 
-						"  insert into faction_member (member_name, rank_id, group_id) select founder, 0, f.group_id from faction_id f where f.group_name = group_name; " +
-						"  select f.group_id from faction_id f where f.group_name = group_name; " +
+							"  insert into faction_id(group_name) values (group_name); " +
+							"  insert into faction(group_name, founder, password, discipline_flags) values (group_name, founder, password, discipline_flags);" + 
+							"  insert into faction_member (member_name, rank_id, group_id) select founder, 0, f.group_id from faction_id f where f.group_name = group_name; " +
+							"  insert into groupPlayerTypes (group_id, rank_id, type_name, parent_rank_id) select f.group_id, 0, 'OWNER', null from faction_id f where f.group_name = group_name;" + 
+							"  insert into groupPlayerTypes (group_id, rank_id, type_name, parent_rank_id) select f.group_id, 1, 'ADMINS', 0 from faction_id f where f.group_name = group_name;" +
+							"  insert into groupPlayerTypes (group_id, rank_id, type_name, parent_rank_id) select f.group_id, 2, 'MODS', null from faction_id f where f.group_name = group_name;" +
+							"  insert into groupPlayerTypes (group_id, rank_id, type_name, parent_rank_id) select f.group_id, 3, 'MEMBERS', null from faction_id f where f.group_name = group_name;" +
+							"  insert into groupPlayerTypes (group_id, rank_id, type_name, parent_rank_id) select f.group_id, 4, 'DEFAULT', 0 from faction_id f where f.group_name = group_name;" +
+							"  insert into groupPlayerTypes (group_id, rank_id, type_name, parent_rank_id) select f.group_id, 5, 'BLACKLISTED', 4 from faction_id f where f.group_name = group_name;" +
 						" end if; " +
 						"end;");
 		}
@@ -837,25 +845,25 @@ public class GroupManagerDao {
 		}
 	}
 	
-	public void deleteGroupAsync(final String groupName){
+	public void deleteGroupAsync(final Group group){
 		plugin.getServer().getScheduler().runTaskAsynchronously(plugin, new Runnable(){
 
 			@Override
 			public void run() {
-				deleteGroup(groupName);
+				deleteGroup(group);
 			}
 			
 		});
 	}
 	
-	public void deleteGroup(String groupName){
+	public void deleteGroup(Group group){
 		try (Connection connection = db.getConnection();
 				PreparedStatement deleteGroup = connection.prepareStatement(GroupManagerDao.deleteGroup)){
-			deleteGroup.setString(1, groupName);
+			deleteGroup.setInt(1, group.getGroupId());
 			deleteGroup.setString(2, NameLayerPlugin.getSpecialAdminGroup());
 			deleteGroup.executeUpdate();
 		} catch (SQLException e) {
-			logger.log(Level.WARNING, "Problem deleting group " + groupName, e);
+			logger.log(Level.WARNING, "Problem deleting group " + group.getName(), e);
 		}
 	}
 	
@@ -924,6 +932,17 @@ public class GroupManagerDao {
 		} catch (SQLException e) {
 			logger.log(Level.WARNING, "Problem removing all members from group " + group, e);
 		}
+	}
+	
+	public void addAllPermissionsAsync(final int groupId, final Map <PlayerType, List <PermissionType>> perms) {
+		plugin.getServer().getScheduler().runTaskAsynchronously(plugin, new Runnable(){
+
+			@Override
+			public void run() {
+				addAllPermissions(groupId , perms);
+			}
+			
+		});
 	}
 	
 	public void addAllPermissions(int groupId, Map <PlayerType, List <PermissionType>> perms) {
@@ -1199,12 +1218,6 @@ public class GroupManagerDao {
 		return handler;
 	}
 	
-	public void batchSavePlayerTypeHandler(PlayerTypeHandler handler) {
-		//TODO
-		//called after initially creating a group to save all player types created and all of their permissions	
-		
-	}
-	
 	public int countGroups(){
 		int ret = 0;
 		try (Connection connection = db.getConnection();
@@ -1234,25 +1247,25 @@ public class GroupManagerDao {
 		
 	}
 	
-	public void mergeGroupAsync(final String groupname, final String tomerge){
+	public void mergeGroupAsync(final Group groupThatStays,final Group groupToMerge){
 		plugin.getServer().getScheduler().runTaskAsynchronously(plugin, new Runnable(){
 
 			@Override
 			public void run() {
-				mergeGroup(groupname,tomerge);
+				mergeGroup(groupThatStays,groupToMerge);
 			}
 			
 		});
 	}
 	
-	public void mergeGroup(String groupName, String toMerge){
+	public void mergeGroup(Group groupThatStays, Group groupToMerge){
 		try (Connection connection = db.getConnection();
 				PreparedStatement mergeGroup = connection.prepareStatement(GroupManagerDao.mergeGroup);){
-			mergeGroup.setString(1, groupName);
-			mergeGroup.setString(2, toMerge);
+			mergeGroup.setInt(1, groupThatStays.getGroupId());
+			mergeGroup.setInt(2, groupToMerge.getGroupId());
 			mergeGroup.execute();
 		} catch (SQLException e) {
-			logger.log(Level.WARNING, "Problem merging group " + toMerge + " into " + groupName, e);
+			logger.log(Level.WARNING, "Problem merging group " + groupToMerge.getName() + " into " + groupThatStays.getName(), e);
 		}
 	}
 	
@@ -1663,5 +1676,178 @@ public class GroupManagerDao {
 			logger.log(Level.WARNING, "Unable to prepare query to fully load group ID set", se);
 		}
 		return null;
+	}
+	
+	public GroupManager loadAllGroups() {
+		Map <String, Integer> idsByName = new HashMap<String, Integer>();
+		try (Connection connection = db.getConnection();
+				PreparedStatement getIds = connection.prepareStatement("select * from faction_id;");
+				ResultSet ids = getIds.executeQuery()) {
+			while (ids.next()) {
+				idsByName.put(ids.getString("group_name"), ids.getInt("group_id"));
+			}
+		} catch (SQLException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		Map <Integer, Group> groupById = new ConcurrentHashMap<Integer, Group>();
+		Map <String, Group> groupByName = new ConcurrentHashMap<String, Group>();
+		try (Connection connection = db.getConnection();
+				PreparedStatement getGroups = connection.prepareStatement("select group_name, founder, password, discipline_flags from faction;");
+				ResultSet groups = getGroups.executeQuery()) {
+			while (groups.next()) {
+				String name = groups.getString(1);
+				Integer id = idsByName.get(name);
+				if (id == null) {
+					logger.log(Level.WARNING, "No valid id found for group " + name);
+					continue;
+				}
+				String uuidString = groups.getString(2);
+				UUID founder = null;
+				if (uuidString != null) {
+					founder = UUID.fromString(uuidString);
+				}
+				Group g = new Group(name , founder, groups.getBoolean(4), groups.getString(3), id);
+				groupById.put(id, g);
+				groupByName.put(g.getName().toLowerCase(), g);
+			}
+		} catch (SQLException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		Map <Integer, Map <Integer,PlayerType>> retrievedTypes = new TreeMap<Integer, Map<Integer,PlayerType>>();
+		Map <Integer, Map <Integer, List <PlayerType>>> pendingParents = new TreeMap<Integer, Map<Integer,List<PlayerType>>>();
+		try (Connection connection = db.getConnection();
+				PreparedStatement getTypes = connection.prepareStatement("select * from groupPlayerTypes;");
+				ResultSet types = getTypes.executeQuery()) {
+			while (types.next()) {
+				String name = types.getString("type_name");
+				int groupId = types.getInt("group_id");
+				int rankId = types.getInt("rank_id");
+				int parentId = types.getInt("parent_rank_id");
+				PlayerType type = new PlayerType(name, rankId, null, new LinkedList<PermissionType>(), null);
+				Map <Integer,PlayerType> typeMap = retrievedTypes.get(groupId);
+				if (typeMap == null) {
+					typeMap = new TreeMap<Integer, PlayerType>();
+					retrievedTypes.put(groupId, typeMap);
+				}
+				typeMap.put(rankId, type);
+				Map <Integer, List <PlayerType>> parentMap = pendingParents.get(groupId);
+				if (parentMap == null) {
+					parentMap = new TreeMap<Integer, List<PlayerType>>();
+					pendingParents.put(groupId, parentMap);
+				}
+				List <PlayerType> brothers = parentMap.get(parentId);
+				if (brothers == null) {
+					brothers = new LinkedList<PlayerType>();
+					parentMap.put(parentId, brothers);
+				}
+				brothers.add(type);
+			}
+		} catch (SQLException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		for(Entry <Integer, Map <Integer,PlayerType>> entry : retrievedTypes.entrySet()) {
+			Map <Integer,PlayerType> loadedTypes = entry.getValue();
+			Map <Integer, List <PlayerType>> loadedParents = pendingParents.get(entry.getKey());
+			Group g = groupById.get(entry.getKey());
+			if (g == null) {
+				logger.log(Level.WARNING, "Found player types, but no group for id " + entry.getKey());
+				continue;
+			}
+			PlayerType root = loadedTypes.get(PlayerTypeHandler.OWNER_ID);
+			PlayerTypeHandler handler = new PlayerTypeHandler(root, g);
+			Queue <PlayerType> toHandle = new LinkedList<PlayerType>();
+			toHandle.add(root);
+			while (!toHandle.isEmpty()) { 
+				PlayerType parent = toHandle.poll();
+				List <PlayerType> children = loadedParents.get(parent.getId());
+				loadedParents.remove(parent.getId());
+				if (children == null) {
+					continue;
+				}
+				for(PlayerType child : children) {
+					//parent is intentionally non modifiable, so we create a new instance
+					PlayerType type = new PlayerType(child.getName(), child.getId(), parent, g);
+					parent.addChild(type);
+					handler.loadPlayerType(type);
+					toHandle.add(type);
+					loadedTypes.remove(type.getId());
+				}
+			}
+			if (!loadedTypes.isEmpty()) {
+				//a type exists for this group, which is not part of the tree rooted at perm 0
+				logger.log(Level.WARNING, "A total of " + loadedTypes.values().size() + " player types could not be loaded for group " + g.getName() 
+						+ ", because they arent part of the normal tree structure");
+			}		
+			g.setPlayerTypeHandler(handler);
+		}
+		try (Connection connection = db.getConnection();
+				PreparedStatement getTypes = connection.prepareStatement("select * from faction_member;");
+				ResultSet types = getTypes.executeQuery()) {
+			while (types.next()) {
+				int groupId = types.getInt("group_id");
+				String memberUUIDString = types.getString("member_name");
+				UUID member = null;
+				if (memberUUIDString != null) {
+					member = UUID.fromString(memberUUIDString);
+				}
+				else {
+					logger.log(Level.WARNING, "Found invalid uuid " + memberUUIDString + " for group " + groupId);
+					continue;
+				}
+				int rankId = types.getInt("rank_id");
+				Group g = groupById.get(groupId);
+				if (g == null) {
+					logger.log(Level.WARNING, "Couldnt not load group " + groupId + " from cache to add member");
+					continue;
+				}
+				g.addToTracking(member, g.getPlayerTypeHandler().getType(rankId), false);
+			}
+		} catch (SQLException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		try (Connection connection = db.getConnection();
+				PreparedStatement getTypes = connection.prepareStatement("select * from permissionByGroup;");
+				ResultSet types = getTypes.executeQuery()) {
+			while (types.next()) {
+				int groupId = types.getInt("group_id");
+				int rankId = types.getInt("rank_id");
+				PermissionType perm = PermissionType.getPermission(types.getInt("perm_id"));
+				Group g = groupById.get(groupId);
+				if (g == null) {
+					logger.log(Level.WARNING, "Couldnt not load group " + groupId + " from cache to add permission");
+					continue;
+				}
+				if (perm != null) {
+					g.getPlayerTypeHandler().getType(rankId).addPermission(perm, false);
+				}
+			}
+		} catch (SQLException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		try (Connection connection = db.getConnection();
+				PreparedStatement getTypes = connection.prepareStatement("select * from mergedGroups;");
+				ResultSet types = getTypes.executeQuery()) {
+			while (types.next()) {
+				int oldId = types.getInt("oldGroup");
+				int newId = types.getInt("newGroup");
+				Group g = groupById.get(newId);
+				if (g == null) {
+					logger.log(Level.WARNING, "Inconsistent mapping from " + oldId + " to " + newId  + " found");
+				}
+				else {
+					groupById.put(oldId, g);
+				}
+			}
+		} catch (SQLException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		logger.log(Level.INFO, "Loaded a total of " + groupByName.size() + " groups with " + groupById.size() + " ids from the database");
+		return new GroupManager(groupById, groupByName);
 	}
 }

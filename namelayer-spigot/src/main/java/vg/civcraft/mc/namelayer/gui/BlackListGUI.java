@@ -39,7 +39,7 @@ public class BlackListGUI extends AbstractGroupGUI {
 			if (!handler.isBlackListedType(type)) {
 				continue;
 			}
-			ItemStack is = MenuUtils.getPlayerTypeStack(type);
+			ItemStack is = MenuUtils.getHashedItem(type.getName().hashCode());
 			ISUtils.setName(is, ChatColor.GOLD + type.getName());
 			Clickable c;
 			if (gm.hasAccess(g, p.getUniqueId(), type.getInvitePermissionType())) {
