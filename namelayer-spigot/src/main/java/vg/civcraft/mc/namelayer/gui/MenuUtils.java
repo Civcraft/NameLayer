@@ -7,7 +7,6 @@ import org.bukkit.Material;
 import org.bukkit.inventory.ItemStack;
 
 import vg.civcraft.mc.civmodcore.itemHandling.ISUtils;
-import vg.civcraft.mc.namelayer.permission.PlayerType;
 
 public class MenuUtils {
 	public static ItemStack toggleButton(boolean initState, String name, boolean canModify) {

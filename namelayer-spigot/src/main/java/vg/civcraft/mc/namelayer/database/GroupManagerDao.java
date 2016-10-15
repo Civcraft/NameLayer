@@ -558,7 +558,48 @@ public class GroupManagerDao {
 					"alter table permissionByGroup add constraint foreign key (group_id, rank_id) references groupPlayerTypes(group_id, rank_id) on delete cascade;",
 					//ensure perms cant be inserted multiple times
 					"alter table permissionByGroup add constraint unique (group_id, rank_id, perm_id)",
-
+					
+					//interaction of ranks works differently now, so we need to adjust permissions for that
+					
+					//at this point the new invite/remove permissions were already created and registered, we can just use them
+					"insert into permissionByGroup (group_id,perm_id,rank_id) select pbg.group_id, pimn.perm_id, pbg.rank_id from permissionByGroup pbg inner join permissionIdMapping pim " +
+						"on pim.perm_id = pbg.perm_id cross join permissionidmapping pimn where pim.name = 'MEMBERS' and pimn.name = 'invitePlayer#3';",
+					"insert into permissionByGroup (group_id,perm_id,rank_id) select pbg.group_id, pimn.perm_id, pbg.rank_id from permissionByGroup pbg inner join permissionIdMapping pim " +
+							"on pim.perm_id = pbg.perm_id cross join permissionidmapping pimn where pim.name = 'MEMBERS' and pimn.name = 'removePlayer#3';",
+					"insert into permissionByGroup (group_id,perm_id,rank_id) select pbg.group_id, pimn.perm_id, pbg.rank_id from permissionByGroup pbg inner join permissionIdMapping pim " +
+							"on pim.perm_id = pbg.perm_id cross join permissionidmapping pimn where pim.name = 'MEMBERS' and pimn.name = 'listPlayer#3';",
+					"insert into permissionByGroup (group_id,perm_id,rank_id) select pbg.group_id, pimn.perm_id, pbg.rank_id from permissionByGroup pbg inner join permissionIdMapping pim " +
+							"on pim.perm_id = pbg.perm_id cross join permissionidmapping pimn where pim.name = 'MODS' and pimn.name = 'invitePlayer#2';",
+					"insert into permissionByGroup (group_id,perm_id,rank_id) select pbg.group_id, pimn.perm_id, pbg.rank_id from permissionByGroup pbg inner join permissionIdMapping pim " +
+							"on pim.perm_id = pbg.perm_id cross join permissionidmapping pimn where pim.name = 'MODS' and pimn.name = 'removePlayer#2';",
+					"insert into permissionByGroup (group_id,perm_id,rank_id) select pbg.group_id, pimn.perm_id, pbg.rank_id from permissionByGroup pbg inner join permissionIdMapping pim " +
+							"on pim.perm_id = pbg.perm_id cross join permissionidmapping pimn where pim.name = 'MODS' and pimn.name = 'listPlayer#2';",
+					"insert into permissionByGroup (group_id,perm_id,rank_id) select pbg.group_id, pimn.perm_id, pbg.rank_id from permissionByGroup pbg inner join permissionIdMapping pim " +
+							"on pim.perm_id = pbg.perm_id cross join permissionidmapping pimn where pim.name = 'ADMINS' and pimn.name = 'invitePlayer#1';",
+					"insert into permissionByGroup (group_id,perm_id,rank_id) select pbg.group_id, pimn.perm_id, pbg.rank_id from permissionByGroup pbg inner join permissionIdMapping pim " +
+							"on pim.perm_id = pbg.perm_id cross join permissionidmapping pimn where pim.name = 'ADMINS' and pimn.name = 'removePlayer#1';",
+					"insert into permissionByGroup (group_id,perm_id,rank_id) select pbg.group_id, pimn.perm_id, pbg.rank_id from permissionByGroup pbg inner join permissionIdMapping pim " +
+							"on pim.perm_id = pbg.perm_id cross join permissionidmapping pimn where pim.name = 'ADMINS' and pimn.name = 'listPlayer#1';",
+					"insert into permissionByGroup (group_id,perm_id,rank_id) select pbg.group_id, pimn.perm_id, pbg.rank_id from permissionByGroup pbg inner join permissionIdMapping pim " +
+							"on pim.perm_id = pbg.perm_id cross join permissionidmapping pimn where pim.name = 'OWNER' and pimn.name = 'invitePlayer#0';",
+					"insert into permissionByGroup (group_id,perm_id,rank_id) select pbg.group_id, pimn.perm_id, pbg.rank_id from permissionByGroup pbg inner join permissionIdMapping pim " +
+							"on pim.perm_id = pbg.perm_id cross join permissionidmapping pimn where pim.name = 'OWNER' and pimn.name = 'removePlayer#0';",
+					"insert into permissionByGroup (group_id,perm_id,rank_id) select pbg.group_id, pimn.perm_id, pbg.rank_id from permissionByGroup pbg inner join permissionIdMapping pim " +
+							"on pim.perm_id = pbg.perm_id cross join permissionidmapping pimn where pim.name = 'OWNER' and pimn.name = 'listPlayer#0';",
+					"insert into permissionByGroup (group_id,perm_id,rank_id) select pbg.group_id, pimn.perm_id, pbg.rank_id from permissionByGroup pbg inner join permissionIdMapping pim " +
+							"on pim.perm_id = pbg.perm_id cross join permissionidmapping pimn where pim.name = 'BLACKLIST' and pimn.name = 'invitePlayer#5';",
+					"insert into permissionByGroup (group_id,perm_id,rank_id) select pbg.group_id, pimn.perm_id, pbg.rank_id from permissionByGroup pbg inner join permissionIdMapping pim " +
+							"on pim.perm_id = pbg.perm_id cross join permissionidmapping pimn where pim.name = 'BLACKLIST' and pimn.name = 'removePlayer#5';",
+					"insert into permissionByGroup (group_id,perm_id,rank_id) select pbg.group_id, pimn.perm_id, pbg.rank_id from permissionByGroup pbg inner join permissionIdMapping pim " +
+							"on pim.perm_id = pbg.perm_id cross join permissionidmapping pimn where pim.name = 'BLACKLIST' and pimn.name = 'listPlayer#5';",
+							
+					//we are done converting permissions over, so we can now delete the old ones, foreign keys will leftover perms for groups
+					"delete from permissionIdMapping where name = 'MEMBERS';",
+					"delete from permissionIdMapping where name = 'MODS';",
+					"delete from permissionIdMapping where name = 'ADMINS';",
+					"delete from permissionIdMapping where name = 'OWNER';",
+					"delete from permissionIdMapping where name = 'BLACKLIST';",
+					
 					//now we basically repeat the same for the group members table (faction_member) and invitation table (group_invitation)
 					//lets start with group members
 					"alter table faction_member add rank_id int default null;",
@@ -1815,7 +1856,8 @@ public class GroupManagerDao {
 			while (types.next()) {
 				int groupId = types.getInt("group_id");
 				int rankId = types.getInt("rank_id");
-				PermissionType perm = PermissionType.getPermission(types.getInt("perm_id"));
+				int permId = types.getInt("perm_id");
+				PermissionType perm = PermissionType.getPermission(permId);
 				Group g = groupById.get(groupId);
 				if (g == null) {
 					logger.log(Level.WARNING, "Couldnt not load group " + groupId + " from cache to add permission");
@@ -1823,6 +1865,9 @@ public class GroupManagerDao {
 				}
 				if (perm != null) {
 					g.getPlayerTypeHandler().getType(rankId).addPermission(perm, false);
+				}
+				else {
+					logger.log(Level.WARNING, "Could not load permission with id " + permId);
 				}
 			}
 		} catch (SQLException e) {

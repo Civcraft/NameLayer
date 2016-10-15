@@ -64,6 +64,13 @@ public class PlayerTypeHandler {
 		}
 		return -1;
 	}
+	
+	/**
+	 * @return The maximum amount of player types a group may have and also the highest possible id a player type might have
+	 */
+	public static int getMaximumTypeCount() {
+		return MAXIMUM_TYPE_COUNT;
+	}
 
 	/**
 	 * Checks whether a given type is a blacklist type, which means it's an

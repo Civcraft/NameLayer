@@ -138,7 +138,7 @@ public class PermissionManageGUI extends AbstractGroupGUI {
 		}
 		ci.setSlot(renameClick, 10);
 		// edit permissions
-		ItemStack is = new ItemStack(Material.WOOD_DOOR);
+		ItemStack is = new ItemStack(Material.CHEST);
 		Clickable c;
 		ISUtils.setName(is, ChatColor.GOLD + "View and edit permissions");
 		if (!gm.hasAccess(g, p.getUniqueId(), PermissionType.getPermission("LIST_PERMS"))) {
@@ -305,6 +305,15 @@ public class PermissionManageGUI extends AbstractGroupGUI {
 			}
 		}
 		ci.setSlot(deleteClick, 16);
+		ItemStack backToOverview = new ItemStack(Material.WOOD_DOOR);
+		ISUtils.setName(backToOverview, ChatColor.GOLD + "Go back");
+		ci.setSlot(new Clickable(backToOverview) {
+
+			@Override
+			public void clicked(Player arg0) {
+				parent.showScreen();
+			}
+		}, 22);
 		ci.showInventory(p);
 	}
 
@@ -326,11 +335,11 @@ public class PermissionManageGUI extends AbstractGroupGUI {
 			if (hasPerm) {
 				is = new ItemStack(Material.INK_SACK, 1, (short) 10); // green
 																		// dye
-				ISUtils.addLore(is, ChatColor.DARK_AQUA + pType.getName() + "s currently has", ChatColor.DARK_AQUA
+				ISUtils.addLore(is, ChatColor.DARK_AQUA + pType.getName() + " currently has", ChatColor.DARK_AQUA
 						+ "this permission");
 			} else {
 				is = new ItemStack(Material.INK_SACK, 1, (short) 1); // red dye
-				ISUtils.addLore(is, ChatColor.DARK_AQUA + pType.getName() + "s currently doesn't have",
+				ISUtils.addLore(is, ChatColor.DARK_AQUA + pType.getName() + " currently doesn't have",
 						ChatColor.DARK_AQUA + "this permission");
 			}
 			ISUtils.setName(is, perm.getName());

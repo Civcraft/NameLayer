@@ -324,6 +324,13 @@ public class PermissionType {
 				"Allows renaming player types for this group");
 		// allows opening the gui
 		registerPermission("OPEN_GUI", (LinkedList<Integer>) all.clone(), "Allows opening the GUI for this group");
+		
+		for(int i = 0; i < PlayerTypeHandler.getMaximumTypeCount(); i++) {
+			//a get call will ensure all of them are initiated both in cache and the database
+			getListPermission(i);
+			getInvitePermission(i);
+			getRemovePermission(i);
+		}
 	}
 
 	private String name;
