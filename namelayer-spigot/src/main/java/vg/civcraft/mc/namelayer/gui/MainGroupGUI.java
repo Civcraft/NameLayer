@@ -25,6 +25,7 @@ import vg.civcraft.mc.civmodcore.inventorygui.Clickable;
 import vg.civcraft.mc.civmodcore.inventorygui.ClickableInventory;
 import vg.civcraft.mc.civmodcore.inventorygui.DecorationStack;
 import vg.civcraft.mc.civmodcore.inventorygui.IClickable;
+import vg.civcraft.mc.civmodcore.inventorygui.MultiPageView;
 import vg.civcraft.mc.civmodcore.itemHandling.ISUtils;
 import vg.civcraft.mc.namelayer.NameAPI;
 import vg.civcraft.mc.namelayer.NameLayerPlugin;
@@ -47,6 +48,12 @@ public class MainGroupGUI extends AbstractGroupGUI {
 	public MainGroupGUI(Player p, Group g) {
 		super(g, p);
 		shownTypes = new HashSet<PlayerType>();
+		for(PlayerType type : g.getPlayerTypeHandler().getAllTypes()) {
+			if (gm.hasAccess(g, p.getUniqueId(), type.getListPermissionType())) {
+				shownTypes.add(type);
+			}
+		}
+		showInvites = false;
 		currentPage = 0;
 		showScreen();
 	}
@@ -103,9 +110,6 @@ public class MainGroupGUI extends AbstractGroupGUI {
 			ci.setSlot(forCl, 53);
 		}
 
-		// options
-		ci.setSlot(createInviteToggle(), 47);
-
 		// exit button
 		ItemStack backToOverview = new ItemStack(Material.WOOD_DOOR);
 		ISUtils.setName(backToOverview, ChatColor.GOLD + "Close");
@@ -118,7 +122,8 @@ public class MainGroupGUI extends AbstractGroupGUI {
 		}, 49);
 
 		// options at the top
-		ci.setSlot(getInvitePlayerClickable(), 0);
+		ci.setSlot(getTypeToggleClick(), 0);
+		ci.setSlot(getInvitePlayerClickable(), 1);
 		ci.setSlot(getAddBlackListClickable(), 2);
 		ci.setSlot(getLeaveGroupClickable(), 3);
 		ci.setSlot(getInfoStack(), 4);
@@ -235,8 +240,8 @@ public class MainGroupGUI extends AbstractGroupGUI {
 		}
 		Collections.sort(clicks, new Comparator<IClickable>() {
 			public int compare(IClickable c1, IClickable c2) {
-				return c1.getItemStack().getItemMeta().getDisplayName()
-						.compareTo(c2.getItemStack().getItemMeta().getDisplayName());
+				return c1.getItemStack().getItemMeta().getDisplayName().toLowerCase()
+						.compareTo(c2.getItemStack().getItemMeta().getDisplayName().toLowerCase());
 			}
 		});
 		return clicks;
@@ -375,18 +380,6 @@ public class MainGroupGUI extends AbstractGroupGUI {
 		} else {
 			p.sendMessage(ChatColor.RED + "You have lost permission to remove this player");
 		}
-	}
-
-	private Clickable createInviteToggle() {
-		ItemStack is = MenuUtils.toggleButton(showInvites, ChatColor.GOLD + "Show invited players", true);
-		return new Clickable(is) {
-
-			@Override
-			public void clicked(Player arg0) {
-				showInvites = !showInvites;
-				showScreen();
-			}
-		};
 	}
 
 	private Clickable getAddBlackListClickable() {
@@ -658,6 +651,9 @@ public class MainGroupGUI extends AbstractGroupGUI {
 		int blacklistCount = 0;
 		int memberCount = 0;
 		for (PlayerType type : g.getPlayerTypeHandler().getAllTypes()) {
+			if (type == g.getPlayerTypeHandler().getDefaultNonMemberType()) {
+				continue;
+			}
 			if (hasGroupStatsPerm || gm.hasAccess(g, p.getUniqueId(), type.getListPermissionType())) {
 				int amount = g.getAllTrackedByType(type).size();
 				ISUtils.addLore(is, ChatColor.AQUA + String.valueOf(amount) + " " + type.getName());
@@ -676,5 +672,137 @@ public class MainGroupGUI extends AbstractGroupGUI {
 		}
 		c = new DecorationStack(is);
 		return c;
+	}
+	
+	private Clickable getTypeToggleClick() {
+		ItemStack is = new ItemStack(Material.SHIELD);
+		ISUtils.setName(is, "Toggle showing player types");
+		ISUtils.addLore(is, ChatColor.GOLD + "Click to toggle showing certain player types and filter shown players");
+		final Clickable c = new Clickable(is) {
+			
+			@Override
+			public void clicked(Player arg0) {
+				showTypeToggleMenu();
+			}
+		};
+		return c;
+	}
+	
+	private void showTypeToggleMenu() {
+		List <IClickable> clicks = new LinkedList<IClickable>();
+		for(final PlayerType type : g.getPlayerTypeHandler().getAllTypes()) {
+			if (type == g.getPlayerTypeHandler().getDefaultNonMemberType()) {
+				continue;
+			}
+			Clickable typeClick;
+			ItemStack is = new ItemStack(Material.INK_SACK);
+			ISUtils.setName(is, type.getName());
+			if (shownTypes.contains(type)) {
+				is.setDurability((short) 10); //green
+				ISUtils.addLore(is, ChatColor.GREEN + "Currently showing " + type.getName(), ChatColor.GOLD + "Click to hide");
+				typeClick = new Clickable(is) {
+					
+					@Override
+					public void clicked(Player arg0) {
+						shownTypes.remove(type);
+						showTypeToggleMenu();
+					}
+				};
+			}
+			else {
+				is.setDurability((short) 1); //red
+				ISUtils.addLore(is, ChatColor.RED + "Currently hiding " + type.getName() + "Click to show");
+				if (!gm.hasAccess(g, p.getUniqueId(), type.getListPermissionType())) {
+					ISUtils.addLore(is, ChatColor.RED + "You dont have permission to list members of " + type.getName());
+					typeClick = new DecorationStack(is);
+				}
+				else {
+					typeClick = new Clickable(is) {
+						
+						@Override
+						public void clicked(Player arg0) {
+							shownTypes.add(type);
+							showTypeToggleMenu();
+						}
+					};
+				}
+			}
+			clicks.add(typeClick);
+		}
+		MultiPageView view = new MultiPageView(p, clicks, g.getName(), true);
+		//button to toggle all types
+		ItemStack toggleAll = new ItemStack(Material.INK_SACK);
+		ISUtils.setName(toggleAll, "Toggle all types");
+		ISUtils.addLore(toggleAll, ChatColor.GOLD + "Hide all currently shown types and show all currently hidden types");
+		view.setMenuSlot(new Clickable(toggleAll) {
+			
+			@Override
+			public void clicked(Player arg0) {
+				for(PlayerType type : g.getPlayerTypeHandler().getAllTypes()) {
+					if (shownTypes.contains(type)) {
+						shownTypes.remove(type);
+					}
+					else {
+						if (gm.hasAccess(g, p.getUniqueId(), type.getListPermissionType())) {
+							shownTypes.add(type);
+						}
+					}
+				}	
+				showTypeToggleMenu();
+			}
+		}, 0);
+		//button to toggle all on
+		ItemStack toggleOn = new ItemStack(Material.INK_SACK);
+		toggleOn.setDurability((short) 10); //green
+		ISUtils.setName(toggleOn, "Show all player types");
+		ISUtils.addLore(toggleOn, ChatColor.GOLD + "Show all player types for which you have permission to list members");
+		view.setMenuSlot(new Clickable(toggleOn) {
+			
+			@Override
+			public void clicked(Player arg0) {
+				for(PlayerType type : g.getPlayerTypeHandler().getAllTypes()) {
+					if (!shownTypes.contains(type) && gm.hasAccess(g, p.getUniqueId(), type.getListPermissionType())) {
+						shownTypes.add(type);
+					}
+				}
+				showTypeToggleMenu();
+			}
+		}, 1);
+		
+		//button to toggle all off
+		ItemStack toggleOff = new ItemStack(Material.INK_SACK);
+		toggleOff.setDurability((short) 1);  //red
+		ISUtils.setName(toggleOff, "Hide all player types");
+		ISUtils.addLore(toggleOff, ChatColor.GOLD + "Hide all player types");
+		view.setMenuSlot(new Clickable(toggleOff) {
+			
+			@Override
+			public void clicked(Player arg0) {
+				shownTypes.clear();
+				showTypeToggleMenu();
+			}
+		}, 2);
+		
+		//back button
+		ItemStack backToOverview = new ItemStack(Material.WOOD_DOOR);
+		ISUtils.setName(backToOverview, ChatColor.GOLD + "Back to overview");
+		ISUtils.setLore(backToOverview, ChatColor.GOLD + "Click to go back to the general group menu");
+		view.setMenuSlot(new Clickable(backToOverview) {
+
+			@Override
+			public void clicked(Player arg0) {
+				showScreen();
+			}
+		}, 3);
+		ItemStack showInviteStack = MenuUtils.toggleButton(showInvites, ChatColor.GOLD + "Show invited players", true);
+		view.setMenuSlot(new Clickable(showInviteStack) {
+			
+			@Override
+			public void clicked(Player arg0) {
+				showInvites = !showInvites;
+				showTypeToggleMenu();
+			}
+		}, 4);
+		view.showScreen();
 	}
 }

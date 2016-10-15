@@ -50,7 +50,7 @@ public class AdminFunctionsGUI extends AbstractGroupGUI {
 					+ "You don't have permission to do this");
 			mergeClick = new DecorationStack(mergeStack);
 		}
-		ci.setSlot(mergeClick, 12);
+		ci.setSlot(mergeClick, 10);
 		// transferring group
 		ItemStack transferStack = new ItemStack(Material.PACKED_ICE);
 		ISUtils.setName(transferStack, ChatColor.GOLD
@@ -68,7 +68,7 @@ public class AdminFunctionsGUI extends AbstractGroupGUI {
 					+ "You don't have permission to do this");
 			transferClick = new DecorationStack(transferStack);
 		}
-		ci.setSlot(transferClick, 14);
+		ci.setSlot(transferClick, 13);
 		// deleting group
 		ItemStack deletionStack = new ItemStack(Material.BARRIER);
 		ISUtils.setName(deletionStack, ChatColor.GOLD + "Delete group");

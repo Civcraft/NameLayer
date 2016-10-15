@@ -111,6 +111,6 @@ public class CreateGroup extends PlayerCommand {
 				invalidChars = true;
 			}
 		}
-		return invalidChars;
+		return !invalidChars;
 	}
 }

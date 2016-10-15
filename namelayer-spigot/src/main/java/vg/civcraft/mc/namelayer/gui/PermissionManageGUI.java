@@ -259,47 +259,49 @@ public class PermissionManageGUI extends AbstractGroupGUI {
 									+ "You can't delete this type, because the sub type " + child.getName()
 									+ " still has members");
 							deleteClick = new DecorationStack(deleteStack);
-						} else {
-							ISUtils.addLore(deleteStack, ChatColor.GREEN + "Click to delete " + type.getName()
-									+ " and all of it's sub ranks");
-							deleteClick = new Clickable(deleteStack) {
-
-								@Override
-								public void clicked(Player p) {
-									if (!gm.hasAccess(g, p.getUniqueId(),
-											PermissionType.getPermission("DELETE_PLAYERTYPE"))) {
-										p.sendMessage(ChatColor.RED
-												+ "You don't have the required permissions to do this");
-										showDetail(type);
-										return;
-									}
-									if (g.getAllTrackedByType(type).size() != 0) {
-										p.sendMessage(ChatColor.RED
-												+ "You can't delete this type, because it still has members");
-										showDetail(type);
-										return;
-									}
-									List<PlayerType> children = type.getChildren(true);
-									for (PlayerType child : children) {
-										if (g.getAllTrackedByType(child).size() != 0) {
-											p.sendMessage(ChatColor.RED
-													+ "You can't delete this type, because the sub type "
-													+ child.getName() + " still has members");
-											showDetail(type);
-											return;
-										}
-									}
-									if (type == handler.getDefaultNonMemberType() || type == handler.getOwnerType()) {
-										p.sendMessage(ChatColor.RED + "You can't delete this type");
-										showDetail(type);
-										return;
-									}
-									handler.deleteType(type, true);
-									p.sendMessage(ChatColor.GREEN + "The type " + type.getName() + " was deleted from "
-											+ g.getName());
-								}
-							};
+							break;
 						}
+					}
+					if (deleteClick == null) {
+						ISUtils.addLore(deleteStack, ChatColor.GREEN + "Click to delete " + type.getName()
+								+ " and all of it's sub ranks");
+						deleteClick = new Clickable(deleteStack) {
+								@Override
+							public void clicked(Player p) {
+								if (!gm.hasAccess(g, p.getUniqueId(),
+										PermissionType.getPermission("DELETE_PLAYERTYPE"))) {
+									p.sendMessage(ChatColor.RED
+											+ "You don't have the required permissions to do this");
+									showDetail(type);
+									return;
+								}
+								if (g.getAllTrackedByType(type).size() != 0) {
+									p.sendMessage(ChatColor.RED
+											+ "You can't delete this type, because it still has members");
+									showDetail(type);
+									return;
+								}
+								List<PlayerType> children = type.getChildren(true);
+								for (PlayerType child : children) {
+									if (g.getAllTrackedByType(child).size() != 0) {
+										p.sendMessage(ChatColor.RED
+												+ "You can't delete this type, because the sub type "
+												+ child.getName() + " still has members");
+										showDetail(type);
+										return;
+									}
+								}
+								if (type == handler.getDefaultNonMemberType() || type == handler.getOwnerType()) {
+									p.sendMessage(ChatColor.RED + "You can't delete this type");
+									showDetail(type);
+									return;
+								}
+								handler.deleteType(type, true);
+								p.sendMessage(ChatColor.GREEN + "The type " + type.getName() + " was deleted from "
+										+ g.getName());
+								showScreen();
+							}
+						};
 					}
 				}
 			}
@@ -311,7 +313,7 @@ public class PermissionManageGUI extends AbstractGroupGUI {
 
 			@Override
 			public void clicked(Player arg0) {
-				parent.showScreen();
+				showScreen();
 			}
 		}, 22);
 		ci.showInventory(p);

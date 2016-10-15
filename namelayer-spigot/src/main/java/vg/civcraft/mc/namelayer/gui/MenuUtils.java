@@ -53,17 +53,17 @@ public class MenuUtils {
 		}
 		if (id < 64) {
 			ItemStack is = new ItemStack(Material.CARPET);
-			is.setDurability((short) (id - 64));
+			is.setDurability((short) (id - 48));
 			return is;
 		}
 		if (id < 80) {
 			ItemStack is = new ItemStack(Material.BANNER);
-			is.setDurability((short) (id - 80));
+			is.setDurability((short) (id - 64));
 			return is;
 		}
 		if (id < 96) {
 			ItemStack is = new ItemStack(Material.INK_SACK);
-			is.setDurability((short) (id - 96));
+			is.setDurability((short) (id - 80));
 			return is;
 		}
 		return new ItemStack(Material.OBSIDIAN);
