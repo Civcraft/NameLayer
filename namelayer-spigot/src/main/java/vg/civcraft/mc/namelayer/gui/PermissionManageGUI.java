@@ -157,7 +157,7 @@ public class PermissionManageGUI extends AbstractGroupGUI {
 		ci.setSlot(c, 12);
 		// add child
 		ItemStack childStack = new ItemStack(Material.APPLE);
-		ISUtils.addLore(childStack, ChatColor.GOLD + "Add child rank below " + type.getName());
+		ISUtils.setName(childStack, ChatColor.GOLD + "Add child rank below " + type.getName());
 		if (type.getChildren(false).size() != 0) {
 			ISUtils.addLore(childStack, ChatColor.AQUA + "Current children:");
 			for (PlayerType child : type.getChildren(false)) {
@@ -330,6 +330,7 @@ public class PermissionManageGUI extends AbstractGroupGUI {
 		}
 		final List<IClickable> clicks = new ArrayList<IClickable>();
 		boolean canEdit = gm.hasAccess(g, p.getUniqueId(), PermissionType.getPermission("PERMS"));
+		PlayerTypeHandler handler = g.getPlayerTypeHandler();
 		for (final PermissionType perm : PermissionType.getAllPermissions()) {
 			ItemStack is;
 			Clickable c;
@@ -348,6 +349,54 @@ public class PermissionManageGUI extends AbstractGroupGUI {
 			String desc = perm.getDescription();
 			if (desc != null) {
 				ISUtils.addLore(is, ChatColor.GREEN + desc);
+			}
+			int id = PermissionType.getListPermissionId(perm);
+			if (id != -1) {
+				PlayerType listType = handler.getType(id);
+				if (listType != null) {
+					ISUtils.setName(is, "List " + listType.getName());
+					ISUtils.addLore(is, ChatColor.GREEN + "Allows listing the members of the player type " + listType.getName());
+				}
+				else {
+					continue;
+				}
+			}
+			else {
+				id = PermissionType.getRemovePermissionId(perm);
+				if (id != -1) {
+					PlayerType remType = handler.getType(id);
+					if (remType != null) {
+						ISUtils.setName(is, "Remove " + remType.getName());
+						if (handler.isBlackListedType(remType)) {
+							ISUtils.addLore(is, ChatColor.GREEN + "Allows removing players from the blacklist player type " + remType.getName());
+						}
+						else {
+							ISUtils.addLore(is, ChatColor.GREEN + "Allows kicking members with the player type " + remType.getName());
+						}
+					}
+					else {
+						continue;
+					}
+				}
+				else {
+					id = PermissionType.getInvitePermissionId(perm);
+					if (id != -1) {
+						PlayerType invType = handler.getType(id);
+						if (invType != null) {
+							if (handler.isBlackListedType(invType)) {
+								ISUtils.setName(is, "Blacklist " + invType.getName());
+								ISUtils.addLore(is, ChatColor.GREEN + "Allows blacklisting to the player type " + invType.getName());
+							}
+							else {
+								ISUtils.setName(is, "Invite " + invType.getName());
+								ISUtils.addLore(is, ChatColor.GREEN + "Allows inviting members to the player type " + invType.getName());
+							}
+						}
+						else {
+							continue;
+						}
+					}
+				}
 			}
 			if (canEdit) {
 				ISUtils.addLore(is, ChatColor.AQUA + "Click to toggle");

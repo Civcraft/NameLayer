@@ -19,6 +19,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
+import org.bukkit.inventory.meta.SkullMeta;
 
 import vg.civcraft.mc.civmodcore.chatDialog.Dialog;
 import vg.civcraft.mc.civmodcore.inventorygui.Clickable;
@@ -151,8 +152,11 @@ public class MainGroupGUI extends AbstractGroupGUI {
 			boolean blackListed = handler.isBlackListedType(type);
 			boolean hasPerm = gm.hasAccess(g, p.getUniqueId(), type.getRemovalPermissionType());
 			for (final UUID uuid : g.getAllTrackedByType(type)) {
-				ItemStack is = example.clone();
 				String name = NameAPI.getCurrentName(uuid);
+				ItemStack is = new ItemStack(Material.SKULL_ITEM, 1, (short) 3);
+				SkullMeta meta = (SkullMeta) is.getItemMeta();
+				meta.setOwner(NameAPI.getMojangName(uuid));
+				is.setItemMeta(meta);
 				ISUtils.setName(is, ChatColor.GOLD + name);
 				if (g.isOwner(uuid)) {
 					ISUtils.addLore(is, ChatColor.AQUA + "Rank: Primary owner");

@@ -5,7 +5,9 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -21,6 +23,7 @@ public class AssociationList {
 	private static final String getPlayerfromUUID = "select player from Name_player where uuid=?";
 	private static final String changePlayerName = "delete from Name_player where uuid=?";
 	private static final String getAllPlayerInfo = "select * from Name_player";
+	private static final String updateMojangName = "update Name_player set mojangName = ? where uuid = ?;";
 	
 	public AssociationList(Logger logger, ManagedDatasource db){
 		this.db = db;
@@ -83,6 +86,9 @@ public class AssociationList {
 					+ "END LOOP setName;"
 					+ "end if;"
 					+ "end");
+		db.registerMigration(18, false, 
+				"alter table Name_player add column mojangName varchar(16) default null;"
+				);
 		// For future migrations, check the max migrations that is combination of here and
 		// GroupManagerDao!
 	}
@@ -159,6 +165,17 @@ public class AssociationList {
 		addPlayer(newName, uuid);
 	}
 	
+	public void updateMojangName(String mojangName, UUID uuid) {
+		try (Connection connection = db.getConnection();
+				PreparedStatement changePlayerName = connection.prepareStatement(AssociationList.updateMojangName);) {
+			changePlayerName.setString(1, mojangName);
+			changePlayerName.setString(2, uuid.toString());
+			changePlayerName.execute();
+		} catch (SQLException e) {
+			logger.log(Level.WARNING, "Failed to update mojang name for " + uuid + " to " + mojangName, e);
+		}
+	}
+	
 	/**
 	 * This method returns all player info in the table.  It is used mainly
 	 * by NameAPI class to prepopulate the maps.  
@@ -168,27 +185,40 @@ public class AssociationList {
 	public PlayerMappingInfo getAllPlayerInfo(){
 		Map<String, UUID> nameMapping = new HashMap<String, UUID>();
 		Map<UUID, String> uuidMapping = new HashMap<UUID, String>();
+		Map<UUID, String> mojangNames = new HashMap<UUID, String>();
+		Set <UUID> unknownMojangNames = new HashSet<UUID>();
 		try (Connection connection = db.getConnection();
 				PreparedStatement getAllPlayerInfo = connection.prepareStatement(AssociationList.getAllPlayerInfo);
 				ResultSet set = getAllPlayerInfo.executeQuery();) {
 			while (set.next()){
 				UUID uuid = UUID.fromString(set.getString("uuid"));
 				String playername = set.getString("player");
+				String mojangName = set.getString("mojangName");
 				nameMapping.put(playername, uuid);
 				uuidMapping.put(uuid, playername);
+				if (mojangName != null) {
+					mojangNames.put(uuid, mojangName);
+				}
+				else {
+					unknownMojangNames.add(uuid);
+				}
 			}
 		} catch (SQLException e) {
 			logger.log(Level.WARNING, "Failed to get all player info", e);
 		}
-		return new PlayerMappingInfo(nameMapping, uuidMapping);
+		return new PlayerMappingInfo(nameMapping, uuidMapping, mojangNames, unknownMojangNames);
 	}
 
 	public static class PlayerMappingInfo {
 		public final Map<String, UUID> nameMapping;
 		public final Map<UUID, String> uuidMapping;
-		public PlayerMappingInfo(Map<String, UUID> nameMap, Map<UUID, String> uuidMap) {
+		public final Map<UUID, String> mojangName;
+		public final Set <UUID> unknownNames;
+		public PlayerMappingInfo(Map<String, UUID> nameMap, Map<UUID, String> uuidMap, Map<UUID, String> mojangName, Set <UUID> unknownNames) {
 			this.nameMapping = nameMap;
 			this.uuidMapping = uuidMap;
+			this.mojangName = mojangName;
+			this.unknownNames = unknownNames;
 		}
 	}
 }

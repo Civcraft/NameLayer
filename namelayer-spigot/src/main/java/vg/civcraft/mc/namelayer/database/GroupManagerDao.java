@@ -1867,7 +1867,7 @@ public class GroupManagerDao {
 					g.getPlayerTypeHandler().getType(rankId).addPermission(perm, false);
 				}
 				else {
-					logger.log(Level.WARNING, "Could not load permission with id " + permId);
+					//logger.log(Level.WARNING, "Could not load permission with id " + permId);
 				}
 			}
 		} catch (SQLException e) {
