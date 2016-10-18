@@ -3,9 +3,11 @@ package vg.civcraft.mc.namelayer;
 import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.logging.Level;
 
@@ -255,6 +257,17 @@ public class GroupManager{
 			NameLayerPlugin.getInstance().getLogger().log(Level.INFO, "Group merge failed, can't merge the same group into itself", new Exception());
 			return;
 		}
+		Set <String> playerTypesAfterMerge = new HashSet<String>();
+		for(PlayerType type : group.getPlayerTypeHandler().getAllTypes()) {
+			playerTypesAfterMerge.add(type.getName().toLowerCase());
+		}
+		for(PlayerType type : toMerge.getPlayerTypeHandler().getAllTypes()) {
+			playerTypesAfterMerge.add(type.getName().toLowerCase());
+		}
+		if (playerTypesAfterMerge.size() > PlayerTypeHandler.getMaximumTypeCount()) {
+			NameLayerPlugin.getInstance().info("Group merge failed for groups: " +
+					group.getName() + " and " + toMerge.getName() + ". Merge would exceed maximum player type count");
+		}
 		GroupMergeEvent event = new GroupMergeEvent(group, toMerge, false);
 		Bukkit.getPluginManager().callEvent(event);
 		if (event.isCancelled()){
@@ -264,6 +277,50 @@ public class GroupManager{
 		}
 		group.setDisciplined(true, false);
 		toMerge.setDisciplined(true, false);
+		//owners always become owners, unless they already have another rank
+		for(UUID uuid : toMerge.getAllTrackedByType(toMerge.getPlayerTypeHandler().getOwnerType())) {
+			if (!group.isTracked(uuid)) {
+				group.addToTracking(uuid, group.getPlayerTypeHandler().getOwnerType(), savetodb);
+			}
+		}
+		
+		
+		for(PlayerType type : toMerge.getPlayerTypeHandler().getAllTypes()) {
+			if (type == toMerge.getPlayerTypeHandler().getOwnerType()) {
+				continue;
+			}
+			PlayerType existingType = group.getPlayerTypeHandler().getType(type.getName());
+			if (existingType != null) {
+				//a type with the same name exists, so we transfer all players over to this same type
+				for(UUID uuid : toMerge.getAllTrackedByType(type)) {
+					if (!group.isTracked(uuid)) {
+						group.addToTracking(uuid, existingType, savetodb);
+					}
+				}
+			}
+			else {
+				//this type doesnt exist, so we copy it over
+				PlayerType parent;
+				if (toMerge.getPlayerTypeHandler().isBlackListedType(type)) {
+					parent = toMerge.getPlayerTypeHandler().getDefaultNonMemberType();
+				}
+				else {
+					parent = toMerge.getPlayerTypeHandler().getOwnerType();
+				}
+				int id = toMerge.getPlayerTypeHandler().getUnusedId();
+				if (id == -1) {
+					//something went very wrong
+					NameLayerPlugin.getInstance().getLogger().log(Level.INFO, "Group merge failed, could not retrieve id for new player type");
+					continue;
+				}
+				//create a copy of the player type and transfer members over
+				PlayerType copy = new PlayerType(type.getName(), id, parent, type.getAllPermissions(), group);
+				group.getPlayerTypeHandler().registerType(copy, savetodb);
+				for(UUID uuid : toMerge.getAllTrackedByType(type)) {
+					group.addToTracking(uuid, copy, savetodb);
+				}
+			}
+		}
 		
 		if (savetodb){
 			MercuryManager.mergeGroup(group.getName(), toMerge.getName());
