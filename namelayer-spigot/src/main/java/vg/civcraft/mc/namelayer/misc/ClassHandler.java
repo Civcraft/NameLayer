@@ -28,10 +28,10 @@ public class ClassHandler {
 	}
 
 	public ProfileInterface getProfileClass() {
-		return (ProfileInterface) getObject(ProfileInterface.class, "ProfileModifier");
+		return (ProfileInterface) getObject("ProfileModifier");
 	}
 
-	private Object getObject(Class<? extends Object> Class, String name) {
+	private Object getObject(String name) {
 		try {
 			Class<?> internalClass = Class.forName("vg.civcraft.mc.namelayer.misc." + ch.version + "." + name);
 			if (internalClass.isAssignableFrom(internalClass))

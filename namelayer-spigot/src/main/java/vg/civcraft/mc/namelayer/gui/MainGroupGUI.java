@@ -148,7 +148,6 @@ public class MainGroupGUI extends AbstractGroupGUI {
 			if (!shownTypes.contains(type)) {
 				continue;
 			}
-			ItemStack example = MenuUtils.getHashedItem(type.getName().hashCode());
 			boolean blackListed = handler.isBlackListedType(type);
 			boolean hasPerm = gm.hasAccess(g, p.getUniqueId(), type.getRemovalPermissionType());
 			for (final UUID uuid : g.getAllTrackedByType(type)) {
