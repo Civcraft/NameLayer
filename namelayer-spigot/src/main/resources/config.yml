@@ -1,9 +1,9 @@
 sql:
-  hostname: {{ central_db_location }}
+  hostname: localhost
   port: 3306
-  dbname: {{ central_db_name }}
-  username: {{ central_db_user }}
-  password: {{ mysql_non_root_pass }}
+  dbname: namelayer
+  username: 'mc_namelayer'
+  password: 'minecraft'
   poolsize: 10
   connection_timeout: 10000
   idle_timeout: 600000
