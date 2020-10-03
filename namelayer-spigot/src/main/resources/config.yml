@@ -1,13 +1,13 @@
-sql:
-  hostname: localhost
-  port: 3306
-  dbname: namelayer
-  username: 'mc_namelayer'
-  password: 'minecraft'
-  poolsize: 10
-  connection_timeout: 10000
-  idle_timeout: 600000
-  max_lifetime: 7200000
+#sql:
+#  hostname: localhost
+#  port: 3306
+#  dbname: namelayer
+#  username: 'mc_namelayer'
+#  password: 'minecraft'
+#  poolsize: 10
+#  connection_timeout: 10000
+#  idle_timeout: 600000
+#  max_lifetime: 7200000
 groups:
   enable: true
   grouplimit: 25
